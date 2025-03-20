@@ -1,11 +1,14 @@
-package com.example.easymrcp.mrcp;
+package com.example.easymrcp.rtp;
+
+import lombok.Data;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 
+@Data
 public class RtpReceiver {
+    private String channelId;
     private static final int RTP_PORT = 5004; // RTP默认端口
     private static final int BUFFER_SIZE = 4096;
 
@@ -13,6 +16,10 @@ public class RtpReceiver {
 
                 receive();
 
+    }
+
+    public void close() {
+        System.out.println("RtpReceiver close");
     }
 
     private void receive() {

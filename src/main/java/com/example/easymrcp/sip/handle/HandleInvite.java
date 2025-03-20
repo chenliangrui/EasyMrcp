@@ -12,11 +12,6 @@ import org.springframework.stereotype.Service;
 
 import javax.sdp.*;
 import javax.sip.*;
-import javax.sip.address.Address;
-import javax.sip.address.AddressFactory;
-import javax.sip.address.SipURI;
-import javax.sip.header.ContactHeader;
-import javax.sip.header.HeaderFactory;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -32,7 +27,7 @@ public class HandleInvite {
     @Autowired
     HandleReceiver handleReceiver;
     @Autowired
-    HandleBye handleBye;
+    HandleOk handleBye;
 
     private long _channelID = System.currentTimeMillis();
 

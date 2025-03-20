@@ -2,7 +2,9 @@ package com.example.easymrcp.sip.handle;
 
 import com.example.easymrcp.common.SipContext;
 import com.example.easymrcp.mrcp.MrcpRecogChannel;
-import com.example.easymrcp.mrcp.RtpReceiver;
+import com.example.easymrcp.rtp.RtpReceiver;
+import com.example.easymrcp.rtp.RtpManage;
+import com.example.easymrcp.rtp.RtpSession;
 import com.example.easymrcp.sdp.SdpMessage;
 import com.example.easymrcp.sip.MrcpServer;
 import com.example.easymrcp.sip.SipSession;
@@ -14,8 +16,6 @@ import org.springframework.stereotype.Service;
 
 import javax.sdp.MediaDescription;
 import javax.sdp.SdpException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -28,9 +28,12 @@ public class HandleReceiver {
     MrcpServer mrcpServer;
     @Autowired
     MrcpRecogChannel mrcpRecogChannel;
+    @Autowired
+    RtpManage rtpManage;
 
     public SdpMessage invite(SdpMessage sdpMessage, SipSession session) {
         String dialogId = session.getDialog().getDialogId();
+        RtpSession rtpSession = new RtpSession(dialogId);
         log.info("description: " + sdpMessage.getSessionDescription());
         try {
             List<MediaDescription> channels = sdpMessage.getMrcpReceiverChannels();
@@ -68,7 +71,9 @@ public class HandleReceiver {
                             //TODO 判断使用哪些协议
                             //TODO 创建RTP通道
                             RtpReceiver rtp = new RtpReceiver();
+                            rtp.setChannelId(channelID);
                             rtp.run();
+                            rtpSession.addChannel(channelID, rtp);
                             rtpmd.get(0).getMedia().setMediaPort(5004);
                             //修改sdp收发问题
                             for (Object attribute : rtpmd.get(0).getAttributes(true)) {
@@ -83,6 +88,7 @@ public class HandleReceiver {
         } catch (SdpException e) {
             throw new RuntimeException(e);
         }
+        rtpManage.addRtpSession(dialogId, rtpSession);
         return sdpMessage;
     }
 }

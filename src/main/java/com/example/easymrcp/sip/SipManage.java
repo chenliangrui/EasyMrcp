@@ -21,4 +21,12 @@ public class SipManage {
             sipSessions.put(sipSession.getDialog().getDialogId(), sipSession);
         }
     }
+
+    public SipSession getSipSession(String dialogId) {
+        return sipSessions.get(dialogId);
+    }
+
+    public void removeSipSession(String dialogId) {
+        sipSessions.remove(dialogId);
+    }
 }

@@ -1,69 +1,74 @@
 package com.example.easymrcp.sip.handle;
 
 import com.example.easymrcp.common.SipContext;
-import com.example.easymrcp.sdp.SdpMessage;
+import com.example.easymrcp.rtp.RtpManage;
+import com.example.easymrcp.rtp.RtpReceiver;
+import com.example.easymrcp.rtp.RtpSession;
+import com.example.easymrcp.sip.MrcpServer;
+import com.example.easymrcp.sip.SipManage;
 import com.example.easymrcp.sip.SipSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.sip.InvalidArgumentException;
-import javax.sip.ServerTransaction;
-import javax.sip.SipException;
-import javax.sip.header.ContentTypeHeader;
-import javax.sip.header.ToHeader;
+import javax.sip.*;
+import javax.sip.message.Request;
 import javax.sip.message.Response;
+import java.rmi.RemoteException;
 import java.text.ParseException;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 public class HandleBye {
     @Autowired
     SipContext sipContext;
+    @Autowired
+    SipManage sipManage;
+    @Autowired
+    RtpManage rtpManage;
+    @Autowired
+    MrcpServer mrcpServer;
 
-    public void sendResponse(SipSession session, SdpMessage sdpResponse) throws SipException {
-        // send the ok (assuming that the offer is accepted with the response in the sdpMessaage)
-        //TODO what if the offer is not accepted?  Do all non-ok response come thru the exception path?
-        Response okResponse = null;
-        try {
-            okResponse = sipContext.getMessageFactory().createResponse(Response.OK, session.getRequestEvent().getRequest());
-        } catch (ParseException e) {
-            log.warn("error creating OK response", e);
-            throw new SipException("error creating OK response", e);
+    public void processBye(RequestEvent requestEvent) {
+        Request request = requestEvent.getRequest();
+        ServerTransaction stx = requestEvent.getServerTransaction();
+        Dialog dialog = requestEvent.getDialog();
+        SipSession session = sipManage.getSipSession(dialog.getDialogId());
+
+        // TODO: check for any pending requests. The spec says that the
+        // "UAS MUST still respond to any pending requests received for that
+        // dialog. It is RECOMMENDED that a 487 (Request Terminated) response
+        // be generated to those pending requests."
+        if (session == null) {
+            log.info("Receieved a BYE for which there is no corresponding session.  SessionID: "+dialog.getDialogId());
+        } else {
+            try {
+                //process the invitaion (the resource manager processInviteRequest method)
+                bye(session.getDialog().getDialogId());
+                sipManage.removeSipSession(session.getDialog().getDialogId());
+                Response response = sipContext.getMessageFactory().createResponse(200, request);
+                sendResponse(stx, response);
+            } catch (ParseException e) {
+                log.error("Error parsing BYE request: {}", e.getMessage(), e);
+            } catch (SipException | RemoteException e) {
+                log.error("Error sending BYE response: {}", e.getMessage(), e);
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
         }
+    }
 
-        // Create a application/sdp ContentTypeHeader
-        ContentTypeHeader contentTypeHeader = null;
-        try {
-            contentTypeHeader = sipContext.getHeaderFactory().createContentTypeHeader("application", "sdp");
-        } catch (ParseException e) {
-            log.warn("error creating SDP header", e);
-            throw new SipException("error creating OK response", e);
+    public void bye(String sessionId) throws RemoteException {
+        RtpSession rtpSession = rtpManage.getRtpSession(sessionId);
+        Map<String, RtpReceiver> channelMaps = rtpSession.getChannelMaps();
+        for(RtpReceiver channel: channelMaps.values()) {
+            mrcpServer.getMrcpServerSocket().closeChannel(channel.getChannelId());
+            channel.close();
         }
-
-        // add the SDP response to the message
-        try {
-            okResponse.setContent(sdpResponse.getSessionDescription().toString(), contentTypeHeader);
-        } catch (ParseException e) {
-            log.warn("error setting SDP header in OK response", e);
-            throw new SipException("error creating OK response", e);
-        }
-
-        ToHeader toHeader = (ToHeader) okResponse.getHeader(ToHeader.NAME);
-        //toHeader.setTag(guid);
-
-        okResponse.addHeader(sipContext.getContactHeader());
-
-        // Now if there were no exceptions, we were able to process the invite
-        // request and we have a valid response to send back
-        // if there is an exception here, not much that can be done.
-        try {
-            sendResponse(session.getStx(), okResponse);
-        } catch (InvalidArgumentException e) {
-            log.error(e.getMessage(), e);
-            throw new SipException(e.getMessage(), e);
-        }
+        rtpManage.removeRtpSession(sessionId);
     }
 
     public static void sendResponse(ServerTransaction serverTransaction, Response response) throws SipException, InvalidArgumentException {
@@ -88,5 +93,4 @@ public class HandleBye {
         }
         serverTransaction.sendResponse(response);
     }
-
 }
