@@ -1,0 +1,23 @@
+package com.example.easymrcp.sip;
+
+import com.example.easymrcp.common.SipContext;
+import com.example.easymrcp.mrcp.MrcpServerSocket;
+import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+
+@Data
+@Service
+public class MrcpServer {
+    @Autowired
+    SipContext sipContext;
+    MrcpServerSocket mrcpServerSocket;
+
+    public MrcpServer(SipContext sipContext) throws IOException {
+        this.sipContext = sipContext;
+        mrcpServerSocket = new MrcpServerSocket(sipContext.getMrcpServerPort());
+    }
+
+}
