@@ -1,6 +1,7 @@
 package com.example.easymrcp.rtp;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import javax.sound.sampled.*;
 import java.io.*;
@@ -13,8 +14,8 @@ import java.nio.file.StandardOpenOption;
 import static com.example.easymrcp.rtp.RtpPacket.parseRtpHeader;
 
 @Data
-public class RtpReceiver {
-    private String channelId;
+@EqualsAndHashCode(callSuper = true)
+public class RtpReceiver extends RtpConnection {
     private static final int RTP_PORT = 5004; // RTP默认端口
     private static final int BUFFER_SIZE = 4096000;
 //    File outputFile = new File("D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.pcm");
@@ -30,11 +31,13 @@ public class RtpReceiver {
         receive();
     }
 
+    @Override
     public void close() {
         // 保存录音到文件
         socket.close();
         System.out.println("RtpReceiver close");
 
+        // 播放测试
         byte[] bytes = decodeG711U(audioBuffer.toByteArray());
         // 配置音频格式（G.711U的PCM参数）
         AudioFormat audioFormat = new AudioFormat(

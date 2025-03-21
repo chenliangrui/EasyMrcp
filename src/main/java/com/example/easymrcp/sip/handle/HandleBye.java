@@ -1,6 +1,7 @@
 package com.example.easymrcp.sip.handle;
 
 import com.example.easymrcp.common.SipContext;
+import com.example.easymrcp.rtp.RtpConnection;
 import com.example.easymrcp.rtp.RtpManage;
 import com.example.easymrcp.rtp.RtpReceiver;
 import com.example.easymrcp.rtp.RtpSession;
@@ -63,8 +64,8 @@ public class HandleBye {
 
     public void bye(String sessionId) throws RemoteException {
         RtpSession rtpSession = rtpManage.getRtpSession(sessionId);
-        Map<String, RtpReceiver> channelMaps = rtpSession.getChannelMaps();
-        for(RtpReceiver channel: channelMaps.values()) {
+        Map<String, RtpConnection> channelMaps = rtpSession.getChannelMaps();
+        for(RtpConnection channel: channelMaps.values()) {
             mrcpServer.getMrcpServerSocket().closeChannel(channel.getChannelId());
             channel.close();
         }

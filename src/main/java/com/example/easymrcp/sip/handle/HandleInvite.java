@@ -27,6 +27,8 @@ public class HandleInvite {
     @Autowired
     HandleReceiver handleReceiver;
     @Autowired
+    HandleTransmitter handleTransmitter;
+    @Autowired
     HandleOk handleBye;
 
     private long _channelID = System.currentTimeMillis();
@@ -121,6 +123,9 @@ public class HandleInvite {
             }
         } catch (SdpException e) {
             log.warn(e.getMessage(), e);
+        }
+        if (transmitter) {
+            sdpMessage = handleTransmitter.invite(sdpMessage, session);
         }
         if (receiver) {
             sdpMessage = handleReceiver.invite(sdpMessage, session);

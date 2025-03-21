@@ -11,14 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Data
 public class RtpSession {
     private String id;
-    private Map<String, RtpReceiver> channelMaps;
+    private Map<String, RtpConnection> channelMaps;
 
     public RtpSession(String dialogId) {
         this.id = dialogId;
         this.channelMaps = new ConcurrentHashMap<>();
     }
 
-    public void addChannel(String channelId, RtpReceiver rtpReceiver) {
-        channelMaps.put(channelId, rtpReceiver);
+    public void addChannel(String channelId, RtpConnection rtpConnection) {
+        channelMaps.put(channelId, rtpConnection);
     }
 }

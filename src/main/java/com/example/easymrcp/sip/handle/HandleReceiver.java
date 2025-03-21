@@ -8,6 +8,7 @@ import com.example.easymrcp.rtp.RtpSession;
 import com.example.easymrcp.sdp.SdpMessage;
 import com.example.easymrcp.sip.MrcpServer;
 import com.example.easymrcp.sip.SipSession;
+import com.example.easymrcp.utils.SipUtils;
 import gov.nist.javax.sdp.fields.AttributeField;
 import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpResourceType;
@@ -30,6 +31,8 @@ public class HandleReceiver {
     MrcpRecogChannel mrcpRecogChannel;
     @Autowired
     RtpManage rtpManage;
+    @Autowired
+    SipUtils sipUtils;
 
     public SdpMessage invite(SdpMessage sdpMessage, SipSession session) {
         String dialogId = session.getDialog().getDialogId();
@@ -37,7 +40,6 @@ public class HandleReceiver {
         log.info("description: " + sdpMessage.getSessionDescription());
         try {
             List<MediaDescription> channels = sdpMessage.getMrcpReceiverChannels();
-            Vector formatsInRequest = null;
             if (channels.size() > 0) {
                 for(MediaDescription md: channels) {
                     String channelID = md.getAttribute(SdpMessage.SDP_CHANNEL_ATTR_NAME);
@@ -55,15 +57,8 @@ public class HandleReceiver {
                     switch (resourceType) {
                         case SPEECHRECOG:
                             rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
-                            formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
-                            // 工具类
-                            Vector<String> useProtocol = new Vector<>();
-                            for (String supportProtocol : sipContext.getSupportProtocols()) {
-                                if (formatsInRequest.contains(supportProtocol)) {
-                                    useProtocol.add(supportProtocol);
-                                    break;
-                                }
-                            }
+                            Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
+                            Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
                             //TODO 开启mrcp通道
                             mrcpServer.getMrcpServerSocket().openChannel(channelID, mrcpRecogChannel);
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
