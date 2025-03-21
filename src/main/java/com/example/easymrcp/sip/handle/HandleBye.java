@@ -2,8 +2,7 @@ package com.example.easymrcp.sip.handle;
 
 import com.example.easymrcp.common.SipContext;
 import com.example.easymrcp.rtp.RtpConnection;
-import com.example.easymrcp.rtp.RtpManage;
-import com.example.easymrcp.rtp.RtpReceiver;
+import com.example.easymrcp.rtp.SipRtpManage;
 import com.example.easymrcp.rtp.RtpSession;
 import com.example.easymrcp.sip.MrcpServer;
 import com.example.easymrcp.sip.SipManage;
@@ -19,7 +18,6 @@ import java.rmi.RemoteException;
 import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -29,7 +27,7 @@ public class HandleBye {
     @Autowired
     SipManage sipManage;
     @Autowired
-    RtpManage rtpManage;
+    SipRtpManage rtpManage;
     @Autowired
     MrcpServer mrcpServer;
 

@@ -1,5 +1,6 @@
 package com.example.easymrcp.rtp;
 
+import com.example.easymrcp.asr.AsrHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -7,35 +8,26 @@ import javax.sound.sampled.*;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 
 import static com.example.easymrcp.rtp.RtpPacket.parseRtpHeader;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RtpReceiver extends RtpConnection {
+public class FunAsrProcessor extends AsrHandler {
     private static final int RTP_PORT = 5004; // RTP默认端口
-    private static final int BUFFER_SIZE = 4096000;
+    private static final int BUFFER_SIZE = 4096;
 //    File outputFile = new File("D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.pcm");
     byte[] buffer = new byte[BUFFER_SIZE];
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    DatagramSocket socket;
+    private DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+    private DatagramSocket socket;
 
-    private FileOutputStream wavFile;
-    String outputPath = "D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.wav";
     private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
-
-    public void run() {
-        receive();
-    }
 
     @Override
     public void close() {
         // 保存录音到文件
         socket.close();
-        System.out.println("RtpReceiver close");
+        System.out.println("FunAsrProcessor close");
 
         // 播放测试
         byte[] bytes = decodeG711U(audioBuffer.toByteArray());
@@ -57,10 +49,13 @@ public class RtpReceiver extends RtpConnection {
         }
     }
 
-    private void receive() {
+    @Override
+    public String complete() {
+        return "完成";
+    }
+
+    public void receive() {
         try {
-            // 创建文件输出流（首次写入WAV头）
-            wavFile = new FileOutputStream(outputPath);
             socket = new DatagramSocket(RTP_PORT);
             new Thread(new Runnable() {
                 @Override

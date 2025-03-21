@@ -4,8 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class RtpTransmitter extends RtpConnection{
+public class RtpTransmitter implements RtpConnection{
     @Override
     public void close() {
 

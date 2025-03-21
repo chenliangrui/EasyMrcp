@@ -2,9 +2,8 @@ package com.example.easymrcp.rtp;
 
 import lombok.Data;
 
-@Data
-public abstract class RtpConnection {
-    String channelId;
-
+public interface RtpConnection {
     public abstract void close();
+    String getChannelId();
+    void setChannelId(String channelId);
 }

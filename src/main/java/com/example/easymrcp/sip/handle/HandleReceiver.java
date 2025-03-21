@@ -1,9 +1,11 @@
 package com.example.easymrcp.sip.handle;
 
+import com.example.easymrcp.asr.AsrHandler;
+import com.example.easymrcp.common.AsrChose;
 import com.example.easymrcp.common.SipContext;
 import com.example.easymrcp.mrcp.MrcpRecogChannel;
-import com.example.easymrcp.rtp.RtpReceiver;
-import com.example.easymrcp.rtp.RtpManage;
+import com.example.easymrcp.rtp.FunAsrProcessor;
+import com.example.easymrcp.rtp.SipRtpManage;
 import com.example.easymrcp.rtp.RtpSession;
 import com.example.easymrcp.sdp.SdpMessage;
 import com.example.easymrcp.sip.MrcpServer;
@@ -28,9 +30,9 @@ public class HandleReceiver {
     @Autowired
     MrcpServer mrcpServer;
     @Autowired
-    MrcpRecogChannel mrcpRecogChannel;
+    SipRtpManage rtpManage;
     @Autowired
-    RtpManage rtpManage;
+    AsrChose asrChose;
     @Autowired
     SipUtils sipUtils;
 
@@ -59,16 +61,15 @@ public class HandleReceiver {
                             rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
                             Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
                             Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
-                            //TODO 开启mrcp通道
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, mrcpRecogChannel);
+                            // 开启rtp通道
+                            AsrHandler asrHandler = asrChose.returnAsrHandler();
+                            asrHandler.setChannelId(channelID);
+                            asrHandler.receive();
+                            rtpSession.addChannel(channelID, asrHandler);
+                            // 开启mrcp通道
+                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpRecogChannel(asrHandler));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
-                            //TODO 判断使用哪些协议
-                            //TODO 创建RTP通道
-                            RtpReceiver rtp = new RtpReceiver();
-                            rtp.setChannelId(channelID);
-                            rtp.run();
-                            rtpSession.addChannel(channelID, rtp);
                             rtpmd.get(0).getMedia().setMediaPort(5004);
                             //修改sdp收发问题
                             for (Object attribute : rtpmd.get(0).getAttributes(true)) {

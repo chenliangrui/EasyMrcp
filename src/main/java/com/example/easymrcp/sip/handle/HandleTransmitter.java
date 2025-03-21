@@ -16,7 +16,6 @@ import javax.sdp.MediaDescription;
 import javax.sdp.SdpException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -26,7 +25,7 @@ import java.util.Vector;
 public class HandleTransmitter {
 
     @Autowired
-    RtpManage rtpManage;
+    SipRtpManage rtpManage;
     @Autowired
     MrcpServer mrcpServer;
     @Autowired

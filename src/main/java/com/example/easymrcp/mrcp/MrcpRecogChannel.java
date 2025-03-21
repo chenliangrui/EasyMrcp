@@ -1,5 +1,6 @@
 package com.example.easymrcp.mrcp;
 
+import com.example.easymrcp.asr.AsrHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpEventName;
 import org.mrcp4j.MrcpRequestState;
@@ -12,15 +13,17 @@ import org.mrcp4j.message.request.StartInputTimersRequest;
 import org.mrcp4j.message.request.StopRequest;
 import org.mrcp4j.server.MrcpSession;
 import org.mrcp4j.server.provider.RecogOnlyRequestHandler;
-import org.springframework.stereotype.Component;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
-@Component
 public class MrcpRecogChannel implements RecogOnlyRequestHandler {
+    private AsrHandler asrHandler;
+
+    public MrcpRecogChannel(AsrHandler rtp) {
+        this.asrHandler = rtp;
+    }
+
     @Override
     public MrcpResponse defineGrammar(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
         log.info("MrcpRecogChannel.defineGrammar");
@@ -41,10 +44,11 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                     mrcpSession.postEvent(event);
                     // 模拟语音识别完成
                     Thread.sleep(30000);
+                    String complete = asrHandler.complete();
                     MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
                     CompletionCause completionCause = new CompletionCause((short) 0, "success");
                     eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
-                    eventComplete.setContent("text/plain", null, "你好");
+                    eventComplete.setContent("text/plain", null, complete);
                     mrcpSession.postEvent(eventComplete);
                 } catch (TimeoutException | InterruptedException e) {
                     throw new RuntimeException(e);
