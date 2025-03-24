@@ -20,10 +20,10 @@ import static com.example.easymrcp.rtp.RtpPacket.parseRtpHeader;
 @EqualsAndHashCode(callSuper = true)
 public class FunAsrProcessor extends AsrHandler {
     private static final int RTP_PORT = 5004; // RTP默认端口
-    private static final int BUFFER_SIZE = 4096;
-//    File outputFile = new File("D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.pcm");
+    private static final int BUFFER_SIZE = 172;
     byte[] buffer = new byte[BUFFER_SIZE];
-    private DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+//    File outputFile = new File("D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.pcm");
+
     private DatagramSocket socket;
 
     static String strChunkSize = "5,10,5";
@@ -60,7 +60,6 @@ public class FunAsrProcessor extends AsrHandler {
 //                false      // 小端字节序
 //        );
 //        try {
-//            funasrWsClient.recPcm(bytes);
 //            playPCM(bytes, audioFormat);
 //        } catch (LineUnavailableException e) {
 //            e.printStackTrace();
@@ -74,6 +73,7 @@ public class FunAsrProcessor extends AsrHandler {
                 @Override
                 public void run() {
                     while (true) {
+                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                         try {
                             socket.receive(packet); // 阻塞等待数据
                         } catch (IOException e) {
@@ -91,15 +91,16 @@ public class FunAsrProcessor extends AsrHandler {
                         // G.711u解码为PCM
 //                        short[] pcmData = G711uDecoder.decode(g711Data);
                         byte[] bytes = decodeG711U(g711Data);
+//                        denoise(bytes, 300);
                         funasrWsClient.recPcm(bytes);
 
                         // 保存到文件
                         // 写入音频数据
-                        try {
-                            audioBuffer.write(g711Data);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+//                        try {
+//                            audioBuffer.write(bytes);
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
                     }
                 }
             }).start();
@@ -131,6 +132,7 @@ public class FunAsrProcessor extends AsrHandler {
 
     // G.711U解码表（U-law转16位PCM）
     private static final short[] ULAW_TABLE = new short[256];
+
     static {
         for (int i = 0; i < 256; i++) {
             int ulaw = ~i; // U-law是补码存储
