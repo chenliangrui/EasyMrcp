@@ -1,23 +1,52 @@
-package com.example.easymrcp.mrcp;
+/*
+ * MRCP4J - Java API implementation of MRCPv2 specification
+ *
+ * Copyright (C) 2005-2006 SpeechForge - http://www.speechforge.org
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+ *
+ * Contact: ngodfredsen@users.sourceforge.net
+ *
+ */
+package org.mrcp4j.server;
+
+import static org.mrcp4j.message.MrcpMessage.CRLF;
+
+import org.mrcp4j.message.MrcpEvent;
+import org.mrcp4j.message.MrcpResponse;
+import org.mrcp4j.message.MrcpServerMessage;
+import org.mrcp4j.message.header.MrcpHeader;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.protocol.ProtocolEncoder;
 import org.apache.mina.protocol.ProtocolEncoderOutput;
 import org.apache.mina.protocol.ProtocolSession;
 import org.apache.mina.protocol.ProtocolViolationException;
-import org.mrcp4j.message.MrcpEvent;
-import org.mrcp4j.message.MrcpResponse;
-import org.mrcp4j.message.MrcpServerMessage;
-import org.mrcp4j.message.header.MrcpHeader;
 
-import static org.mrcp4j.message.MrcpMessage.CRLF;
 
+/**
+ * Encodes {@link org.mrcp4j.message.MrcpMessage} instances into MRCPv2 specification format.
+ *
+ * @author Niels Godfredsen {@literal <}<a href="mailto:ngodfredsen@users.sourceforge.net">ngodfredsen@users.sourceforge.net</a>{@literal >}
+ */
 public class MrcpMessageEncoder implements ProtocolEncoder {
 
     private StringBuilder _encodeBuf = new StringBuilder();
 
     public void encode(ProtocolSession session, Object message, ProtocolEncoderOutput out)
-            throws ProtocolViolationException {
+      throws ProtocolViolationException {
 
         // clear encode buffer
         _encodeBuf.delete(0, _encodeBuf.length());

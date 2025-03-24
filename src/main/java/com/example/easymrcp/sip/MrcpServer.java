@@ -1,8 +1,8 @@
 package com.example.easymrcp.sip;
 
 import com.example.easymrcp.common.SipContext;
-import com.example.easymrcp.mrcp.MrcpServerSocket;
 import lombok.Data;
+import org.mrcp4j.server.MrcpServerSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

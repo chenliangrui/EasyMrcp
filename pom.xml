@@ -36,11 +36,35 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jvoicexml</groupId>
-            <artifactId>org.mrcp4j</artifactId>
-            <version>0.3</version>
-<!--            <type>module</type>-->
+            <groupId>directory-network</groupId>
+            <artifactId>mina</artifactId>
+            <version>0.8.0</version>
+            <scope>compile</scope>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.apache.logging.log4j</groupId>-->
+<!--            <artifactId>log4j-api</artifactId>-->
+<!--            <version>2.13.3</version>-->
+<!--            <scope>compile</scope>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.logging.log4j</groupId>-->
+<!--            <artifactId>log4j-core</artifactId>-->
+<!--            <version>2.13.3</version>-->
+<!--            <scope>compile</scope>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.logging.log4j</groupId>-->
+<!--            <artifactId>log4j-1.2-api</artifactId>-->
+<!--            <version>2.13.3</version>-->
+<!--            <scope>compile</scope>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.jvoicexml</groupId>-->
+<!--            <artifactId>org.mrcp4j</artifactId>-->
+<!--            <version>0.3</version>-->
+<!--&lt;!&ndash;            <type>module</type>&ndash;&gt;-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>javax.sip</groupId>

@@ -2,22 +2,17 @@ package com.example.easymrcp.rtp;
 
 import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.mrcp.Callback;
-import com.example.easymrcp.testutils.FunasrWsClientTest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.mrcp4j.MrcpEventName;
-import org.mrcp4j.MrcpRequestState;
-import org.mrcp4j.message.MrcpEvent;
-import org.mrcp4j.message.header.CompletionCause;
-import org.mrcp4j.message.header.MrcpHeaderName;
 
 import javax.sound.sampled.*;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.URI;
-import java.util.concurrent.Callable;
-import java.util.function.Function;
 
 import static com.example.easymrcp.rtp.RtpPacket.parseRtpHeader;
 
@@ -34,7 +29,7 @@ public class FunAsrProcessor extends AsrHandler {
     static String strChunkSize = "5,10,5";
     static int chunkInterval = 10;
     static int sendChunkSize = 1920;
-    static String srvIp = "192.168.0.5";
+    static String srvIp = "192.168.31.205";
     static String srvPort = "10096";
     FunasrWsClient funasrWsClient;
 

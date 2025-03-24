@@ -44,7 +44,6 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                 // 语音识别完成
                 try {
                     MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
-                    eventComplete = (MyMrcpEvent) eventComplete;
                     CompletionCause completionCause = new CompletionCause((short) 0, "success");
                     eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
                     eventComplete.setContent("text/plain", null, msg);
