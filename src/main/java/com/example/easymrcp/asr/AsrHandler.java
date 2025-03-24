@@ -1,11 +1,13 @@
 package com.example.easymrcp.asr;
 
+import com.example.easymrcp.mrcp.Callback;
 import com.example.easymrcp.rtp.RtpConnection;
 import lombok.Data;
 
 @Data
 public abstract class AsrHandler implements RtpConnection {
     private String channelId;
+    private Callback callback;
 
     public String getChannelId() {
         return channelId;
@@ -17,5 +19,7 @@ public abstract class AsrHandler implements RtpConnection {
 
     public abstract void receive();
 
-    public abstract String complete();
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
 }

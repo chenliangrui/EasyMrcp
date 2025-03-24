@@ -33,24 +33,33 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
 
     @Override
     public MrcpResponse recognize(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
+        // 设置语音识别完成的回调，当asr完成识别后调用回调
+        Callback callback = new Callback() {
+            @Override
+            public void apply(String msg) {
+                // 语音识别完成
+                try {
+                    MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
+                    CompletionCause completionCause = new CompletionCause((short) 0, "success");
+                    eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
+                    eventComplete.setContent("text/plain", null, msg);
+                    mrcpSession.postEvent(eventComplete);
+                } catch (TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        asrHandler.setCallback(callback);
         log.info("MrcpRecogChannel recognize");
         MrcpResponse response = mrcpSession.createResponse(MrcpResponse.STATUS_SUCCESS, MrcpRequestState.IN_PROGRESS);
-        // 开始发送语音
+        //TODO 开始发送语音，时机需要考虑
         new Thread(new Runnable() {
             @Override
             public void run() {
                 MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
                 try {
                     mrcpSession.postEvent(event);
-                    // 模拟语音识别完成
-                    Thread.sleep(30000);
-                    String complete = asrHandler.complete();
-                    MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
-                    CompletionCause completionCause = new CompletionCause((short) 0, "success");
-                    eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
-                    eventComplete.setContent("text/plain", null, complete);
-                    mrcpSession.postEvent(eventComplete);
-                } catch (TimeoutException | InterruptedException e) {
+                } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -87,4 +96,6 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
     public MrcpResponse getParams(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
         return null;
     }
+
+
 }

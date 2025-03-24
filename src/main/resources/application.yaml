@@ -4,3 +4,5 @@ sip:
   sipServer: 172.16.2.29
   sipPort: 8060
   mrcpServerPort: 1544
+mrcp:
+  asrMode: funasr

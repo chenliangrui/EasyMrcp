@@ -1,13 +1,23 @@
 package com.example.easymrcp.rtp;
 
 import com.example.easymrcp.asr.AsrHandler;
+import com.example.easymrcp.mrcp.Callback;
+import com.example.easymrcp.testutils.FunasrWsClientTest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.mrcp4j.MrcpEventName;
+import org.mrcp4j.MrcpRequestState;
+import org.mrcp4j.message.MrcpEvent;
+import org.mrcp4j.message.header.CompletionCause;
+import org.mrcp4j.message.header.MrcpHeaderName;
 
 import javax.sound.sampled.*;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.URI;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import static com.example.easymrcp.rtp.RtpPacket.parseRtpHeader;
 
@@ -21,37 +31,45 @@ public class FunAsrProcessor extends AsrHandler {
     private DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
     private DatagramSocket socket;
 
+    static String strChunkSize = "5,10,5";
+    static int chunkInterval = 10;
+    static int sendChunkSize = 1920;
+    static String srvIp = "192.168.0.5";
+    static String srvPort = "10096";
+    FunasrWsClient funasrWsClient;
+
+    Callback funasrCallback;
+
     private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
 
-    @Override
-    public void close() {
-        // 保存录音到文件
-        socket.close();
-        System.out.println("FunAsrProcessor close");
-
-        // 播放测试
-        byte[] bytes = decodeG711U(audioBuffer.toByteArray());
-        // 配置音频格式（G.711U的PCM参数）
-        AudioFormat audioFormat = new AudioFormat(
-                AudioFormat.Encoding.PCM_SIGNED,
-                8000.0f,   // 采样率8kHz
-                16,        // 16位量化
-                1,         // 单声道
-                2,         // 每帧2字节（16位）
-                8000.0f,   // 帧速率
-                false      // 小端字节序
-        );
-
-        try {
-            playPCM(bytes, audioFormat);
-        } catch (LineUnavailableException e) {
-            e.printStackTrace();
-        }
+    public void create() {
+        createFunAsrClient();
     }
 
     @Override
-    public String complete() {
-        return "完成";
+    public void close() {
+        funasrWsClient.sendEof();
+        socket.close();
+        System.out.println("FunAsrProcessor close");
+
+//        // 播放测试
+//        byte[] bytes = decodeG711U(audioBuffer.toByteArray());
+//        // 配置音频格式（G.711U的PCM参数）
+//        AudioFormat audioFormat = new AudioFormat(
+//                AudioFormat.Encoding.PCM_SIGNED,
+//                8000.0f,   // 采样率8kHz
+//                16,        // 16位量化
+//                1,         // 单声道
+//                2,         // 每帧2字节（16位）
+//                8000.0f,   // 帧速率
+//                false      // 小端字节序
+//        );
+//        try {
+//            funasrWsClient.recPcm(bytes);
+//            playPCM(bytes, audioFormat);
+//        } catch (LineUnavailableException e) {
+//            e.printStackTrace();
+//        }
     }
 
     public void receive() {
@@ -68,7 +86,7 @@ public class FunAsrProcessor extends AsrHandler {
                         }
                         byte[] rtpData = packet.getData();
                         int packetLength = packet.getLength();
-                        System.out.println("RTP数据包长度：" + packetLength);
+//                        System.out.println("RTP数据包长度：" + packetLength);
                         // 解析RTP头部（前12字节）
                         RtpPacket parsedPacket = parseRtpHeader(rtpData, packetLength);
 
@@ -77,6 +95,8 @@ public class FunAsrProcessor extends AsrHandler {
 
                         // G.711u解码为PCM
 //                        short[] pcmData = G711uDecoder.decode(g711Data);
+                        byte[] bytes = decodeG711U(g711Data);
+                        funasrWsClient.recPcm(bytes);
 
                         // 保存到文件
                         // 写入音频数据
@@ -136,5 +156,38 @@ public class FunAsrProcessor extends AsrHandler {
             pcmData[i * 2 + 1] = (byte) ((sample >> 8) & 0xFF);
         }
         return pcmData;
+    }
+
+    public void createFunAsrClient() {
+        try {
+            int RATE = 8000;
+            String[] chunkList = strChunkSize.split(",");
+            int int_chunk_size = 60 * Integer.valueOf(chunkList[1].trim()) / chunkInterval;
+            int CHUNK = Integer.valueOf(RATE / 1000 * int_chunk_size);
+            int stride =
+                    Integer.valueOf(
+                            60 * Integer.valueOf(chunkList[1].trim()) / chunkInterval / 1000 * 8000 * 2);
+            System.out.println("chunk_size:" + String.valueOf(int_chunk_size));
+            System.out.println("CHUNK:" + CHUNK);
+            System.out.println("stride:" + String.valueOf(stride));
+            sendChunkSize = CHUNK * 2;
+
+            String wsAddress = "ws://" + srvIp + ":" + srvPort;
+
+            funasrCallback = new Callback() {
+                @Override
+                public void apply(String msg) {
+                    getCallback().apply(msg);
+                }
+            };
+            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback);
+
+            funasrWsClient.connect();
+
+            System.out.println("wsAddress:" + wsAddress);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("e:" + e);
+        }
     }
 }
