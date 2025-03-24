@@ -14,6 +14,10 @@ import org.mrcp4j.message.request.StopRequest;
 import org.mrcp4j.server.MrcpSession;
 import org.mrcp4j.server.provider.RecogOnlyRequestHandler;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
@@ -40,6 +44,7 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                 // 语音识别完成
                 try {
                     MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
+                    eventComplete = (MyMrcpEvent) eventComplete;
                     CompletionCause completionCause = new CompletionCause((short) 0, "success");
                     eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
                     eventComplete.setContent("text/plain", null, msg);

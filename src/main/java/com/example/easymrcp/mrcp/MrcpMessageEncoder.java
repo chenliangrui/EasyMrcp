@@ -1,0 +1,97 @@
+package com.example.easymrcp.mrcp;
+
+import org.apache.mina.common.ByteBuffer;
+import org.apache.mina.protocol.ProtocolEncoder;
+import org.apache.mina.protocol.ProtocolEncoderOutput;
+import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.protocol.ProtocolViolationException;
+import org.mrcp4j.message.MrcpEvent;
+import org.mrcp4j.message.MrcpResponse;
+import org.mrcp4j.message.MrcpServerMessage;
+import org.mrcp4j.message.header.MrcpHeader;
+
+import static org.mrcp4j.message.MrcpMessage.CRLF;
+
+public class MrcpMessageEncoder implements ProtocolEncoder {
+
+    private StringBuilder _encodeBuf = new StringBuilder();
+
+    public void encode(ProtocolSession session, Object message, ProtocolEncoderOutput out)
+            throws ProtocolViolationException {
+
+        // clear encode buffer
+        _encodeBuf.delete(0, _encodeBuf.length());
+
+        // append start line
+        int offset = -1;
+        if (message instanceof MrcpResponse) {
+            offset = appendResponseLine(_encodeBuf, ((MrcpResponse) message));
+        } else if (message instanceof MrcpEvent) {
+            offset = appendEventLine(_encodeBuf, ((MrcpEvent) message));
+        } else {
+            throw new ProtocolViolationException("Unsupported message type: " + message.getClass().getName());
+        }
+
+        // append headers
+        MrcpServerMessage serverMessage = (MrcpServerMessage) message;
+        for (MrcpHeader header : serverMessage.getHeaders()) {
+            _encodeBuf.append(header.toString()).append(CRLF);
+        }
+
+        // append CRLF line
+        _encodeBuf.append(CRLF);
+
+        // append message body if present
+        if (serverMessage.hasContent()) {
+            _encodeBuf.append(serverMessage.getContent());
+        }
+
+        // determine and set message length
+        int bufferLength = _encodeBuf.length();
+        bufferLength = _encodeBuf.toString().getBytes().length;
+        int bufferLengthLength = Integer.toString(bufferLength).length();
+        int messageLength = bufferLength + bufferLengthLength;
+        String messageLengthString = Integer.toString(messageLength);
+        if (messageLengthString.length() > bufferLengthLength) {
+            messageLengthString = Integer.toString(++messageLength);
+        }
+        _encodeBuf.insert(offset, messageLengthString);
+        serverMessage.setMessageLength(messageLength);
+
+        bufferLength = _encodeBuf.length();
+        bufferLength = _encodeBuf.toString().getBytes().length;
+
+        // write _encodeBuf to out
+        ByteBuffer bytes = ByteBuffer.allocate(bufferLength);
+        bytes.put(_encodeBuf.toString().getBytes());
+//        for (int i = 0; i < bufferLength; i++) {
+//            bytes.put((byte) _encodeBuf.charAt(i));
+//        }
+        bytes.flip();
+        out.write(bytes);
+    }
+
+    private static int appendEventLine(StringBuilder encodeBuf, MrcpEvent event) {
+        String version = event.getVersion();
+        encodeBuf.append(version).append(' ');
+        // message length will be inserted at this position after headers and content are encoded
+        encodeBuf.append(' ').append(event.getEventName());
+        encodeBuf.append(' ').append(event.getRequestID());
+        encodeBuf.append(' ').append(event.getRequestState());
+        encodeBuf.append(CRLF);
+        return version.length() + 1;
+    }
+
+    private static int appendResponseLine(StringBuilder encodeBuf, MrcpResponse response) {
+        String version = response.getVersion();
+        encodeBuf.append(version).append(' ');
+        // message length will be inserted at this position after headers and content are encoded
+        encodeBuf.append(' ').append(response.getRequestID());
+        encodeBuf.append(' ').append(response.getStatusCode());
+        encodeBuf.append(' ').append(response.getRequestState());
+        encodeBuf.append(CRLF);
+        return version.length() + 1;
+    }
+
+
+}

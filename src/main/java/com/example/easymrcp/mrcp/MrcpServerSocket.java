@@ -2,7 +2,7 @@ package com.example.easymrcp.mrcp;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.TimeoutException;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.mina.common.TransportType;
@@ -11,12 +11,7 @@ import org.apache.mina.protocol.ProtocolCodecFactory;
 import org.apache.mina.registry.Service;
 import org.apache.mina.registry.ServiceRegistry;
 import org.apache.mina.registry.SimpleServiceRegistry;
-import org.mrcp4j.MrcpEventName;
-import org.mrcp4j.MrcpRequestState;
 import org.mrcp4j.MrcpResourceType;
-import org.mrcp4j.message.MrcpEvent;
-import org.mrcp4j.message.MrcpResponse;
-import org.mrcp4j.message.request.MrcpRequest;
 import org.mrcp4j.server.*;
 import org.mrcp4j.server.delegator.RecogOnlyRequestDelegator;
 import org.mrcp4j.server.delegator.RecorderRequestDelegator;
@@ -33,7 +28,7 @@ import org.mrcp4j.server.provider.VoiceEnrollmentRequestHandler;
 
 public class MrcpServerSocket {
     private static Logger _log = LogManager.getLogger(org.mrcp4j.server.MrcpServerSocket.class);
-    private static ProtocolCodecFactory CODEC_FACTORY = new MrcpCodecFactory();
+    private static ProtocolCodecFactory CODEC_FACTORY = new MyMrcpCodecFactory();
     private MrcpRequestProcessorImpl _requestProcessorImpl;
     private int _port;
 
