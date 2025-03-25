@@ -20,7 +20,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Slf4j
-@Component
 public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
     @Override
     public MrcpResponse speak(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {

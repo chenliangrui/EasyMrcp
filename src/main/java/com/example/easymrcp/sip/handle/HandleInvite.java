@@ -133,7 +133,7 @@ public class HandleInvite {
         for (MediaDescription md : sdpMessage.getMrcpChannels()) {
             md.removeAttribute("resource");
         }
-        sdpMessage.getSessionDescription().getConnection().setAddress("192.168.31.30");
+        sdpMessage.getSessionDescription().getConnection().setAddress(sipContext.getSipServerIp());
         return sdpMessage;
     }
 

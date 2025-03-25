@@ -1,7 +1,7 @@
 server:
   port: 8080
 sip:
-  sipServer: 192.168.31.30
+  sipServer: 172.16.2.29
   sipPort: 8060
   mrcpServerPort: 1544
 mrcp:

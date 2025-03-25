@@ -80,7 +80,7 @@ public class MrcpServerSocket {
 
         ServiceRegistry registry = new SimpleServiceRegistry();
         addLogger(registry);
-        Service service = new Service("MRCPv2", TransportType.SOCKET, new InetSocketAddress("192.168.31.30", port));
+        Service service = new Service("MRCPv2", TransportType.SOCKET, new InetSocketAddress("localhost", port));
         registry.bind(service, new SimpleProtocolProvider(CODEC_FACTORY, new MrcpProtocolHandler(_requestProcessorImpl)));
 
         if (_log.isDebugEnabled()) {
@@ -88,6 +88,23 @@ public class MrcpServerSocket {
         }
 
     }
+
+    public MrcpServerSocket(String sipServerIp, int port) throws IOException {
+        _port = port;
+
+        _requestProcessorImpl = new MrcpRequestProcessorImpl();
+
+        ServiceRegistry registry = new SimpleServiceRegistry();
+        addLogger(registry);
+        Service service = new Service("MRCPv2", TransportType.SOCKET, new InetSocketAddress(sipServerIp, port));
+        registry.bind(service, new SimpleProtocolProvider(CODEC_FACTORY, new MrcpProtocolHandler(_requestProcessorImpl)));
+
+        if (_log.isDebugEnabled()) {
+            _log.debug("MRCPv2 protocol provider listening on port " + port);
+        }
+
+    }
+
 
     /**
      * TODOC

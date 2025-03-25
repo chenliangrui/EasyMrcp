@@ -29,8 +29,6 @@ public class HandleTransmitter {
     @Autowired
     MrcpServer mrcpServer;
     @Autowired
-    MrcpSpeechSynthChannel mrcpSpeechSynthChannel;
-    @Autowired
     SipUtils sipUtils;
 
 
@@ -94,7 +92,7 @@ public class HandleTransmitter {
                         case BASICSYNTH:
                         case SPEECHSYNTH:
                             // 开启rtp
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, mrcpSpeechSynthChannel);
+                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel());
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                             rtpmd.get(0).getMedia().setMediaPort(5004);

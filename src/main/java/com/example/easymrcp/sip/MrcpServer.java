@@ -17,7 +17,7 @@ public class MrcpServer {
 
     public MrcpServer(SipContext sipContext) throws IOException {
         this.sipContext = sipContext;
-        mrcpServerSocket = new MrcpServerSocket(sipContext.getMrcpServerPort());
+        mrcpServerSocket = new MrcpServerSocket(sipContext.getSipServerIp(), sipContext.getMrcpServerPort());
     }
 
 }
