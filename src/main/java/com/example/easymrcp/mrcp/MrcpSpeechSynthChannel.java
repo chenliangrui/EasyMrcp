@@ -1,5 +1,6 @@
 package com.example.easymrcp.mrcp;
 
+import com.example.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpEventName;
 import org.mrcp4j.MrcpRequestState;
@@ -21,6 +22,11 @@ import java.util.List;
 
 @Slf4j
 public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
+    TtsHandler ttsHandler;
+    public MrcpSpeechSynthChannel(TtsHandler ttsHandler) {
+        this.ttsHandler = ttsHandler;
+    }
+
     @Override
     public MrcpResponse speak(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
         String contentType = unimplementedRequest.getContentType();
@@ -28,6 +34,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
             String text = unimplementedRequest.getContent();
             String s = eslBodyStrConvert(text);
             System.out.println(s);
+            ttsHandler.transmit(s);
         }
         MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
         new Thread(new Runnable() {

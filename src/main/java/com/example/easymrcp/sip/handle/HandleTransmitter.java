@@ -1,10 +1,12 @@
 package com.example.easymrcp.sip.handle;
 
+import com.example.easymrcp.common.ProcessorCreator;
 import com.example.easymrcp.mrcp.MrcpSpeechSynthChannel;
 import com.example.easymrcp.rtp.*;
 import com.example.easymrcp.sdp.SdpMessage;
 import com.example.easymrcp.sip.MrcpServer;
 import com.example.easymrcp.sip.SipSession;
+import com.example.easymrcp.tts.TtsHandler;
 import com.example.easymrcp.utils.SipUtils;
 import gov.nist.javax.sdp.fields.AttributeField;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ public class HandleTransmitter {
     SipRtpManage rtpManage;
     @Autowired
     MrcpServer mrcpServer;
+    @Autowired
+    ProcessorCreator processorCreator;
     @Autowired
     SipUtils sipUtils;
 
@@ -92,7 +96,12 @@ public class HandleTransmitter {
                         case BASICSYNTH:
                         case SPEECHSYNTH:
                             // 开启rtp
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel());
+                            TtsHandler ttsHandler = processorCreator.getTtsHandler();
+                            ttsHandler.create(remoteHost.getHostAddress(), remotePort);
+                            ttsHandler.setChannelId(channelID);
+                            channelMaps.put(channelID, ttsHandler);
+                            // 开启mrcp
+                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                             rtpmd.get(0).getMedia().setMediaPort(5004);
@@ -103,6 +112,7 @@ public class HandleTransmitter {
                                     attribute1.setName("sendonly");
                                 }
                             }
+
                             log.debug("Created a SPEECHSYNTH Channel.  id is: "+channelID+" rtp remotehost:port is: "+ mediaHost+":"+remotePort);
                             break;
 
@@ -115,9 +125,9 @@ public class HandleTransmitter {
                     // transmitter, the resource is the RTP port in the port pair pool
                     // TODO:  The channels should cleanup after themselves (retrun resource to pools)
                     //        instead of keeping track of the resoruces in the session.
-                    RtpTransmitter rtpTransmitter = new RtpTransmitter();
-                    rtpTransmitter.setChannelId(channelID);
-                    channelMaps.put(channelID, rtpTransmitter);
+//                    RtpTransmitter rtpTransmitter = new RtpTransmitter();
+//                    rtpTransmitter.setChannelId(channelID);
+//                    channelMaps.put(channelID, rtpTransmitter);
                 }
             } else {
                 log.warn("Invite request had no channels.");

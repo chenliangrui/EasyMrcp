@@ -1,7 +1,7 @@
 package com.example.easymrcp.sip.handle;
 
 import com.example.easymrcp.asr.AsrHandler;
-import com.example.easymrcp.common.AsrCreator;
+import com.example.easymrcp.common.ProcessorCreator;
 import com.example.easymrcp.common.SipContext;
 import com.example.easymrcp.mrcp.MrcpRecogChannel;
 import com.example.easymrcp.rtp.SipRtpManage;
@@ -31,7 +31,7 @@ public class HandleReceiver {
     @Autowired
     SipRtpManage rtpManage;
     @Autowired
-    AsrCreator asrChose;
+    ProcessorCreator asrChose;
     @Autowired
     SipUtils sipUtils;
 
@@ -61,10 +61,10 @@ public class HandleReceiver {
                             Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
                             Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
                             // 开启rtp通道
-                            AsrHandler asrHandler = asrChose.returnAsrHandler();
+                            AsrHandler asrHandler = asrChose.getAsrHandler();
                             asrHandler.setChannelId(channelID);
                             //TODO 等待asr连接成功
-                            asrHandler.create();
+                            asrHandler.create(null,0);
                             asrHandler.receive();
                             rtpSession.addChannel(channelID, asrHandler);
                             // 开启mrcp通道

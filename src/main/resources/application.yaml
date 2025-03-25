@@ -6,3 +6,4 @@ sip:
   mrcpServerPort: 1544
 mrcp:
   asrMode: funasr
+  ttsMode: kokoro

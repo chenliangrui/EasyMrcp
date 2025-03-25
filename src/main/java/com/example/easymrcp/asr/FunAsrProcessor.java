@@ -1,7 +1,8 @@
-package com.example.easymrcp.rtp;
+package com.example.easymrcp.asr;
 
-import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.mrcp.Callback;
+import com.example.easymrcp.rtp.FunasrWsClient;
+import com.example.easymrcp.rtp.RtpPacket;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -29,7 +30,7 @@ public class FunAsrProcessor extends AsrHandler {
     static String strChunkSize = "5,10,5";
     static int chunkInterval = 10;
     static int sendChunkSize = 1920;
-    static String srvIp = "192.168.31.205";
+    static String srvIp = "192.168.0.5";
     static String srvPort = "10096";
     FunasrWsClient funasrWsClient;
 
@@ -37,7 +38,7 @@ public class FunAsrProcessor extends AsrHandler {
 
     private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
 
-    public void create() {
+    public void create(String ip, int port) {
         createFunAsrClient();
     }
 
