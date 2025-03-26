@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.Arrays;
 
 public class KokoroProcessor extends TtsHandler {
-    private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
+    private static final String API_URL = "http://192.168.31.210:8880/v1/audio/speech";
     private HttpClient httpClient;
     RtpSender rtpSender;
 

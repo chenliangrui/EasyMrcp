@@ -36,7 +36,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
             System.out.println(s);
             ttsHandler.transmit(s);
         }
-        MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
+//        MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -48,8 +48,8 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
                     );
                     CompletionCause completionCause = new CompletionCause((short) 0, "normal");
                     MrcpHeader completionCauseHeader = MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause);
-                    event.addHeader(completionCauseHeader);
-                    mrcpSession.postEvent(eventComplete);
+//                    event.addHeader(completionCauseHeader);
+//                    mrcpSession.postEvent(eventComplete);
                 } catch (Exception e) {
                     log.error("postEvent error", e);
                 }
