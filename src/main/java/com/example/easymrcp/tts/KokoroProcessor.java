@@ -1,7 +1,9 @@
 package com.example.easymrcp.tts;
 
 import com.example.easymrcp.rtp.RtpSender;
+import com.example.easymrcp.utils.G711UCodec;
 
+import javax.sound.sampled.*;
 import java.io.InputStream;
 import java.net.*;
 import java.net.http.HttpClient;
@@ -52,22 +54,43 @@ public class KokoroProcessor extends TtsHandler {
         }
     }
 
+    // 添加音频播放相关成员变量
+    private AudioFormat audioFormat;
+    private SourceDataLine sourceDataLine;
+
+    // 在初始化方法中添加音频设备初始化
+    private void initAudioPlayer() throws LineUnavailableException {
+        audioFormat = new AudioFormat(24000, 16, 1, true, false); // 16kHz,16位,单声道
+        DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
+        sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
+        sourceDataLine.open(audioFormat);
+        sourceDataLine.start();
+    }
     /**
      * 发送pcm数据
      * @param inputStream
      */
     private void processAudioStream(InputStream inputStream) {
+        try {
+            initAudioPlayer();
+        } catch (LineUnavailableException e) {
+            throw new RuntimeException(e);
+        }
         try (inputStream) {
-            byte[] buffer = new byte[2048];
             int bytesRead;
+            byte[] buffer = new byte[2048];
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 // 确保线程安全的RTP发送
-                synchronized (this) {
+//                synchronized (this) {
                     if (rtpSender != null) {
-                        byte[] chunk = Arrays.copyOf(buffer, bytesRead);
-                        rtpSender.send(chunk, 0); // PCMU负载类型
+                        byte[] chunk = Arrays.copyOf(buffer, bytesRead  & ~1);
+                        if (sourceDataLine != null && sourceDataLine.isOpen()) {
+                            sourceDataLine.write(chunk, 0, chunk.length);
+                        }
+                        byte[] g711Chunk = G711UCodec.encode(chunk);
+                        rtpSender.send(g711Chunk, 0); // PCMU负载类型
                     }
-                }
+//                }
             }
         } catch (Exception e) {
             System.err.println("音频流处理异常: " + e.getMessage());
