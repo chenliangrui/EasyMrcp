@@ -25,7 +25,7 @@ public class ProcessorCreator {
     }
 
     public TtsHandler getTtsHandler() {
-        if (asrMode.equals("kokoro")) {
+        if (ttsMode.equals("kokoro")) {
             return new KokoroProcessor();
         }
         return null;

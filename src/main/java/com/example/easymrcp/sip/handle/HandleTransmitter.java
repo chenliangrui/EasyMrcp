@@ -104,7 +104,7 @@ public class HandleTransmitter {
                             mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
-                            rtpmd.get(0).getMedia().setMediaPort(5004);
+                            rtpmd.get(0).getMedia().setMediaPort(5006);
                             //修改sdp收发问题
                             for (Object attribute : rtpmd.get(0).getAttributes(true)) {
                                 AttributeField attribute1 = (AttributeField) attribute;
