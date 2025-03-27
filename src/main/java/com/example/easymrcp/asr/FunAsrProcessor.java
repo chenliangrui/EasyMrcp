@@ -30,7 +30,7 @@ public class FunAsrProcessor extends AsrHandler {
     static String strChunkSize = "5,10,5";
     static int chunkInterval = 10;
     static int sendChunkSize = 1920;
-    static String srvIp = "192.168.31.205";
+    static String srvIp = "192.168.2.5";
     static String srvPort = "10096";
     FunasrWsClient funasrWsClient;
 

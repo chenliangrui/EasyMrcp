@@ -46,7 +46,7 @@ public class RtpSender {
         socket.send(packet);
 
         sequenceNumber++;  // 递增序列号
-        timestamp += payload.length / 4; // 假设8kHz采样率，20ms帧
+        timestamp += payload.length; // 假设8kHz采样率，20ms帧
     }
 
     private byte[] longToBytes(long value) {

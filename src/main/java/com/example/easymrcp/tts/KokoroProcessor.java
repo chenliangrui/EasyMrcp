@@ -4,6 +4,9 @@ import com.example.easymrcp.rtp.RtpSender;
 import com.example.easymrcp.utils.G711UCodec;
 
 import javax.sound.sampled.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.net.http.HttpClient;
@@ -13,9 +16,10 @@ import java.time.Duration;
 import java.util.Arrays;
 
 public class KokoroProcessor extends TtsHandler {
-    private static final String API_URL = "http://192.168.31.210:8880/v1/audio/speech";
+    private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
     private HttpClient httpClient;
     RtpSender rtpSender;
+//    private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
 
     @Override
     public void transmit(String text) {
@@ -66,8 +70,10 @@ public class KokoroProcessor extends TtsHandler {
         sourceDataLine.open(audioFormat);
         sourceDataLine.start();
     }
+
     /**
      * 发送pcm数据
+     *
      * @param inputStream
      */
     private void processAudioStream(InputStream inputStream) {
@@ -78,24 +84,69 @@ public class KokoroProcessor extends TtsHandler {
         }
         try (inputStream) {
             int bytesRead;
-            byte[] buffer = new byte[2048];
+            byte[] buffer = new byte[320];
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 // 确保线程安全的RTP发送
 //                synchronized (this) {
-                    if (rtpSender != null) {
-                        byte[] chunk = Arrays.copyOf(buffer, bytesRead  & ~1);
-                        if (sourceDataLine != null && sourceDataLine.isOpen()) {
-                            sourceDataLine.write(chunk, 0, chunk.length);
-                        }
-                        byte[] g711Chunk = G711UCodec.encode(chunk);
-                        rtpSender.send(g711Chunk, 0); // PCMU负载类型
-                    }
+                if (rtpSender != null) {
+                    byte[] chunk = Arrays.copyOf(buffer, bytesRead);
+                    // 播放测试
+//                        if (sourceDataLine != null && sourceDataLine.isOpen()) {
+//                            sourceDataLine.write(chunk, 0, chunk.length);
+//                        }
+                    // 写入音频数据
+//                        try {
+//                            audioBuffer.write(chunk);
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
+                    short[] shorts = G711UCodec.bytesToShorts(chunk, false);
+                    byte[] g711Chunk = G711UCodec.encode(shorts);
+                    rtpSender.send(g711Chunk, 0); // PCMU负载类型
+                }
 //                }
             }
+            // 播放测试
+            // 配置音频格式（G.711U的PCM参数）
+//            AudioFormat audioFormat = new AudioFormat(
+//                    AudioFormat.Encoding.PCM_SIGNED,
+//                    24000.0f,   // 采样率8kHz
+//                    16,        // 16位量化
+//                    1,         // 单声道
+//                    2,         // 每帧2字节（16位）
+//                    24000.0f,   // 帧速率
+//                    false      // 小端字节序
+//            );
+//            try {
+//                playPCM(audioBuffer.toByteArray(), audioFormat);
+//            } catch (LineUnavailableException e) {
+//                e.printStackTrace();
+//            }
         } catch (Exception e) {
             System.err.println("音频流处理异常: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    // 播放PCM音频流
+    public static void playPCM(byte[] pcmData, AudioFormat format) throws LineUnavailableException {
+        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+        SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
+        line.open(format);
+        line.start();
+
+        InputStream input = new ByteArrayInputStream(pcmData);
+        byte[] buffer = new byte[4096];
+        try {
+            int bytesRead;
+            while ((bytesRead = input.read(buffer)) != -1) {
+                line.write(buffer, 0, bytesRead);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        line.drain();
+        line.close();
     }
 
 

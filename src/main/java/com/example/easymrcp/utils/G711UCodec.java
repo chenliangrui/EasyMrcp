@@ -1,65 +1,69 @@
 package com.example.easymrcp.utils;
 
 public class G711UCodec {
-    private static final short BIAS = 0x84;
-    private static final short CLIP = 32635;
+    // μ-law压缩表（动态生成）
+    private static final byte[] ULAW_TABLE = new byte[8192];
 
-    /**
-     * 将16位PCM数据转换为G.711 μ-law编码格式
-     * @param pcmData 小端格式的16位PCM数据
-     * @return μ-law编码字节数组
-     */
-    public static byte[] encode(byte[] pcmData) {
-        if (pcmData.length % 2 != 0) {
-            throw new IllegalArgumentException("PCM数据长度必须为偶数");
+    static {
+        // 初始化μ-law编码表（覆盖14位输入范围）
+        for (int i = 0; i < ULAW_TABLE.length; i++) {
+            int pcm = (i & 0x2000) != 0 ? (i - 0x4000) : i; // 转换为有符号14位
+            ULAW_TABLE[i] = encodeSample((short)pcm);
         }
-
-        int sampleCount = pcmData.length / 2;
-        byte[] ulawData = new byte[sampleCount];
-
-        for (int i = 0; i < sampleCount; i++) {
-            // 小端字节序转换为short
-            short sample = (short) (((pcmData[2*i + 1] & 0xFF) << 8) |
-                    (pcmData[2*i] & 0xFF));
-            ulawData[i] = linearToULaw(sample);
-        }
-
-        return ulawData;
     }
 
-    private static byte linearToULaw(short pcm) {
-        // 1. 获取符号位（0x80如果为负）
-        int sign = (pcm & 0x8000) >> 8;
-        int magnitude;
-
-        // 2. 处理负数并获取绝对值
-        if (sign != 0) {
-            magnitude = -pcm;
-            sign = 0x80;  // μ-law符号位
-        } else {
-            magnitude = pcm;
+    /**
+     * 将16位PCM音频转换为G.711u字节流
+     * @param pcmData 16位有符号PCM数据（建议先做14位裁剪）
+     * @return 压缩后的G.711u字节数组
+     */
+    public static byte[] encode(short[] pcmData) {
+        byte[] encoded = new byte[pcmData.length];
+        for (int i = 0; i < pcmData.length; i++) {
+            // 添加范围校验和压缩处理
+            int sample = pcmData[i];
+            // 将16位样本转换为14位绝对值（右移2位）
+            int absSample = Math.abs(sample) >> 2;
+            // 限制最大有效值为0x1FFF（8191）
+            if (absSample > 0x1FFF) {
+                absSample = 0x1FFF;
+            }
+            // 组合符号位和幅度值
+            int index = absSample | ((sample < 0) ? 0x2000 : 0);
+            encoded[i] = ULAW_TABLE[index & 0x1FFF]; // 确保索引在0-8191范围内
         }
+        return encoded;
+    }
 
-        // 3. 添加偏置（改善小信号量化性能）
-        magnitude += 0x84;  // 132的偏置值
+    public static short[] bytesToShorts(byte[] byteArray, boolean isLittleEndian) {
+        int shortLen = byteArray.length / 2;
+        short[] shorts = new short[shortLen];
 
-        // 4. 限幅处理（防止溢出）
-        if (magnitude > 0x7FFF) magnitude = 0x7FFF;
-
-        // 5. 查找最高有效位位置
-        int exponent = 7;
-        int mask = 0x4000;  // 从第14位开始检测
-
-        while ((magnitude & mask) == 0 && exponent > 0) {
-            mask >>= 1;
-            exponent--;
+        for (int i = 0; i < shortLen; i++) {
+            int pos = i * 2;
+            int b1 = byteArray[pos] & 0xFF;
+            int b2 = byteArray[pos + 1] & 0xFF;
+            shorts[i] = isLittleEndian ?
+                    (short) (b1 | (b2 << 8)) :
+                    (short) ((b1 << 8) | b2);
         }
+        return shorts;
+    }
 
-        // 6. 计算尾数（取4位有效值）
-        int mantissa = (magnitude >> (exponent + 3)) & 0x0F;
+    // 核心编码算法（参考ITU-T标准）
+    private static byte encodeSample(short sample) {
+        int sign = (sample & 0x8000) >> 8; // 符号位
+        int abs = Math.abs(sample);
 
-        // 7. 组合编码并取反
-        byte ulaw = (byte) (sign | (exponent << 4) | mantissa);
-        return (byte) ~ulaw;
+        // 添加μ-law压缩偏移量
+        if (abs < 0x100) abs += 0xFF;
+        else abs += 0xFF << (abs >> 8);
+
+        // 计算分段和量化值
+        int exponent = 7 - ((32 - Integer.numberOfLeadingZeros(abs)) - 8);
+        exponent = Math.max(0, Math.min(exponent, 7));
+        int mantissa = (abs >> (exponent + 3)) & 0x0F;
+
+        return (byte) (~(sign | (exponent << 4) | mantissa));
     }
 }
