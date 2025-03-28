@@ -1,14 +1,15 @@
 package com.example.easymrcp.tts;
 
 import com.example.easymrcp.rtp.RtpSender;
-import com.example.easymrcp.utils.G711UCodec;
 
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -19,7 +20,7 @@ public class KokoroProcessor extends TtsHandler {
     private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
     private HttpClient httpClient;
     RtpSender rtpSender;
-//    private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
+    private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
 
     @Override
     public void transmit(String text) {
@@ -84,7 +85,7 @@ public class KokoroProcessor extends TtsHandler {
         }
         try (inputStream) {
             int bytesRead;
-            byte[] buffer = new byte[320];
+            byte[] buffer = new byte[1024];
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 // 确保线程安全的RTP发送
 //                synchronized (this) {
@@ -92,36 +93,34 @@ public class KokoroProcessor extends TtsHandler {
                     byte[] chunk = Arrays.copyOf(buffer, bytesRead);
                     // 播放测试
 //                        if (sourceDataLine != null && sourceDataLine.isOpen()) {
-//                            sourceDataLine.write(chunk, 0, chunk.length);
+//                            sourceDataLine.write(buffer, 0, buffer.length);
 //                        }
                     // 写入音频数据
-//                        try {
-//                            audioBuffer.write(chunk);
-//                        } catch (IOException e) {
-//                            throw new RuntimeException(e);
-//                        }
-                    short[] shorts = G711UCodec.bytesToShorts(chunk, false);
-                    byte[] g711Chunk = G711UCodec.encode(shorts);
-                    rtpSender.send(g711Chunk, 0); // PCMU负载类型
+                        try {
+                            audioBuffer.write(chunk);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    rtpSender.send(chunk, 0); // PCMU负载类型
                 }
 //                }
             }
             // 播放测试
             // 配置音频格式（G.711U的PCM参数）
-//            AudioFormat audioFormat = new AudioFormat(
-//                    AudioFormat.Encoding.PCM_SIGNED,
-//                    24000.0f,   // 采样率8kHz
-//                    16,        // 16位量化
-//                    1,         // 单声道
-//                    2,         // 每帧2字节（16位）
-//                    24000.0f,   // 帧速率
-//                    false      // 小端字节序
-//            );
-//            try {
-//                playPCM(audioBuffer.toByteArray(), audioFormat);
-//            } catch (LineUnavailableException e) {
-//                e.printStackTrace();
-//            }
+            AudioFormat audioFormat = new AudioFormat(
+                    AudioFormat.Encoding.PCM_SIGNED,
+                    24000.0f,   // 采样率8kHz
+                    16,        // 16位量化
+                    1,         // 单声道
+                    2,         // 每帧2字节（16位）
+                    24000.0f,   // 帧速率
+                    false      // 小端字节序
+            );
+            try {
+                playPCM(audioBuffer.toByteArray(), audioFormat);
+            } catch (LineUnavailableException e) {
+                e.printStackTrace();
+            }
         } catch (Exception e) {
             System.err.println("音频流处理异常: " + e.getMessage());
             e.printStackTrace();
