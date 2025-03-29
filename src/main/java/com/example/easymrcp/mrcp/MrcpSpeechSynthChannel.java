@@ -23,6 +23,7 @@ import java.util.List;
 @Slf4j
 public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
     TtsHandler ttsHandler;
+
     public MrcpSpeechSynthChannel(TtsHandler ttsHandler) {
         this.ttsHandler = ttsHandler;
     }
@@ -36,25 +37,21 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
             System.out.println(s);
             ttsHandler.transmit(s);
         }
-//        MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
-        new Thread(new Runnable() {
+        Callback callback = new Callback() {
             @Override
-            public void run() {
+            public void apply(String msg) {
                 try {
-                    Thread.sleep(3000);
                     MrcpEvent eventComplete = mrcpSession.createEvent(
                             MrcpEventName.SPEAK_COMPLETE,
                             MrcpRequestState.COMPLETE
                     );
-                    CompletionCause completionCause = new CompletionCause((short) 0, "normal");
-                    MrcpHeader completionCauseHeader = MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause);
-//                    event.addHeader(completionCauseHeader);
-//                    mrcpSession.postEvent(eventComplete);
+                    mrcpSession.postEvent(eventComplete);
                 } catch (Exception e) {
                     log.error("postEvent error", e);
                 }
             }
-        }).start();
+        };
+        ttsHandler.setCallback(callback);
         short statusCode = MrcpResponse.STATUS_SUCCESS;
         MrcpResponse response = mrcpSession.createResponse(statusCode, MrcpRequestState.IN_PROGRESS);
         return response;
@@ -64,16 +61,17 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         byte[] bytes = new byte[0];
         try {
             bytes = eslBodyStr.getBytes("Unicode");
-        } catch (UnsupportedEncodingException e) {}
+        } catch (UnsupportedEncodingException e) {
+        }
         List<Byte> list = new LinkedList<>();
-        for (int i=0; i<bytes.length; ++i) {
+        for (int i = 0; i < bytes.length; ++i) {
             if (i % 2 == 0 || i == 1) {
                 continue;
             }
             list.add(bytes[i]);
         }
         byte[] bytes2 = new byte[list.size()];
-        for (int k = 0; k<list.size(); ++k) {
+        for (int k = 0; k < list.size(); ++k) {
             bytes2[k] = list.get(k);
         }
         return new String(bytes2, StandardCharsets.UTF_8);

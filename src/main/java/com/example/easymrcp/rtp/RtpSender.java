@@ -1,60 +1,94 @@
 package com.example.easymrcp.rtp;
 
-import java.net.DatagramPacket;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.*;
+import javax.sound.sampled.*;
 
 public class RtpSender {
     private static final int RTP_HEADER_SIZE = 12;
+    private static final int PAYLOAD_TYPE = 0; // G.711u的payload type
+    private static final int CLOCK_RATE = 8000; // 8kHz时钟频率
+
     private final DatagramSocket socket;
     private final InetAddress destAddress;
     private final int destPort;
+
+    // RTP协议相关参数
     private int sequenceNumber = 0;
     private long timestamp = 0;
+    private final long ssrc;
 
-    public RtpSender(DatagramSocket socket, InetAddress destAddress, int destPort) {
-        this.socket = socket;
-        this.destAddress = destAddress;
-        this.destPort = destPort;
+    public RtpSender(String destIp, int destPort) throws SocketException {
+        try {
+            this.destAddress = InetAddress.getByName(destIp);
+            this.destPort = destPort;
+            this.socket = new DatagramSocket();
+            this.ssrc = (long) (Math.random() * 0xFFFFFFFFL); // 随机生成SSRC
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Invalid destination IP", e);
+        }
     }
 
-    public void send(byte[] payload, int payloadType) throws Exception {
-        byte[] rtpPacket = new byte[RTP_HEADER_SIZE + payload.length];
+    public void sendAudioFrame(byte[] g711Data, long timestamp) {
+        // 计算RTP时间戳（单位：采样数）
+        long rtpTimestamp = timestamp * CLOCK_RATE / 1000; // 转换为采样数
 
-        // 构造RTP头部
-        rtpPacket[0] = (byte) (0x80); // V=2, P=0, X=0
-        rtpPacket[1] = (byte) (payloadType & 0x7F); // M=0, PT=payloadType
+        // 构造RTP包
+        byte[] packet = createRtpPacket(g711Data, rtpTimestamp);
+
+        // 发送数据包
+        sendPacket(packet);
+    }
+
+    private byte[] createRtpPacket(byte[] payload, long timestamp) {
+        byte[] header = new byte[RTP_HEADER_SIZE];
+
+        // RTP头字段设置
+        header[0] = (byte) (0x80); // V=2, P=0, X=0, CC=0
+        header[1] = (byte) (PAYLOAD_TYPE & 0x7F); // M=0, PT=0
 
         // 序列号（大端序）
-        rtpPacket[2] = (byte) (sequenceNumber >> 8);
-        rtpPacket[3] = (byte) (sequenceNumber);
+        header[2] = (byte) (sequenceNumber >> 8);
+        header[3] = (byte) (sequenceNumber);
 
         // 时间戳（大端序）
-        System.arraycopy(longToBytes(timestamp), 4, rtpPacket, 4, 4);
+        header[4] = (byte) (timestamp >> 24);
+        header[5] = (byte) (timestamp >> 16);
+        header[6] = (byte) (timestamp >> 8);
+        header[7] = (byte) (timestamp);
 
-        // 负载数据
-        System.arraycopy(payload, 0, rtpPacket, RTP_HEADER_SIZE, payload.length);
+        // SSRC（大端序）
+        header[8] = (byte) (ssrc >> 24);
+        header[9] = (byte) (ssrc >> 16);
+        header[10] = (byte) (ssrc >> 8);
+        header[11] = (byte) (ssrc);
 
-        DatagramPacket packet = new DatagramPacket(
-                rtpPacket,
-                rtpPacket.length,
-                destAddress,
-                destPort
-        );
+        // 合并头和负载
+        byte[] packet = new byte[header.length + payload.length];
+        System.arraycopy(header, 0, packet, 0, header.length);
+        System.arraycopy(payload, 0, packet, header.length, payload.length);
 
-        socket.send(packet);
+        // 递增序列号（使用同步保证线程安全）
+        synchronized (this) {
+            sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
+        }
 
-        sequenceNumber++;  // 递增序列号
-        timestamp += payload.length; // 假设8kHz采样率，20ms帧
+        return packet;
     }
 
-    private byte[] longToBytes(long value) {
-        byte[] result = new byte[8];
-        for (int i = 7; i >= 0; i--) {
-            result[i] = (byte) (value & 0xFF);
-            value >>= 8;
+    public void sendPacket(byte[] packet) {
+        try {
+            DatagramPacket datagramPacket = new DatagramPacket(
+                    packet, packet.length, destAddress, destPort
+            );
+            socket.send(datagramPacket);
+        } catch (Exception e) {
+            throw new RuntimeException("RTP发送失败", e);
         }
-        return result;
+    }
+
+    public void close() {
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+        }
     }
 }

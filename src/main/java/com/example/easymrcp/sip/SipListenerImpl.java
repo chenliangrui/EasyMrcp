@@ -1,6 +1,7 @@
 package com.example.easymrcp.sip;
 
 import com.example.easymrcp.common.SipContext;
+import com.example.easymrcp.sip.handle.HandleAck;
 import com.example.easymrcp.sip.handle.HandleBye;
 import com.example.easymrcp.sip.handle.HandleInvite;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,8 @@ public class SipListenerImpl implements SipListener {
     @Autowired
     private HandleInvite handleInvite;
     @Autowired
+    private HandleAck handleAck;
+    @Autowired
     private HandleBye handleBye;
 
     @Override
@@ -23,7 +26,9 @@ public class SipListenerImpl implements SipListener {
         Request request = requestEvent.getRequest();
         if (request.getMethod().equals(Request.INVITE)) {
             handleInvite.handleInvite(requestEvent);
-        } else if (request.getMethod().equals(Request.BYE)) {
+        } if (request.getMethod().equals(Request.ACK)) {
+            handleAck.processAck(requestEvent);
+        }   else if (request.getMethod().equals(Request.BYE)) {
             handleBye.processBye(requestEvent);
         }
     }

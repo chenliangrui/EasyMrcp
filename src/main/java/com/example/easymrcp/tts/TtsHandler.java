@@ -20,4 +20,8 @@ public abstract class TtsHandler implements RtpConnection {
     public void setCallback(Callback callback) {
         this.callback = callback;
     }
+
+    public Callback getCallback() {
+        return callback;
+    }
 }
