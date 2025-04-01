@@ -32,7 +32,7 @@ public class RealTimeAudioProcessor {
     public int DEST_PORT;
 
     // 线程间缓冲队列
-    private final ArrayBlockingQueue<byte[]> inputQueue = new ArrayBlockingQueue<>(10000);
+    private final RingBuffer inputRingBuffer = new RingBuffer(1000000);
     private final ArrayBlockingQueue<byte[]> outputQueue = new ArrayBlockingQueue<>(10000);
 
     // RTP状态
@@ -52,7 +52,7 @@ public class RealTimeAudioProcessor {
             byte[] buffer = new byte[480]; // 240样本*2字节
             while (true) {
                 int read = line.read(buffer, 0, buffer.length);
-                if (read > 0) inputQueue.add(buffer.clone());
+                if (read > 0) inputRingBuffer.put(buffer.clone());
             }
         }).start();
     }
@@ -64,7 +64,7 @@ public class RealTimeAudioProcessor {
         byte[] b = new byte[bytesRead];
 //        inputQueue.add(pcmBuffer.clone());
         System.arraycopy(pcmBuffer, 0, b, 0, bytesRead);
-        inputQueue.add(b);
+        inputRingBuffer.put(b);
     }
 
     /**
@@ -93,8 +93,11 @@ public class RealTimeAudioProcessor {
             double[] filterHistory = new double[FIR_COEFFS.length];
             while (true) {
                 try {
-                    byte[] pcm24k = inputQueue.take();
-                    audioBuffer.write(pcm24k, 0, pcm24k.length);
+                    byte[] pcm24k;
+                    while ((pcm24k = inputRingBuffer.take(1024)) == null) {
+                        Thread.sleep(20); // 非阻塞等待
+                    }
+//                    byte[] pcm24k = inputQueue.take();
                     System.out.println("pcm24k size: " + pcm24k.length);
                     ByteBuffer inputBuffer = ByteBuffer.wrap(pcm24k)
                             .order(ByteOrder.LITTLE_ENDIAN);
@@ -133,6 +136,7 @@ public class RealTimeAudioProcessor {
 
                     // G711编码
                     byte[] pcm8k = outputBuffer.array();
+                    audioBuffer.write(pcm8k, 0, pcm8k.length);
                     byte[] g711Data = encodePcmToG711U(pcm8k);
                     outputQueue.add(g711Data);
 

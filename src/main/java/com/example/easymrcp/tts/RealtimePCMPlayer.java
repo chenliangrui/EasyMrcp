@@ -5,7 +5,7 @@ import java.io.ByteArrayInputStream;
 
 public class RealtimePCMPlayer {
 
-    private static final float SAMPLE_RATE = 24000.0f;  // 8kHz采样率
+    private static final float SAMPLE_RATE = 8000.0f;  // 8kHz采样率
     private static final int SAMPLE_SIZE_BITS = 16;     // 16位深度
     private static final int CHANNELS = 1;              // 单声道
     private static final boolean SIGNED = true;          // 有符号采样
