@@ -23,6 +23,7 @@ public class FunAsrProcessor extends AsrHandler {
     private static final int RTP_PORT = 5004; // RTP默认端口
     private static final int BUFFER_SIZE = 172;
     byte[] buffer = new byte[BUFFER_SIZE];
+    Boolean stop = false;
 //    File outputFile = new File("D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.pcm");
 
     private DatagramSocket socket;
@@ -110,6 +111,11 @@ public class FunAsrProcessor extends AsrHandler {
         }
     }
 
+    @Override
+    public void stop() {
+        stop = true;
+    }
+
     // 播放PCM音频流
     public static void playPCM(byte[] pcmData, AudioFormat format) throws LineUnavailableException {
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
@@ -178,7 +184,7 @@ public class FunAsrProcessor extends AsrHandler {
                     getCallback().apply(msg);
                 }
             };
-            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback);
+            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop);
 
             funasrWsClient.connect();
 

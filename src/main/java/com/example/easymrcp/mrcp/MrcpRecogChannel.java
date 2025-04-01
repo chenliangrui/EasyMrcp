@@ -15,6 +15,7 @@ import org.mrcp4j.server.MrcpSession;
 import org.mrcp4j.server.provider.RecogOnlyRequestHandler;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,7 +89,9 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
 
     @Override
     public MrcpResponse stop(StopRequest stopRequest, MrcpSession mrcpSession) {
-        return null;
+        MrcpResponse response = null;
+        response = mrcpSession.createResponse(MrcpResponse.STATUS_SUCCESS, MrcpRequestState.COMPLETE);
+        return response;
     }
 
     @Override

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.sdp.MediaDescription;
 import javax.sdp.SdpException;
 import java.net.InetAddress;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;

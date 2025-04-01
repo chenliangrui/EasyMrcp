@@ -19,6 +19,8 @@ public abstract class AsrHandler implements RtpConnection {
 
     public abstract void receive();
 
+    public abstract void stop();
+
     public void setCallback(Callback callback) {
         this.callback = callback;
     }

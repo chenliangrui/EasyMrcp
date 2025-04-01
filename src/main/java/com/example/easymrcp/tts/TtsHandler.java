@@ -17,6 +17,8 @@ public abstract class TtsHandler implements RtpConnection {
 
     public abstract void transmit(String text);
 
+    public abstract void stop();
+
     public void setCallback(Callback callback) {
         this.callback = callback;
     }

@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -19,8 +20,9 @@ public class KokoroProcessor extends TtsHandler {
     private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
     private HttpClient httpClient;
     RtpSender rtpSender;
-//    private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
+    //    private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
     RealTimeAudioProcessor processor;
+    boolean stop = false;
 
     @Override
     public void transmit(String text) {
@@ -51,6 +53,11 @@ public class KokoroProcessor extends TtsHandler {
                 });
     }
 
+    @Override
+    public void stop() {
+        stop = true;
+    }
+
     // 自定义响应体处理器
     private static class StreamBodyHandler implements HttpResponse.BodyHandler<InputStream> {
         @Override
@@ -69,7 +76,7 @@ public class KokoroProcessor extends TtsHandler {
 //            processor.initAudioCapture();
             processor.startProcessing();
             processor.startRtpSender();
-            byte[] resampledBuffer = new byte[1024/3*2]; // 调整缓冲区大小
+            byte[] resampledBuffer = new byte[1024 / 3 * 2]; // 调整缓冲区大小
 //            RealTimePCMDownsampler processor = new RealTimePCMDownsampler();
 
             try (inputStream) {
@@ -92,8 +99,10 @@ public class KokoroProcessor extends TtsHandler {
                 }
             }
             //TODO mrcp报错是因为正常的打断，语音完成时机需要等rtp发送完成
-            Thread.sleep(10000);
-            getCallback().apply(null);
+            Thread.sleep(5000);
+            if (!stop) {
+                getCallback().apply(null);
+            }
             // 执行降采样
 //            byte[] pcm8k = downsample24kTo8k(audioBuffer.toByteArray());
 //            playPCM(audioBuffer.toByteArray());
@@ -118,6 +127,7 @@ public class KokoroProcessor extends TtsHandler {
 
     /**
      * PCM降采样核心算法
+     *
      * @param input 输入字节流（24kHz 16bit单声道）
      * @return 8kHz采样率的字节流
      */
@@ -129,7 +139,7 @@ public class KokoroProcessor extends TtsHandler {
         final int CHANNELS = 1;
 
         // 计算采样率比
-        final double RATIO = (double)SOURCE_RATE / TARGET_RATE;
+        final double RATIO = (double) SOURCE_RATE / TARGET_RATE;
 
         // 转换字节序为小端模式
         ByteBuffer buffer = ByteBuffer.wrap(input)
@@ -137,12 +147,12 @@ public class KokoroProcessor extends TtsHandler {
 
         // 创建原始样本数组
         short[] sourceSamples = new short[input.length / SAMPLE_SIZE];
-        for(int i=0; i<sourceSamples.length; i++){
+        for (int i = 0; i < sourceSamples.length; i++) {
             sourceSamples[i] = buffer.getShort();
         }
 
         // 计算目标样本数
-        int targetLength = (int)(sourceSamples.length / RATIO);
+        int targetLength = (int) (sourceSamples.length / RATIO);
         short[] targetSamples = new short[targetLength];
 
         // 抗混叠滤波参数
@@ -150,13 +160,13 @@ public class KokoroProcessor extends TtsHandler {
         final double CUTOFF = 0.4; // 截止频率系数
 
         // 线性插值+滤波处理
-        for(int i=0; i<targetLength; i++){
+        for (int i = 0; i < targetLength; i++) {
             double srcPos = i * RATIO;
-            int basePos = (int)srcPos;
+            int basePos = (int) srcPos;
             double fraction = srcPos - basePos;
 
             // 边界检查
-            if(basePos >= sourceSamples.length - 1) {
+            if (basePos >= sourceSamples.length - 1) {
                 targetSamples[i] = sourceSamples[sourceSamples.length - 1];
                 continue;
             }
@@ -164,14 +174,14 @@ public class KokoroProcessor extends TtsHandler {
             // 线性插值
             short prev = sourceSamples[basePos];
             short next = sourceSamples[basePos + 1];
-            double interpolated = prev*(1-fraction) + next*fraction;
+            double interpolated = prev * (1 - fraction) + next * fraction;
 
             // 简单移动平均滤波
             double sum = 0;
             int count = 0;
-            for(int j=-FILTER_ORDER/2; j<=FILTER_ORDER/2; j++){
+            for (int j = -FILTER_ORDER / 2; j <= FILTER_ORDER / 2; j++) {
                 int pos = basePos + j;
-                if(pos >=0 && pos < sourceSamples.length){
+                if (pos >= 0 && pos < sourceSamples.length) {
                     sum += sourceSamples[pos];
                     count++;
                 }
@@ -179,13 +189,13 @@ public class KokoroProcessor extends TtsHandler {
             double filtered = sum / count;
 
             // 混合插值和滤波结果
-            targetSamples[i] = (short)((interpolated + filtered*CUTOFF) / (1+CUTOFF));
+            targetSamples[i] = (short) ((interpolated + filtered * CUTOFF) / (1 + CUTOFF));
         }
 
         // 转换回字节流
         ByteBuffer outputBuffer = ByteBuffer.allocate(targetLength * SAMPLE_SIZE)
                 .order(ByteOrder.LITTLE_ENDIAN);
-        for(short sample : targetSamples){
+        for (short sample : targetSamples) {
             outputBuffer.putShort(sample);
         }
 
@@ -200,7 +210,7 @@ public class KokoroProcessor extends TtsHandler {
         // 3:1降采样（24k->8k）
         for (int i = 0; i < sampleCount; i += 3) {
             // 取第一个样本（简单抽取法）
-            System.arraycopy(input, i*2, output, outputIndex, 2);
+            System.arraycopy(input, i * 2, output, outputIndex, 2);
             outputIndex += 2;
         }
         return outputIndex;
@@ -227,7 +237,6 @@ public class KokoroProcessor extends TtsHandler {
         line.drain();
         line.close();
     }
-
 
     @Override
     public void create(String ip, int port) {

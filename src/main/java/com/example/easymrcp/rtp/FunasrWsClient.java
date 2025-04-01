@@ -35,10 +35,12 @@ public class FunasrWsClient extends WebSocketClient {
   static String srvIp = "127.0.0.1";
   static String srvPort = "8080";
   Callback callback;
+  Boolean stop;
 
-  public FunasrWsClient(URI serverURI, Callback callback) {
+  public FunasrWsClient(URI serverURI, Callback callback, Boolean stop) {
 	super(serverURI);
     this.callback = callback;
+    this.stop = stop;
   }
 
   // send json at first time
@@ -142,9 +144,9 @@ public class FunasrWsClient extends WebSocketClient {
       jsonObject = (JSONObject) jsonParser.parse(message);
       String result = jsonObject.get("text").toString();
       log.info("text: " + result);
-      if (jsonObject.containsKey("is_final")&& jsonObject.get("is_final").equals("true")) {
-        callback.apply(result);
-      }
+//      if (jsonObject.containsKey("is_final")&& jsonObject.get("is_final").equals("true")) {
+        if (!stop) callback.apply(result);
+//      }
 	  if(jsonObject.containsKey("timestamp"))
 	  {
 		  log.info("timestamp: " + jsonObject.get("timestamp"));

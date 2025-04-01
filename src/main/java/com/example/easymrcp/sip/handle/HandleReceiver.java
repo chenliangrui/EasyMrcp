@@ -12,12 +12,15 @@ import com.example.easymrcp.sip.SipSession;
 import com.example.easymrcp.utils.SipUtils;
 import gov.nist.javax.sdp.fields.AttributeField;
 import lombok.extern.slf4j.Slf4j;
+import org.mrcp4j.MrcpRequestState;
 import org.mrcp4j.MrcpResourceType;
+import org.mrcp4j.message.MrcpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sdp.MediaDescription;
 import javax.sdp.SdpException;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Vector;
 
