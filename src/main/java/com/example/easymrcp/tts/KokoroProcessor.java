@@ -19,7 +19,6 @@ import java.time.Duration;
 public class KokoroProcessor extends TtsHandler {
     private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
     private HttpClient httpClient;
-    RtpSender rtpSender;
     //    private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
     RealTimeAudioProcessor processor;
     boolean stop = false;
@@ -80,7 +79,7 @@ public class KokoroProcessor extends TtsHandler {
 //            RealTimePCMDownsampler processor = new RealTimePCMDownsampler();
 
             try (inputStream) {
-                byte[] pcmBuffer = new byte[4096];
+                byte[] pcmBuffer = new byte[409600];
                 int bytesRead;
 
                 while ((bytesRead = inputStream.read(pcmBuffer)) != -1) {
@@ -92,14 +91,10 @@ public class KokoroProcessor extends TtsHandler {
 
                     // G.711u编码
 //                    byte[] g711Data = g711Encoder.encode(resampledBuffer, resampledSize);
-                    // 通过RTP发送
-                    if (rtpSender != null) {
-                        rtpSender.sendAudioFrame(pcmBuffer, System.currentTimeMillis());
-                    }
                 }
             }
             //TODO mrcp报错是因为正常的打断，语音完成时机需要等rtp发送完成
-            Thread.sleep(5000);
+            Thread.sleep(60000);
             if (!stop) {
                 getCallback().apply(null);
             }

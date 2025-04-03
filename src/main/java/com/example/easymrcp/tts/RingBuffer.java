@@ -54,4 +54,8 @@ class RingBuffer {
         available -= bytesToRead;
         return result;
     }
+
+    public int getAvailable() {
+        return available;
+    }
 }
