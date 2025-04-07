@@ -15,6 +15,7 @@ public class KokoroProcessor extends TtsHandler {
 
     @Override
     public void transmit(String text) {
+        processor.setCallback(getCallback());
         String jsonPayload = String.format(
                 "{\"model\":\"kokoro\",\"input\":\"%s\",\"voice\":\"zf_xiaoxiao\",\"response_format\":\"pcm\",\"stream\":true}",
                 text);
@@ -64,7 +65,6 @@ public class KokoroProcessor extends TtsHandler {
         try {
             processor.startProcessing();
             processor.startRtpSender();
-
             try (inputStream) {
                 byte[] pcmBuffer = new byte[409600];
                 int bytesRead;
@@ -72,12 +72,8 @@ public class KokoroProcessor extends TtsHandler {
                     processor.putData(pcmBuffer, bytesRead);
                 }
             }
-            //TODO mrcp报错是因为正常的打断，语音完成时机需要等rtp发送完成
-            Thread.sleep(60000);
-            if (!stop) {
-                getCallback().apply(null);
-                processor.stopRtpSender();
-            }
+            // tts语音合成结束，写入结束标志
+            processor.putData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

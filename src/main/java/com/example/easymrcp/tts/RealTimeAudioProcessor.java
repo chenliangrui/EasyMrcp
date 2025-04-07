@@ -1,15 +1,9 @@
 package com.example.easymrcp.tts;
 
-import com.example.easymrcp.asr.FunAsrProcessor;
-import com.example.easymrcp.rtp.G711uDecoder;
+import com.example.easymrcp.mrcp.Callback;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sound.sampled.*;
-import java.io.ByteArrayOutputStream;
-import java.net.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Random;
+import javax.sound.sampled.LineUnavailableException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 @Slf4j
@@ -17,6 +11,11 @@ public class RealTimeAudioProcessor {
     // 网络参数
     public String DEST_IP;
     public int DEST_PORT;
+    private Callback callback;
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
 
     // 线程间缓冲队列
     private final RingBuffer inputRingBuffer = new RingBuffer(1000000);
@@ -29,7 +28,6 @@ public class RealTimeAudioProcessor {
      */
     public void putData(byte[] pcmBuffer, int bytesRead) throws LineUnavailableException {
         byte[] b = new byte[bytesRead];
-//        inputQueue.add(pcmBuffer.clone());
         System.arraycopy(pcmBuffer, 0, b, 0, bytesRead);
         inputRingBuffer.put(b);
     }
@@ -52,9 +50,13 @@ public class RealTimeAudioProcessor {
                         }
                     }
                     byte[] bytes = downsample24kTo8k(pcm24k);
-//                    // G711编码
+                    // G711编码
                     byte[] bytes1 = G711UEncoder.encode(bytes);
                     outputQueue.add(bytes1);
+                    if (pcm24k[pcm24k.length - 2] == TTSConstant.TTS_END_BYTE && pcm24k[pcm24k.length - 1] == TTSConstant.TTS_END_BYTE) {
+                        // 结束
+                        outputQueue.add(TTSConstant.TTS_END_FLAG); // 结束标记
+                    }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
@@ -112,26 +114,16 @@ public class RealTimeAudioProcessor {
                 try {
                     byte[] payload = outputQueue.take();
                     sender.sendFrame(payload);
+                    if (payload[0] == 111 && payload[1] == 111) {
+                        stopRtpSender();
+                        callback.apply(null);
+                    }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
 //            Thread.sleep(FRAME_DURATION); // 控制发送速率
             }
         }).start();
-    }
-
-    /**
-     * PCM转μ-law算法
-     */
-    private byte linearToUlaw(short sample) {
-        int sign = (sample & 0x8000) >> 8;
-        if (sign != 0) sample = (short) -sample;
-        sample = (short) Math.min(sample + 132, 32767);
-
-        int exp = 7;
-        for (; (sample & 0x4000) == 0 && exp > 0; exp--, sample <<= 1) ;
-        int mant = (sample >> 4) & 0x0F;
-        return (byte) ~(sign | (exp << 4) | mant);
     }
 
     public void stopRtpSender() {
