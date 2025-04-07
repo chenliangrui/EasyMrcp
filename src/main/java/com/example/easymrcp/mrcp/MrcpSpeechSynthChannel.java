@@ -34,7 +34,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         if (contentType.equalsIgnoreCase("text/plain")) {
             String text = unimplementedRequest.getContent();
             String s = eslBodyStrConvert(text);
-            System.out.println(s);
+            s = s.replaceAll("[\\r\\n]", "");
             ttsHandler.transmit(s);
         }
         Callback callback = new Callback() {

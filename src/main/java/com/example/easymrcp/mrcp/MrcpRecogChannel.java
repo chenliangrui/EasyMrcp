@@ -47,8 +47,10 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                     MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
                     CompletionCause completionCause = new CompletionCause((short) 0, "success");
                     eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
-                    eventComplete.setContent("text/plain", null, msg);
-                    mrcpSession.postEvent(eventComplete);
+                    if (!msg.isEmpty()) {
+                        eventComplete.setContent("text/plain", null, msg);
+                        mrcpSession.postEvent(eventComplete);
+                    }
                 } catch (TimeoutException e) {
                     throw new RuntimeException(e);
                 }
@@ -58,17 +60,23 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
         log.info("MrcpRecogChannel recognize");
         MrcpResponse response = mrcpSession.createResponse(MrcpResponse.STATUS_SUCCESS, MrcpRequestState.IN_PROGRESS);
         //TODO 开始发送语音，时机需要考虑
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
-                try {
-                    mrcpSession.postEvent(event);
-                } catch (TimeoutException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    //TODO 发送后IN_PROGRESS会打断语音合成
+//                    Thread.sleep(10000);
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
+//                try {
+//                    mrcpSession.postEvent(event);
+//                } catch (TimeoutException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//        }).start();
         return response;
     }
 

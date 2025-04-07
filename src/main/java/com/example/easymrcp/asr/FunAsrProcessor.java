@@ -6,11 +6,8 @@ import com.example.easymrcp.rtp.RtpPacket;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import javax.sound.sampled.*;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.URI;
@@ -24,14 +21,13 @@ public class FunAsrProcessor extends AsrHandler {
     private static final int BUFFER_SIZE = 172;
     byte[] buffer = new byte[BUFFER_SIZE];
     Boolean stop = false;
-//    File outputFile = new File("D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\testutils\\output.pcm");
 
     private DatagramSocket socket;
 
     static String strChunkSize = "5,10,5";
     static int chunkInterval = 10;
     static int sendChunkSize = 1920;
-    static String srvIp = "192.168.0.5";
+    static String srvIp = "172.16.2.204";
     static String srvPort = "10096";
     FunasrWsClient funasrWsClient;
 
@@ -48,24 +44,6 @@ public class FunAsrProcessor extends AsrHandler {
         funasrWsClient.sendEof();
         socket.close();
         System.out.println("FunAsrProcessor close");
-
-//        // 播放测试
-//        byte[] bytes = decodeG711U(audioBuffer.toByteArray());
-//        // 配置音频格式（G.711U的PCM参数）
-//        AudioFormat audioFormat = new AudioFormat(
-//                AudioFormat.Encoding.PCM_SIGNED,
-//                8000.0f,   // 采样率8kHz
-//                16,        // 16位量化
-//                1,         // 单声道
-//                2,         // 每帧2字节（16位）
-//                8000.0f,   // 帧速率
-//                false      // 小端字节序
-//        );
-//        try {
-//            playPCM(bytes, audioFormat);
-//        } catch (LineUnavailableException e) {
-//            e.printStackTrace();
-//        }
     }
 
     public void receive() {
@@ -86,23 +64,11 @@ public class FunAsrProcessor extends AsrHandler {
 //                        System.out.println("RTP数据包长度：" + packetLength);
                         // 解析RTP头部（前12字节）
                         RtpPacket parsedPacket = parseRtpHeader(rtpData, packetLength);
-
                         // 提取G.711u负载
                         byte[] g711Data = parsedPacket.getPayload();
-
                         // G.711u解码为PCM
-//                        short[] pcmData = G711uDecoder.decode(g711Data);
                         byte[] bytes = decodeG711U(g711Data);
-//                        denoise(bytes, 300);
                         funasrWsClient.recPcm(bytes);
-
-                        // 保存到文件
-                        // 写入音频数据
-//                        try {
-//                            audioBuffer.write(bytes);
-//                        } catch (IOException e) {
-//                            throw new RuntimeException(e);
-//                        }
                     }
                 }
             }).start();
@@ -114,27 +80,6 @@ public class FunAsrProcessor extends AsrHandler {
     @Override
     public void stop() {
         stop = true;
-    }
-
-    // 播放PCM音频流
-    public static void playPCM(byte[] pcmData, AudioFormat format) throws LineUnavailableException {
-        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-        SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
-        line.open(format);
-        line.start();
-
-        InputStream input = new ByteArrayInputStream(pcmData);
-        byte[] buffer = new byte[4096];
-        try {
-            int bytesRead;
-            while ((bytesRead = input.read(buffer)) != -1) {
-                line.write(buffer, 0, bytesRead);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        line.drain();
-        line.close();
     }
 
     // G.711U解码表（U-law转16位PCM）

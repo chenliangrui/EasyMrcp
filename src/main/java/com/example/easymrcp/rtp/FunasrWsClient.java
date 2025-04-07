@@ -31,9 +31,6 @@ public class FunasrWsClient extends WebSocketClient {
   static String fsthotwords="";
   static String strChunkSize = "5,10,5";
   static int chunkInterval = 10;
-  static int sendChunkSize = 1920;
-  static String srvIp = "127.0.0.1";
-  static String srvPort = "8080";
   Callback callback;
   Boolean stop;
 

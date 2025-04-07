@@ -8,7 +8,7 @@ public class G711RtpSender {
     // RTP配置参数
     private int RTP_HEADER_SIZE = 12;
     private int PAYLOAD_TYPE = 0;  // G.711u的RTP载荷类型
-    private int SAMPLE_RATE = 8000;
+    private final int SAMPLE_RATE = 8000;
     private int FRAME_DURATION = 20; // 每帧20ms
     private int SAMPLES_PER_FRAME = SAMPLE_RATE * FRAME_DURATION / 1000;
 
@@ -64,19 +64,5 @@ public class G711RtpSender {
     private void updateHeader() {
         sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
         timestamp += SAMPLES_PER_FRAME; // 时间戳增量=8000*0.02=160
-    }
-
-    // 示例用法
-    public static void main(String[] args) throws Exception {
-        G711RtpSender sender = new G711RtpSender("192.168.1.100", 5004);
-
-        // 模拟生成20ms的G711u数据（160字节）
-        byte[] testData = new byte[160];
-        new Random().nextBytes(testData); // 替换为实际音频数据
-
-        while (true) {
-            sender.sendFrame(testData);
-//            Thread.sleep(FRAME_DURATION); // 控制发送速率
-        }
     }
 }
