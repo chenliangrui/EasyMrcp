@@ -24,10 +24,10 @@ public class G711RtpSender {
     private final InetAddress destAddress;
     private final int destPort;
 
-    public G711RtpSender(String destIp, int port) throws Exception {
+    public G711RtpSender(int localPort, String destIp, int port) throws Exception {
         this.destAddress = InetAddress.getByName(destIp);
         this.destPort = port;
-        this.socket = new DatagramSocket();
+        this.socket = new DatagramSocket(localPort);
     }
 
     // 发送G.711u音频帧（每帧160字节，对应20ms音频）

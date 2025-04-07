@@ -14,11 +14,6 @@ import org.mrcp4j.message.request.StopRequest;
 import org.mrcp4j.server.MrcpSession;
 import org.mrcp4j.server.provider.RecogOnlyRequestHandler;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
@@ -59,12 +54,11 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
         asrHandler.setCallback(callback);
         log.info("MrcpRecogChannel recognize");
         MrcpResponse response = mrcpSession.createResponse(MrcpResponse.STATUS_SUCCESS, MrcpRequestState.IN_PROGRESS);
-        //TODO 开始发送语音，时机需要考虑
+        //TODO 发送后IN_PROGRESS会打断语音合成，发送时机需要考虑
 //        new Thread(new Runnable() {
 //            @Override
 //            public void run() {
 //                try {
-//                    //TODO 发送后IN_PROGRESS会打断语音合成
 //                    Thread.sleep(10000);
 //                } catch (InterruptedException e) {
 //                    throw new RuntimeException(e);

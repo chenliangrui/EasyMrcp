@@ -8,10 +8,15 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 @Slf4j
 public class RealTimeAudioProcessor {
+    private int localPort;
     // 网络参数
     public String DEST_IP;
     public int DEST_PORT;
     private Callback callback;
+
+    public RealTimeAudioProcessor(int localPort) {
+        this.localPort = localPort;
+    }
 
     public void setCallback(Callback callback) {
         this.callback = callback;
@@ -106,7 +111,7 @@ public class RealTimeAudioProcessor {
         new Thread(() -> {
             G711RtpSender sender = null;
             try {
-                sender = new G711RtpSender(DEST_IP, DEST_PORT);
+                sender = new G711RtpSender(localPort, DEST_IP, DEST_PORT);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

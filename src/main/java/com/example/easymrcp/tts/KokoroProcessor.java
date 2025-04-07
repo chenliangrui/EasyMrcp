@@ -80,12 +80,12 @@ public class KokoroProcessor extends TtsHandler {
     }
 
     @Override
-    public void create(String ip, int port) {
+    public void create(String localIp, int localPort, String remoteIp, int remotePort) {
         //初始化rtp
         try {
-            processor = new RealTimeAudioProcessor();
-            processor.DEST_IP = ip;
-            processor.DEST_PORT = port;
+            processor = new RealTimeAudioProcessor(localPort);
+            processor.DEST_IP = remoteIp;
+            processor.DEST_PORT = remotePort;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -41,6 +41,34 @@ public class SipContext {
     @Value("${sip.mrcpServerPort}")
     public int mrcpServerPort;
     public String displayName = "xiaohua";
+    @Value("${rtp.asrStartPort}")
+    public int asrStartPort;
+    @Value("${rtp.asrStopPort}")
+    public int asrStopPort;
+    // 当前asrRtp端口
+    @Value("${rtp.asrStartPort}")
+    public int asrPort;
+    @Value("${rtp.ttsStartPort}")
+    public int ttsStartPort;
+    @Value("${rtp.ttsStopPort}")
+    public int ttsStopPort;
+    // 当前asrRtp端口
+    @Value("${rtp.ttsStartPort}")
+    public int ttsPort;
+
+    public int getAsrRtpPort() {
+        if (asrPort > asrStopPort) {
+            asrPort = asrStartPort;
+        }
+        return asrPort++;
+    }
+
+    public int getTtsRtpPort() {
+        if (ttsPort > ttsStopPort) {
+            ttsPort = ttsStartPort;
+        }
+        return ttsPort++;
+    }
 
     public ContactHeader getContactHeader() {
         return getContactHeader(displayName, sipServerIp);

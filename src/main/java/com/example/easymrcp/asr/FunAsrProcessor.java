@@ -17,7 +17,7 @@ import static com.example.easymrcp.rtp.RtpPacket.parseRtpHeader;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class FunAsrProcessor extends AsrHandler {
-    private static final int RTP_PORT = 5004; // RTP默认端口
+    private int RTP_PORT = 5004; // RTP默认端口
     private static final int BUFFER_SIZE = 172;
     byte[] buffer = new byte[BUFFER_SIZE];
     Boolean stop = false;
@@ -35,7 +35,8 @@ public class FunAsrProcessor extends AsrHandler {
 
     private ByteArrayOutputStream audioBuffer = new ByteArrayOutputStream();
 
-    public void create(String ip, int port) {
+    public void create(String localIp, int localPort, String remoteIp, int remotePort) {
+        this.RTP_PORT = localPort;
         createFunAsrClient();
     }
 

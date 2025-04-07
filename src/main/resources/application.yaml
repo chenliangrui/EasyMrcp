@@ -7,3 +7,10 @@ sip:
 mrcp:
   asrMode: funasr
   ttsMode: kokoro
+rtp:
+  # asr的rtp端口范围
+  asrStartPort: 5000
+  asrStopPort: 6000
+  # tts的rtp端口范围
+  ttsStartPort: 15000
+  ttsStopPort: 16000

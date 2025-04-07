@@ -1,6 +1,7 @@
 package com.example.easymrcp.sip.handle;
 
 import com.example.easymrcp.common.ProcessorCreator;
+import com.example.easymrcp.common.SipContext;
 import com.example.easymrcp.mrcp.MrcpSpeechSynthChannel;
 import com.example.easymrcp.rtp.*;
 import com.example.easymrcp.sdp.SdpMessage;
@@ -26,7 +27,8 @@ import java.util.Vector;
 @Slf4j
 @Service
 public class HandleTransmitter {
-
+    @Autowired
+    SipContext sipContext;
     @Autowired
     SipRtpManage rtpManage;
     @Autowired
@@ -96,16 +98,17 @@ public class HandleTransmitter {
                     switch (resourceType) {
                         case BASICSYNTH:
                         case SPEECHSYNTH:
+                            localPort = sipContext.getTtsRtpPort();
                             // 开启rtp
                             TtsHandler ttsHandler = processorCreator.getTtsHandler();
-                            ttsHandler.create(remoteHost.getHostAddress(), remotePort);
+                            ttsHandler.create(null, localPort, remoteHost.getHostAddress(), remotePort);
                             ttsHandler.setChannelId(channelID);
                             channelMaps.put(channelID, ttsHandler);
                             // 开启mrcp
                             mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
-                            rtpmd.get(0).getMedia().setMediaPort(5006);
+                            rtpmd.get(0).getMedia().setMediaPort(localPort);
                             //修改sdp收发问题
                             for (Object attribute : rtpmd.get(0).getAttributes(true)) {
                                 AttributeField attribute1 = (AttributeField) attribute;

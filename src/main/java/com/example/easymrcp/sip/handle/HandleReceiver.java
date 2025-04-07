@@ -64,17 +64,18 @@ public class HandleReceiver {
                             Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
                             Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
                             // 开启rtp通道
+                            int asrRtpPort = sipContext.getAsrRtpPort();
                             AsrHandler asrHandler = asrChose.getAsrHandler();
                             asrHandler.setChannelId(channelID);
                             //TODO 等待asr连接成功
-                            asrHandler.create(null,0);
+                            asrHandler.create(null, asrRtpPort,null, 0);
                             asrHandler.receive();
                             rtpSession.addChannel(channelID, asrHandler);
                             // 开启mrcp通道
                             mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpRecogChannel(asrHandler));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
-                            rtpmd.get(0).getMedia().setMediaPort(5004);
+                            rtpmd.get(0).getMedia().setMediaPort(asrRtpPort);
                             //修改sdp收发问题
                             for (Object attribute : rtpmd.get(0).getAttributes(true)) {
                                 AttributeField attribute1 = (AttributeField) attribute;
