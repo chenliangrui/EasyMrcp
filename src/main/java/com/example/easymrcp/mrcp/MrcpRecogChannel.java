@@ -34,7 +34,7 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
     @Override
     public MrcpResponse recognize(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
         // 设置语音识别完成的回调，当asr完成识别后调用回调
-        Callback callback = new Callback() {
+        AsrCallback callback = new AsrCallback() {
             @Override
             public void apply(String msg) {
                 // 语音识别完成

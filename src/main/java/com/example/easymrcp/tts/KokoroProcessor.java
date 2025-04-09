@@ -1,5 +1,7 @@
 package com.example.easymrcp.tts;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -7,15 +9,19 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+@Slf4j
 public class KokoroProcessor extends TtsHandler {
     private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
     private HttpClient httpClient;
-    RealTimeAudioProcessor processor;
-    boolean stop = false;
 
     @Override
-    public void transmit(String text) {
-        processor.setCallback(getCallback());
+    public void create() {
+        // 创建kokoro的连接
+        httpClient = HttpClient.newHttpClient();
+    }
+
+    @Override
+    public void speak(String text) {
         String jsonPayload = String.format(
                 "{\"model\":\"kokoro\",\"input\":\"%s\",\"voice\":\"zf_xiaoxiao\",\"response_format\":\"pcm\",\"stream\":true}",
                 text);
@@ -43,19 +49,6 @@ public class KokoroProcessor extends TtsHandler {
                 });
     }
 
-    @Override
-    public void stop() {
-        stop = true;
-    }
-
-    // 自定义响应体处理器
-    private static class StreamBodyHandler implements HttpResponse.BodyHandler<InputStream> {
-        @Override
-        public HttpResponse.BodySubscriber<InputStream> apply(HttpResponse.ResponseInfo responseInfo) {
-            return HttpResponse.BodySubscribers.ofInputStream();
-        }
-    }
-
     /**
      * 发送pcm数据
      *
@@ -80,23 +73,15 @@ public class KokoroProcessor extends TtsHandler {
     }
 
     @Override
-    public void create(String localIp, int localPort, String remoteIp, int remotePort) {
-        //初始化rtp
-        try {
-            processor = new RealTimeAudioProcessor(localPort);
-            processor.DEST_IP = remoteIp;
-            processor.DEST_PORT = remotePort;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        // 创建kokoro的连接
-        httpClient = HttpClient.newHttpClient();
-
+    public void ttsClose() {
+        log.info("Kokoro tts close");
     }
 
-    @Override
-    public void close() {
-
+    // 自定义响应体处理器
+    private static class StreamBodyHandler implements HttpResponse.BodyHandler<InputStream> {
+        @Override
+        public HttpResponse.BodySubscriber<InputStream> apply(HttpResponse.ResponseInfo responseInfo) {
+            return HttpResponse.BodySubscribers.ofInputStream();
+        }
     }
 }

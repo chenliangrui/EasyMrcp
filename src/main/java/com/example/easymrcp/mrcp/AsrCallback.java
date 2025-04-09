@@ -1,5 +1,5 @@
 package com.example.easymrcp.mrcp;
 
-public interface Callback {
+public interface AsrCallback {
     void apply(String msg);
 }

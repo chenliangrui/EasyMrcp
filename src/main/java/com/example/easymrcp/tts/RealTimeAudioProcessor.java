@@ -1,10 +1,12 @@
 package com.example.easymrcp.tts;
 
-import com.example.easymrcp.mrcp.Callback;
+import com.example.easymrcp.mrcp.TtsCallback;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sound.sampled.LineUnavailableException;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class RealTimeAudioProcessor {
@@ -12,14 +14,11 @@ public class RealTimeAudioProcessor {
     // 网络参数
     public String DEST_IP;
     public int DEST_PORT;
-    private Callback callback;
+    @Setter
+    private TtsCallback callback;
 
     public RealTimeAudioProcessor(int localPort) {
         this.localPort = localPort;
-    }
-
-    public void setCallback(Callback callback) {
-        this.callback = callback;
     }
 
     // 线程间缓冲队列
@@ -40,7 +39,6 @@ public class RealTimeAudioProcessor {
     /**
      * 实时处理线程
      */
-    //TODO 使用环形缓冲解决降采样问题,不使用队列
     public void startProcessing() {
         //实时处理
         new Thread(() -> {
@@ -117,9 +115,15 @@ public class RealTimeAudioProcessor {
             }
             while (true) {
                 try {
-                    byte[] payload = outputQueue.take();
+                    byte[] payload = outputQueue.poll(10, TimeUnit.SECONDS);
+                    if (stop) {
+                        return;
+                    }
+                    if (payload == null) {
+                        continue;
+                    }
                     sender.sendFrame(payload);
-                    if (payload[0] == 111 && payload[1] == 111) {
+                    if (payload[0] == TTSConstant.TTS_END_BYTE && payload[1] == TTSConstant.TTS_END_BYTE) {
                         stopRtpSender();
                         callback.apply(null);
                     }

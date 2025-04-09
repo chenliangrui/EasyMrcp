@@ -1,5 +1,7 @@
 package com.example.easymrcp.tts;
 
+import lombok.Getter;
+
 /**
  * TODO 解决RingBuffer覆盖问题
  */
@@ -8,6 +10,7 @@ class RingBuffer {
     private final int capacity;
     private int writePos;
     private int readPos;
+    @Getter
     private int available;
 
     public RingBuffer(int capacity) {
@@ -55,7 +58,4 @@ class RingBuffer {
         return result;
     }
 
-    public int getAvailable() {
-        return available;
-    }
 }

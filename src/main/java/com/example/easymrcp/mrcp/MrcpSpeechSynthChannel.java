@@ -6,14 +6,10 @@ import org.mrcp4j.MrcpEventName;
 import org.mrcp4j.MrcpRequestState;
 import org.mrcp4j.message.MrcpEvent;
 import org.mrcp4j.message.MrcpResponse;
-import org.mrcp4j.message.header.CompletionCause;
-import org.mrcp4j.message.header.MrcpHeader;
-import org.mrcp4j.message.header.MrcpHeaderName;
 import org.mrcp4j.message.request.MrcpRequestFactory;
 import org.mrcp4j.message.request.StopRequest;
 import org.mrcp4j.server.MrcpSession;
 import org.mrcp4j.server.provider.SpeechSynthRequestHandler;
-import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -31,7 +27,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
     @Override
     public MrcpResponse speak(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
         String contentType = unimplementedRequest.getContentType();
-        Callback callback = new Callback() {
+        TtsCallback callback = new TtsCallback() {
             @Override
             public void apply(String msg) {
                 try {
