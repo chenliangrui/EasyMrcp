@@ -149,7 +149,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.example.easymrcp.EasyMrcpApplication</mainClass>
-                    <skip>true</skip>
+<!--                    <skip>true</skip>-->
                 </configuration>
                 <executions>
                     <execution>

@@ -1,5 +1,6 @@
-package com.example.easymrcp.asr;
+package com.example.easymrcp.asr.funasr;
 
+import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.mrcp.AsrCallback;
 import com.example.easymrcp.rtp.FunasrWsClient;
 import lombok.Data;
@@ -12,13 +13,22 @@ import java.net.URI;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public class FunAsrProcessor extends AsrHandler {
-    static String strChunkSize = "5,10,5";
-    static int chunkInterval = 10;
-    static int sendChunkSize = 1920;
-    static String srvIp = "172.16.2.204";
-    static String srvPort = "10096";
+    String strChunkSize;
+    int chunkInterval;
+    int sendChunkSize;
+    String srvIp;
+    String srvPort;
     FunasrWsClient funasrWsClient;
     AsrCallback funasrCallback;
+
+    public FunAsrProcessor(FunasrConfig funasrConfig) {
+        this.strChunkSize = funasrConfig.getStrChunkSize();
+        this.chunkInterval = funasrConfig.getChunkInterval();
+        this.sendChunkSize = funasrConfig.getSendChunkSize();
+        this.srvIp = funasrConfig.getSrvIp();
+        this.srvPort = funasrConfig.getSrvPort();
+    }
+
 
     @Override
     public void create() {

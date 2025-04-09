@@ -28,7 +28,7 @@ public abstract class AsrHandler implements RtpConnection {
     private int RTP_PORT; // RTP端口
     private static final int BUFFER_SIZE = 172;
     byte[] buffer = new byte[BUFFER_SIZE];
-    Boolean stop = false;
+    protected Boolean stop = false;
 
     @Override
     public void create(String localIp, int localPort, String remoteIp, int remotePort) {

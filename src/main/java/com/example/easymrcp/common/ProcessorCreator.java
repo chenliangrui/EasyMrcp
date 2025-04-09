@@ -1,10 +1,12 @@
 package com.example.easymrcp.common;
 
 import com.example.easymrcp.asr.AsrHandler;
-import com.example.easymrcp.asr.FunAsrProcessor;
+import com.example.easymrcp.asr.funasr.FunAsrProcessor;
+import com.example.easymrcp.asr.funasr.FunasrConfig;
 import com.example.easymrcp.tts.kokoro.KokoroProcessor;
 import com.example.easymrcp.tts.TtsHandler;
 import com.example.easymrcp.tts.xfyun.XfyunProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,10 +19,12 @@ public class ProcessorCreator {
     String asrMode;
     @Value("${mrcp.ttsMode}")
     String ttsMode;
+    @Autowired
+    FunasrConfig funasrConfig;
 
     public AsrHandler getAsrHandler() {
         if (asrMode.equals("funasr")) {
-            return new FunAsrProcessor();
+            return new FunAsrProcessor(funasrConfig);
         }
         return null;
     }
