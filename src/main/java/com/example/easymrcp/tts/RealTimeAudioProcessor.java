@@ -12,13 +12,15 @@ import java.util.concurrent.TimeUnit;
 public class RealTimeAudioProcessor {
     private int localPort;
     // 网络参数
-    public String DEST_IP;
-    public int DEST_PORT;
+    public String destinationIp;
+    public int destinationPort;
     @Setter
     private TtsCallback callback;
+    private String reSample;
 
-    public RealTimeAudioProcessor(int localPort) {
+    public RealTimeAudioProcessor(int localPort, String reSample) {
         this.localPort = localPort;
+        this.reSample = reSample;
     }
 
     // 线程间缓冲队列
@@ -44,19 +46,24 @@ public class RealTimeAudioProcessor {
         new Thread(() -> {
             while (true) {
                 try {
-                    byte[] pcm24k;
-                    while ((pcm24k = inputRingBuffer.take(102400)) == null) {
+                    byte[] pcm;
+                    while ((pcm = inputRingBuffer.take(102400)) == null) {
                         Thread.sleep(200); // 非阻塞等待
                         log.info("inputRingBuffer available: {}", inputRingBuffer.getAvailable());
                         if (stop) {
                             return;
                         }
                     }
-                    byte[] bytes = downsample24kTo8k(pcm24k);
+                    byte[] bytes;
+                    if (reSample != null && reSample.equals("downsample24kTo8k")) {
+                         bytes = downsample24kTo8k(pcm);
+                    } else {
+                        bytes = pcm;
+                    }
                     // G711编码
-                    byte[] bytes1 = G711UEncoder.encode(bytes);
-                    outputQueue.add(bytes1);
-                    if (pcm24k[pcm24k.length - 2] == TTSConstant.TTS_END_BYTE && pcm24k[pcm24k.length - 1] == TTSConstant.TTS_END_BYTE) {
+                    byte[] g711uBytes = G711UEncoder.encode(bytes);
+                    outputQueue.add(g711uBytes);
+                    if (pcm[pcm.length - 2] == TTSConstant.TTS_END_BYTE && pcm[pcm.length - 1] == TTSConstant.TTS_END_BYTE) {
                         // 结束
                         outputQueue.add(TTSConstant.TTS_END_FLAG); // 结束标记
                     }
@@ -105,11 +112,11 @@ public class RealTimeAudioProcessor {
     /**
      * RTP发送线程
      */
-    public void startRtpSender() throws Exception {
+    public void startRtpSender() {
         new Thread(() -> {
             G711RtpSender sender = null;
             try {
-                sender = new G711RtpSender(localPort, DEST_IP, DEST_PORT);
+                sender = new G711RtpSender(localPort, destinationIp, destinationPort);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

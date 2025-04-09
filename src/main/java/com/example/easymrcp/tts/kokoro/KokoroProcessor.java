@@ -1,5 +1,7 @@
-package com.example.easymrcp.tts;
+package com.example.easymrcp.tts.kokoro;
 
+import com.example.easymrcp.tts.TTSConstant;
+import com.example.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
@@ -56,8 +58,6 @@ public class KokoroProcessor extends TtsHandler {
      */
     private void processAudioStream(InputStream inputStream) {
         try {
-            processor.startProcessing();
-            processor.startRtpSender();
             try (inputStream) {
                 byte[] pcmBuffer = new byte[409600];
                 int bytesRead;

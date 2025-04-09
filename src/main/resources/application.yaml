@@ -6,7 +6,7 @@ sip:
   mrcpServerPort: 1544
 mrcp:
   asrMode: funasr
-  ttsMode: kokoro
+  ttsMode: xfyun
 rtp:
   # asr的rtp端口范围
   asrStartPort: 5000
