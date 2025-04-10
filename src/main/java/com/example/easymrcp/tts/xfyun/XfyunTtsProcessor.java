@@ -18,7 +18,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Slf4j
-public class XfyunProcessor extends TtsHandler {
+public class XfyunTtsProcessor extends TtsHandler {
     // 地址与鉴权信息
     public static final String hostUrl = "https://tts-api.xfyun.cn/v2/tts";
     // 均到控制台-语音合成页面获取

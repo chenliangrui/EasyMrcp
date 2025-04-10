@@ -3,10 +3,11 @@ package com.example.easymrcp.common;
 import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.asr.funasr.FunAsrProcessor;
 import com.example.easymrcp.asr.funasr.FunasrConfig;
+import com.example.easymrcp.asr.xfyun.XfyunAsrProcessor;
 import com.example.easymrcp.tts.kokoro.KokoroConfig;
 import com.example.easymrcp.tts.kokoro.KokoroProcessor;
 import com.example.easymrcp.tts.TtsHandler;
-import com.example.easymrcp.tts.xfyun.XfyunProcessor;
+import com.example.easymrcp.tts.xfyun.XfyunTtsProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,8 @@ public class ProcessorCreator {
     public AsrHandler getAsrHandler() {
         if (asrMode.equals("funasr")) {
             return new FunAsrProcessor(funasrConfig);
+        } else if (asrMode.equals("xfyun")) {
+            return new XfyunAsrProcessor();
         }
         return null;
     }
@@ -40,8 +43,8 @@ public class ProcessorCreator {
             }
             return kokoroProcessor;
         } else if (ttsMode.equals("xfyun")) {
-            XfyunProcessor xfyunProcessor = new XfyunProcessor();
-            return xfyunProcessor;
+            XfyunTtsProcessor xfyunTtsProcessor = new XfyunTtsProcessor();
+            return xfyunTtsProcessor;
         }
         return null;
     }

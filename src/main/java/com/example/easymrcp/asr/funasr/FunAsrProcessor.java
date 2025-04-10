@@ -2,7 +2,6 @@ package com.example.easymrcp.asr.funasr;
 
 import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.mrcp.AsrCallback;
-import com.example.easymrcp.rtp.FunasrWsClient;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;

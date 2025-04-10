@@ -80,8 +80,7 @@ public abstract class AsrHandler implements RtpConnection {
         asrClose();
     }
 
-    public abstract void asrClose();
-
     public abstract void receive(byte[] pcmData);
 
+    public abstract void asrClose();
 }

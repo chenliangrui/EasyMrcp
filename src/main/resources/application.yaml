@@ -5,7 +5,8 @@ sip:
   sipPort: 8060
   mrcpServerPort: 1544
 mrcp:
-  asrMode: funasr
+  # xfyun、funasr
+  asrMode: xfyun
   # xfyun、kokoro
   ttsMode: kokoro
 rtp:

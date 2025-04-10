@@ -8,7 +8,7 @@
 // java FunasrWsClient
 // usage:  FunasrWsClient [-h] [--port PORT] [--host HOST] [--audio_in AUDIO_IN] [--num_threads NUM_THREADS]
 //                 [--chunk_size CHUNK_SIZE] [--chunk_interval CHUNK_INTERVAL] [--mode MODE]
-package com.example.easymrcp.rtp;
+package com.example.easymrcp.asr.funasr;
 
 import com.example.easymrcp.mrcp.AsrCallback;
 import lombok.extern.slf4j.Slf4j;
