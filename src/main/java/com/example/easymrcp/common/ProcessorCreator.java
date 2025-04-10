@@ -3,6 +3,7 @@ package com.example.easymrcp.common;
 import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.asr.funasr.FunAsrProcessor;
 import com.example.easymrcp.asr.funasr.FunasrConfig;
+import com.example.easymrcp.tts.kokoro.KokoroConfig;
 import com.example.easymrcp.tts.kokoro.KokoroProcessor;
 import com.example.easymrcp.tts.TtsHandler;
 import com.example.easymrcp.tts.xfyun.XfyunProcessor;
@@ -21,6 +22,8 @@ public class ProcessorCreator {
     String ttsMode;
     @Autowired
     FunasrConfig funasrConfig;
+    @Autowired
+    KokoroConfig kokoroConfig;
 
     public AsrHandler getAsrHandler() {
         if (asrMode.equals("funasr")) {
@@ -31,9 +34,10 @@ public class ProcessorCreator {
 
     public TtsHandler getTtsHandler() {
         if (ttsMode.equals("kokoro")) {
-            KokoroProcessor kokoroProcessor = new KokoroProcessor();
-            //TODO 设置降采样，后续移到配置文件中
-            kokoroProcessor.setReSample("downsample24kTo8k");
+            KokoroProcessor kokoroProcessor = new KokoroProcessor(kokoroConfig);
+            if (kokoroConfig.getReSample() != null && !kokoroConfig.getReSample().isEmpty()) {
+                kokoroProcessor.setReSample(kokoroConfig.getReSample());
+            }
             return kokoroProcessor;
         } else if (ttsMode.equals("xfyun")) {
             XfyunProcessor xfyunProcessor = new XfyunProcessor();

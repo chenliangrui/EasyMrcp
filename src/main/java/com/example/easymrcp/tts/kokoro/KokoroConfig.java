@@ -1,4 +1,4 @@
-package com.example.easymrcp.asr.funasr;
+package com.example.easymrcp.tts.kokoro;
 
 import com.example.easymrcp.domain.BashConfig;
 import lombok.Data;
@@ -11,11 +11,9 @@ import org.springframework.context.annotation.PropertySource;
 @Configuration
 @ConfigurationProperties
 @EqualsAndHashCode(callSuper = true)
-@PropertySource(value = {"classpath:asr/funasr.properties", "file:asr/funasr.properties"}, ignoreResourceNotFound = true)
-public class FunasrConfig extends BashConfig {
-    private String strChunkSize;
-    private int chunkInterval;
-    private int sendChunkSize;
-    private String srvIp;
-    private String srvPort;
+@PropertySource(value = {"classpath:tts/kokoro.properties", "file:tts/kokoro.properties"}, ignoreResourceNotFound = true)
+public class KokoroConfig extends BashConfig {
+    private String apiUrl;
+    private String model;
+    private String voice;
 }

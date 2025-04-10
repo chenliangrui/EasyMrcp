@@ -13,8 +13,17 @@ import java.time.Duration;
 
 @Slf4j
 public class KokoroProcessor extends TtsHandler {
-    private static final String API_URL = "http://172.16.2.207:8880/v1/audio/speech";
+    private final String apiUrl;
+    private final String model;
+    private final String voice;
     private HttpClient httpClient;
+
+    public KokoroProcessor(KokoroConfig kokoroConfig) {
+        this.apiUrl = kokoroConfig.getApiUrl();
+        this.model = kokoroConfig.getModel();
+        this.voice = kokoroConfig.getVoice();
+    }
+
 
     @Override
     public void create() {
@@ -25,11 +34,11 @@ public class KokoroProcessor extends TtsHandler {
     @Override
     public void speak(String text) {
         String jsonPayload = String.format(
-                "{\"model\":\"kokoro\",\"input\":\"%s\",\"voice\":\"zf_xiaoxiao\",\"response_format\":\"pcm\",\"stream\":true}",
+                "{\"model\":\"" + model + "\",\"input\":\"%s\",\"voice\":\"" + voice + "\",\"response_format\":\"pcm\",\"stream\":true}",
                 text);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(API_URL))
+                .uri(URI.create(apiUrl))
                 .timeout(Duration.ofSeconds(30))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
