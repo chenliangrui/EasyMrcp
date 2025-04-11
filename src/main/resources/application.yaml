@@ -6,7 +6,7 @@ sip:
   mrcpServerPort: 1544
 mrcp:
   # xfyun、funasr
-  asrMode: xfyun
+  asrMode: funasr
   # xfyun、kokoro
   ttsMode: kokoro
 rtp:

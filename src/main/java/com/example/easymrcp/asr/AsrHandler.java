@@ -4,11 +4,14 @@ import com.example.easymrcp.mrcp.AsrCallback;
 import com.example.easymrcp.rtp.G711uDecoder;
 import com.example.easymrcp.rtp.RtpConnection;
 import com.example.easymrcp.rtp.RtpPacket;
+import com.example.easymrcp.utils.ReSample;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -29,6 +32,15 @@ public abstract class AsrHandler implements RtpConnection {
     private static final int BUFFER_SIZE = 172;
     byte[] buffer = new byte[BUFFER_SIZE];
     protected Boolean stop = false;
+//    FileOutputStream fileOutputStream;
+//
+//    {
+//        try {
+//            fileOutputStream = new FileOutputStream("D:\\code\\EasyMrcp\\src\\main\\resources\\test.pcm", true);
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     @Override
     public void create(String localIp, int localPort, String remoteIp, int remotePort) {
@@ -65,6 +77,12 @@ public abstract class AsrHandler implements RtpConnection {
                         byte[] g711Data = parsedPacket.getPayload();
                         // G.711u解码为PCM
                         byte[] pcmData = G711uDecoder.decodeG711U(g711Data);
+//                        byte[] bytes = ReSample.resampleFrame(pcmData);
+//                        try {
+//                            fileOutputStream.write(bytes);
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
                         receive(pcmData);
                     }
                 }
@@ -72,12 +90,19 @@ public abstract class AsrHandler implements RtpConnection {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    };
+    }
+
+    ;
 
     @Override
     public void close() {
         socket.close();
         asrClose();
+//        try {
+//            fileOutputStream.close();
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     public abstract void receive(byte[] pcmData);
