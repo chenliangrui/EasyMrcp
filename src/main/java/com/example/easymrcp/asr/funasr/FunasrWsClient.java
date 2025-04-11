@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 /** This example demonstrates how to connect to websocket server. */
 public class FunasrWsClient extends WebSocketClient {
     private boolean iseof = false;
-    static String mode = "offline";
+    static String mode = "2pass";
     static String hotwords = "";
     static String fsthotwords = "";
     static String strChunkSize = "5,10,5";
@@ -132,9 +132,7 @@ public class FunasrWsClient extends WebSocketClient {
             jsonObject = (JSONObject) jsonParser.parse(message);
             String result = jsonObject.get("text").toString();
             log.info("text: " + result);
-//      if (jsonObject.containsKey("is_final")&& jsonObject.get("is_final").equals("true")) {
-            if (!stop && !result.isEmpty()) callback.apply(result);
-//      }
+            if (!stop && !result.isEmpty() && jsonObject.containsKey("timestamp")) callback.apply(result);
             if (jsonObject.containsKey("timestamp")) {
                 log.info("timestamp: " + jsonObject.get("timestamp"));
             }
