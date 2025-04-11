@@ -1,52 +1,61 @@
 package com.example.easymrcp.asr.xfyun;
 
 import com.example.easymrcp.asr.AsrHandler;
+import com.example.easymrcp.asr.xfyun.transliterate.DraftWithOrigin;
+import com.example.easymrcp.asr.xfyun.transliterate.XfyunWsClient;
 import com.example.easymrcp.mrcp.AsrCallback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.WebSocket;
+import org.java_websocket.enums.ReadyState;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.concurrent.CountDownLatch;
 
 public class XfyunAsrProcessor extends AsrHandler {
-    private static final String hostUrl = "https://iat-api.xfyun.cn/v2/iat"; //中英文，http url 不支持解析 ws/wss schema
-    // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
-    private static final String appid = "c22aeabc"; //在控制台-我的应用获取
-    private static final String apiSecret = "NjAwYWYyZDQ5ZjJjNjZhY2UzMWJjMThl"; //在控制台-我的应用-语音听写（流式版）获取
-    private static final String apiKey = "f23da979c109e5c31c0dc9dd5d3052a5"; //在控制台-我的应用-语音听写（流式版）获取
-    AsrCallback funasrCallback;
+    // appid
+    private static final String APPID = "c22aeabc";
+    // appid对应的secret_key
+    private static final String SECRET_KEY = "a4e1ea9583139481b2bc47c276869cd9";
+    // 请求地址
+    private static final String HOST = "rtasr.xfyun.cn/v1/ws";
+    private static final String BASE_URL = "wss://" + HOST;
+    private static final String ORIGIN = "https://" + HOST;
+
+
+    AsrCallback xfyunAsrCallback;
     XfyunWsClient xfyunWsClient;
-    WebSocket webSocket;
+    XfyunWsClient.MyWebSocketClient client;
 
     @Override
     public void create() {
-        // 构建鉴权url
-        String authUrl = null;
         try {
-            authUrl = XfyunWsClient.getAuthUrl(hostUrl, apiKey, apiSecret);
-        } catch (Exception e) {
+            URI url = new URI(BASE_URL + XfyunWsClient.getHandShakeParams(APPID, SECRET_KEY));
+            DraftWithOrigin draft = new DraftWithOrigin(ORIGIN);
+            CountDownLatch handshakeSuccess = new CountDownLatch(1);
+            CountDownLatch connectClose = new CountDownLatch(1);
+            client = new XfyunWsClient.MyWebSocketClient(url, draft, handshakeSuccess, connectClose);
+
+            client.connect();
+
+            while (!client.getReadyState().equals(ReadyState.OPEN)) {
+                System.out.println(XfyunWsClient.getCurrentTimeStr() + "\t连接中");
+                Thread.sleep(1000);
+            }
+
+            // 等待握手成功
+            handshakeSuccess.await();
+        } catch (InterruptedException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        OkHttpClient client = new OkHttpClient.Builder().build();
-        //将url中的 schema http://和https://分别替换为ws:// 和 wss://
-        String url = authUrl.toString().replace("http://", "ws://").replace("https://", "wss://");
-        //System.out.println(url);
-        Request request = new Request.Builder().url(url).build();
-        // System.out.println(client.newCall(request).execute());
-        //System.out.println("url===>" + url);
-        funasrCallback = new AsrCallback() {
+        System.out.println("开始发送音频数据");
+
+        xfyunAsrCallback = new AsrCallback() {
             @Override
             public void apply(String msg) {
                 getCallback().apply(msg);
             }
         };
-        xfyunWsClient = new XfyunWsClient(funasrCallback, stop);
-        webSocket = client.newWebSocket(request, xfyunWsClient);
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        xfyunWsClient = new XfyunWsClient(xfyunAsrCallback, stop, client);
     }
 
     @Override
