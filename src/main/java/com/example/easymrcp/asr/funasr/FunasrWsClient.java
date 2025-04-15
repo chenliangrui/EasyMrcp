@@ -19,6 +19,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import java.net.URI;
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,11 +34,13 @@ public class FunasrWsClient extends WebSocketClient {
     static int chunkInterval = 10;
     AsrCallback callback;
     Boolean stop;
+    CountDownLatch countDownLatch;
 
-    public FunasrWsClient(URI serverURI, AsrCallback callback, Boolean stop) {
+    public FunasrWsClient(URI serverURI, AsrCallback callback, Boolean stop, CountDownLatch countDownLatch) {
         super(serverURI);
         this.callback = callback;
         this.stop = stop;
+        this.countDownLatch = countDownLatch;
     }
 
     // send json at first time
@@ -121,6 +124,8 @@ public class FunasrWsClient extends WebSocketClient {
     @Override
     public void onOpen(ServerHandshake handshakedata) {
         start();
+        // 必须执行，此时asr创建成功，并且开始识别
+        countDownLatch.countDown();
     }
 
     @Override

@@ -57,7 +57,7 @@ public class RealTimePCMDecibelDetector {
      * @param length  有效数据长度
      * @return 分贝值
      */
-    private static double calculateDecibel(byte[] pcmData, int length) {
+    public static double calculateDecibel(byte[] pcmData, int length) {
         int sampleCount = length / 2; // 16bit=2字节，每个采样点占2字节[[3]](https://www.5axxw.com/questions/simple/dbeo64)
         double sum = 0.0;
 

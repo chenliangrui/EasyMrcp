@@ -24,16 +24,16 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * 讯飞云实时语音转写
+ * 讯飞云实时语音转写（长时间语言转写）
  * 地址:https://www.xfyun.cn/services/rtasr
  */
-public class XfyunWsClient {
+public class XfyunTransliterateWsClient {
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");
     static AsrCallback xfyunAsrCallback;
     Boolean stop;
     MyWebSocketClient client;
 
-    public XfyunWsClient(AsrCallback xfyunAsrCallback, Boolean stop, MyWebSocketClient client) {
+    public XfyunTransliterateWsClient(AsrCallback xfyunAsrCallback, Boolean stop, MyWebSocketClient client) {
         this.xfyunAsrCallback = xfyunAsrCallback;
         this.stop = stop;
         this.client = client;
@@ -79,10 +79,9 @@ public class XfyunWsClient {
         private CountDownLatch handshakeSuccess;
         private CountDownLatch connectClose;
 
-        public MyWebSocketClient(URI serverUri, Draft protocolDraft, CountDownLatch handshakeSuccess, CountDownLatch connectClose) {
+        public MyWebSocketClient(URI serverUri, Draft protocolDraft, CountDownLatch handshakeSuccess) {
             super(serverUri, protocolDraft);
             this.handshakeSuccess = handshakeSuccess;
-            this.connectClose = connectClose;
             if(serverUri.toString().contains("wss")){
                 trustAllHosts(this);
             }
@@ -123,7 +122,6 @@ public class XfyunWsClient {
         @Override
         public void onClose(int arg0, String arg1, boolean arg2) {
             System.out.println(getCurrentTimeStr() + "\t链接关闭");
-            connectClose.countDown();
         }
 
         @Override
@@ -135,7 +133,7 @@ public class XfyunWsClient {
             }
         }
 
-        public void trustAllHosts(XfyunWsClient.MyWebSocketClient appClient) {
+        public void trustAllHosts(XfyunTransliterateWsClient.MyWebSocketClient appClient) {
             System.out.println("wss");
             TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
                 @Override

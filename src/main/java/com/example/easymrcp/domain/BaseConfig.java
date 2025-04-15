@@ -3,6 +3,6 @@ package com.example.easymrcp.domain;
 import lombok.Data;
 
 @Data
-public class BashConfig {
+public class BaseConfig {
     private String reSample;
 }

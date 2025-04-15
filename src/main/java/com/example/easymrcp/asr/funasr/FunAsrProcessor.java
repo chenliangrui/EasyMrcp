@@ -50,7 +50,7 @@ public class FunAsrProcessor extends AsrHandler {
                     getCallback().apply(msg);
                 }
             };
-            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop);
+            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop, getCountDownLatch());
             funasrWsClient.connect();
             System.out.println("wsAddress:" + wsAddress);
         } catch (Exception e) {

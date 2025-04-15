@@ -1,17 +1,18 @@
-package com.example.easymrcp.asr.xfyun;
+package com.example.easymrcp.asr.xfyun.transliterate;
 
 import com.example.easymrcp.asr.AsrHandler;
-import com.example.easymrcp.asr.xfyun.transliterate.DraftWithOrigin;
-import com.example.easymrcp.asr.xfyun.transliterate.XfyunWsClient;
 import com.example.easymrcp.mrcp.AsrCallback;
-import okhttp3.WebSocket;
 import org.java_websocket.enums.ReadyState;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 
-public class XfyunAsrProcessor extends AsrHandler {
+/**
+ * TODO 精准程度需要进一步优化
+ * 讯飞云实时语音转写（长时间语音转写）
+ */
+public class XfyunTransliterateAsrProcessor extends AsrHandler {
     // appid
     private static final String APPID = "c22aeabc";
     // appid对应的secret_key
@@ -23,28 +24,17 @@ public class XfyunAsrProcessor extends AsrHandler {
 
 
     AsrCallback xfyunAsrCallback;
-    XfyunWsClient xfyunWsClient;
-    XfyunWsClient.MyWebSocketClient client;
+    XfyunTransliterateWsClient xfyunWsClient;
+    XfyunTransliterateWsClient.MyWebSocketClient client;
 
     @Override
     public void create() {
         try {
-            URI url = new URI(BASE_URL + XfyunWsClient.getHandShakeParams(APPID, SECRET_KEY));
+            URI url = new URI(BASE_URL + XfyunTransliterateWsClient.getHandShakeParams(APPID, SECRET_KEY));
             DraftWithOrigin draft = new DraftWithOrigin(ORIGIN);
-            CountDownLatch handshakeSuccess = new CountDownLatch(1);
-            CountDownLatch connectClose = new CountDownLatch(1);
-            client = new XfyunWsClient.MyWebSocketClient(url, draft, handshakeSuccess, connectClose);
-
+            client = new XfyunTransliterateWsClient.MyWebSocketClient(url, draft, getCountDownLatch());
             client.connect();
-
-            while (!client.getReadyState().equals(ReadyState.OPEN)) {
-                System.out.println(XfyunWsClient.getCurrentTimeStr() + "\t连接中");
-                Thread.sleep(1000);
-            }
-
-            // 等待握手成功
-            handshakeSuccess.await();
-        } catch (InterruptedException | URISyntaxException e) {
+        } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
         System.out.println("开始发送音频数据");
@@ -55,7 +45,7 @@ public class XfyunAsrProcessor extends AsrHandler {
                 getCallback().apply(msg);
             }
         };
-        xfyunWsClient = new XfyunWsClient(xfyunAsrCallback, stop, client);
+        xfyunWsClient = new XfyunTransliterateWsClient(xfyunAsrCallback, stop, client);
     }
 
     @Override
@@ -66,5 +56,6 @@ public class XfyunAsrProcessor extends AsrHandler {
     @Override
     public void asrClose() {
         xfyunWsClient.sendEof();
+        xfyunWsClient.client.close();
     }
 }

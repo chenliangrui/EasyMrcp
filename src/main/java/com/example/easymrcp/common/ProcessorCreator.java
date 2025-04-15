@@ -1,9 +1,12 @@
 package com.example.easymrcp.common;
 
+import com.example.easymrcp.asr.ASRConstant;
 import com.example.easymrcp.asr.AsrHandler;
 import com.example.easymrcp.asr.funasr.FunAsrProcessor;
 import com.example.easymrcp.asr.funasr.FunasrConfig;
-import com.example.easymrcp.asr.xfyun.XfyunAsrProcessor;
+import com.example.easymrcp.asr.xfyun.XfyunAsrConfig;
+import com.example.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
+import com.example.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
 import com.example.easymrcp.tts.kokoro.KokoroConfig;
 import com.example.easymrcp.tts.kokoro.KokoroProcessor;
 import com.example.easymrcp.tts.TtsHandler;
@@ -25,12 +28,22 @@ public class ProcessorCreator {
     FunasrConfig funasrConfig;
     @Autowired
     KokoroConfig kokoroConfig;
+    @Autowired
+    XfyunAsrConfig xfyunAsrConfig;
 
     public AsrHandler getAsrHandler() {
         if (asrMode.equals("funasr")) {
-            return new FunAsrProcessor(funasrConfig);
+            FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);
+            if (funasrConfig.getIdentifyPatterns() != null && !funasrConfig.getIdentifyPatterns().isEmpty()) {
+                funAsrProcessor.setIdentifyPatterns(funasrConfig.getIdentifyPatterns());
+            }
+            return funAsrProcessor;
         } else if (asrMode.equals("xfyun")) {
-            return new XfyunAsrProcessor();
+            if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
+                return new XfyunDictationAsrProcessor();
+            } else if (ASRConstant.IDENTIFY_PATTERNS_TRANSLITERATE.equals(xfyunAsrConfig.getIdentifyPatterns())) {
+                return new XfyunTransliterateAsrProcessor();
+            }
         }
         return null;
     }

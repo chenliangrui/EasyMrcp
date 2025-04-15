@@ -15,12 +15,13 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 /**
- * 讯飞云实时语音听写
+ * 讯飞云实时语音听写（一句话语音识别）
  * https://www.xfyun.cn/services/voicedictation
  */
-public class XfyunWsClient2 extends WebSocketListener {
+public class XfyunDictationWsClient extends WebSocketListener {
     private static final String hostUrl = "https://iat-api.xfyun.cn/v2/iat"; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
     private static final String appid = "c22aeabc"; //在控制台-我的应用获取
@@ -31,7 +32,7 @@ public class XfyunWsClient2 extends WebSocketListener {
     public static final int StatusContinueFrame = 1;
     public static final int StatusLastFrame = 2;
     public static final Gson json = new Gson();
-    XfyunWsClient2.Decoder decoder = new XfyunWsClient2.Decoder();
+    XfyunDictationWsClient.Decoder decoder = new XfyunDictationWsClient.Decoder();
     // 开始时间
     private static Date dateBegin = new Date();
     // 结束时间
@@ -40,10 +41,12 @@ public class XfyunWsClient2 extends WebSocketListener {
     WebSocket webSocket;
     AsrCallback callback;
     Boolean stop;
+    CountDownLatch countDownLatch;
 
-    public XfyunWsClient2(AsrCallback funasrCallback, Boolean stop) {
+    public XfyunDictationWsClient(AsrCallback funasrCallback, Boolean stop, CountDownLatch countDownLatch) {
         this.callback = funasrCallback;
         this.stop = stop;
+        this.countDownLatch = countDownLatch;
     }
 
     @Override
@@ -51,13 +54,15 @@ public class XfyunWsClient2 extends WebSocketListener {
         super.onOpen(webSocket, response);
         this.webSocket = webSocket;
         start();
+        // 必须执行，此时asr创建成功，并且开始识别
+        countDownLatch.countDown();
     }
 
     @Override
     public void onMessage(WebSocket webSocket, String text) {
         super.onMessage(webSocket, text);
         //System.out.println(text);
-        XfyunWsClient2.ResponseData resp = json.fromJson(text, XfyunWsClient2.ResponseData.class);
+        XfyunDictationWsClient.ResponseData resp = json.fromJson(text, XfyunDictationWsClient.ResponseData.class);
         if (resp != null) {
             if (resp.getCode() != 0) {
                 System.out.println( "code=>" + resp.getCode() + " error=>" + resp.getMessage() + " sid=" + resp.getSid());
@@ -66,7 +71,7 @@ public class XfyunWsClient2 extends WebSocketListener {
             }
             if (resp.getData() != null) {
                 if (resp.getData().getResult() != null) {
-                    XfyunWsClient2.Text te = resp.getData().getResult().getText();
+                    XfyunDictationWsClient.Text te = resp.getData().getResult().getText();
                     //System.out.println(te.toString());
                     try {
                         decoder.decode(te);
@@ -200,7 +205,7 @@ public class XfyunWsClient2 extends WebSocketListener {
         private int code;
         private String message;
         private String sid;
-        private XfyunWsClient2.Data data;
+        private XfyunDictationWsClient.Data data;
         public int getCode() {
             return code;
         }
@@ -210,17 +215,17 @@ public class XfyunWsClient2 extends WebSocketListener {
         public String getSid() {
             return sid;
         }
-        public XfyunWsClient2.Data getData() {
+        public XfyunDictationWsClient.Data getData() {
             return data;
         }
     }
     public static class Data {
         private int status;
-        private XfyunWsClient2.Result result;
+        private XfyunDictationWsClient.Result result;
         public int getStatus() {
             return status;
         }
-        public XfyunWsClient2.Result getResult() {
+        public XfyunDictationWsClient.Result getResult() {
             return result;
         }
     }
@@ -230,13 +235,13 @@ public class XfyunWsClient2 extends WebSocketListener {
         String pgs;
         int[] rg;
         int sn;
-        XfyunWsClient2.Ws[] ws;
+        XfyunDictationWsClient.Ws[] ws;
         boolean ls;
         JsonObject vad;
-        public XfyunWsClient2.Text getText() {
-            XfyunWsClient2.Text text = new XfyunWsClient2.Text();
+        public XfyunDictationWsClient.Text getText() {
+            XfyunDictationWsClient.Text text = new XfyunDictationWsClient.Text();
             StringBuilder sb = new StringBuilder();
-            for (XfyunWsClient2.Ws ws : this.ws) {
+            for (XfyunDictationWsClient.Ws ws : this.ws) {
                 sb.append(ws.cw[0].w);
             }
             text.sn = this.sn;
@@ -252,7 +257,7 @@ public class XfyunWsClient2 extends WebSocketListener {
         }
     }
     public static class Ws {
-        XfyunWsClient2.Cw[] cw;
+        XfyunDictationWsClient.Cw[] cw;
         int bg;
         int ed;
     }
@@ -287,12 +292,12 @@ public class XfyunWsClient2 extends WebSocketListener {
     }
     //解析返回数据，仅供参考
     public static class Decoder {
-        private XfyunWsClient2.Text[] texts;
+        private XfyunDictationWsClient.Text[] texts;
         private int defc = 10;
         public Decoder() {
-            this.texts = new XfyunWsClient2.Text[this.defc];
+            this.texts = new XfyunDictationWsClient.Text[this.defc];
         }
-        public synchronized void decode(XfyunWsClient2.Text text) {
+        public synchronized void decode(XfyunDictationWsClient.Text text) {
             if (text.sn >= this.defc) {
                 this.resize();
             }
@@ -305,7 +310,7 @@ public class XfyunWsClient2 extends WebSocketListener {
         }
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            for (XfyunWsClient2.Text t : this.texts) {
+            for (XfyunDictationWsClient.Text t : this.texts) {
                 if (t != null && !t.deleted) {
                     sb.append(t.text);
                 }
@@ -315,8 +320,8 @@ public class XfyunWsClient2 extends WebSocketListener {
         public void resize() {
             int oc = this.defc;
             this.defc <<= 1;
-            XfyunWsClient2.Text[] old = this.texts;
-            this.texts = new XfyunWsClient2.Text[this.defc];
+            XfyunDictationWsClient.Text[] old = this.texts;
+            this.texts = new XfyunDictationWsClient.Text[this.defc];
             for (int i = 0; i < oc; i++) {
                 this.texts[i] = old[i];
             }
