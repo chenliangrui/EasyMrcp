@@ -4,7 +4,7 @@ import com.example.easymrcp.mrcp.AsrCallback;
 import com.example.easymrcp.rtp.G711uDecoder;
 import com.example.easymrcp.rtp.RtpConnection;
 import com.example.easymrcp.rtp.RtpPacket;
-import com.example.easymrcp.testutils.RealTimePCMDecibelDetector;
+import com.example.easymrcp.tts.RingBuffer;
 import com.example.easymrcp.vad.VadHandle;
 import lombok.Data;
 import lombok.Getter;
@@ -72,6 +72,7 @@ public abstract class AsrHandler implements RtpConnection {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    RingBuffer inputRingBuffer = new RingBuffer(1000000);
                     while (true) {
                         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                         try {
@@ -93,14 +94,30 @@ public abstract class AsrHandler implements RtpConnection {
                         byte[] g711Data = parsedPacket.getPayload();
                         // G.711u解码为PCM
                         byte[] pcmData = G711uDecoder.decodeG711U(g711Data);
-                        needVad(pcmData, vadHandle);
+                        inputRingBuffer.put(pcmData);
 //                        byte[] bytes = ReSample.resampleFrame(pcmData);
 //                        try {
 //                            fileOutputStream.write(bytes);
 //                        } catch (IOException e) {
 //                            throw new RuntimeException(e);
 //                        }
-                        receive(pcmData);
+                        if (inputRingBuffer.getAvailable() >= 2048) {
+                            byte[] take = inputRingBuffer.take(2048);
+                            if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
+                                Boolean isSpeakingBefore = vadHandle.getIsSpeaking();
+                                vadHandle.receivePcm(take);
+                                if (vadHandle.getIsSpeaking()) {
+                                    if (!isSpeakingBefore) {
+                                        reCreate();
+                                    }
+                                    receive(take);
+                                } else {
+                                    sendEof();
+                                }
+                            } else {
+                                receive(take);
+                            }
+                        }
                     }
                 }
             }).start();
@@ -115,6 +132,9 @@ public abstract class AsrHandler implements RtpConnection {
     public void close() {
 //        socket.close();
         asrClose();
+        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
+            vadHandle.release();
+        }
 //        try {
 //            fileOutputStream.close();
 //        } catch (IOException e) {
@@ -124,21 +144,9 @@ public abstract class AsrHandler implements RtpConnection {
 
     public abstract void receive(byte[] pcmData);
 
-    public abstract void asrClose();
+    public abstract void sendEof();
 
-    //TODO 语音识别时，需要VAD
-    public void needVad(byte[] pcmData, VadHandle vadHandle) {
-        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-            double v = vadHandle.calculateDecibel(pcmData, pcmData.length);
-            if (v > ASRConstant.VAD_THRESHOLD) {
-                // 检测出开始说话
-                log.info("vad threshold: {}", v);
-//                reCreate();
-            } else {
-                vadHandle.setLastSilence(System.currentTimeMillis());
-            }
-        }
-    }
+    public abstract void asrClose();
 
     private void reCreate() {
         countDownLatch = new CountDownLatch(1);

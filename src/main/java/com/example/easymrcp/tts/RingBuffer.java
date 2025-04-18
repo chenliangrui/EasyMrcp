@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * TODO 解决RingBuffer覆盖问题
  */
-class RingBuffer {
+public class RingBuffer {
     private final byte[] buffer;
     private final int capacity;
     private int writePos;

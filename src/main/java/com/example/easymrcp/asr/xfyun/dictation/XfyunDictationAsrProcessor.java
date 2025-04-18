@@ -51,8 +51,12 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
     }
 
     @Override
-    public void asrClose() {
-        //TODO 不应该在此处调用，应该在vad结束说话后调用
+    public void sendEof() {
         xfyunWsClient.sendEof();
+    }
+
+    @Override
+    public void asrClose() {
+
     }
 }

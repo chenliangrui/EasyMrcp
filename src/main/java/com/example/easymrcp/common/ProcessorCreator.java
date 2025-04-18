@@ -39,10 +39,15 @@ public class ProcessorCreator {
             }
             return funAsrProcessor;
         } else if (asrMode.equals("xfyun")) {
+            xfyunAsrConfig.setIdentifyPatterns(ASRConstant.IDENTIFY_PATTERNS_DICTATION);
             if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
-                return new XfyunDictationAsrProcessor();
+                XfyunDictationAsrProcessor xfyunDictationAsrProcessor = new XfyunDictationAsrProcessor();
+                xfyunDictationAsrProcessor.setIdentifyPatterns(xfyunAsrConfig.getIdentifyPatterns());
+                return xfyunDictationAsrProcessor;
             } else if (ASRConstant.IDENTIFY_PATTERNS_TRANSLITERATE.equals(xfyunAsrConfig.getIdentifyPatterns())) {
-                return new XfyunTransliterateAsrProcessor();
+                XfyunTransliterateAsrProcessor xfyunTransliterateAsrProcessor = new XfyunTransliterateAsrProcessor();
+                xfyunTransliterateAsrProcessor.setIdentifyPatterns(xfyunAsrConfig.getIdentifyPatterns());
+                return xfyunTransliterateAsrProcessor;
             }
         }
         return null;

@@ -65,6 +65,11 @@ public class FunAsrProcessor extends AsrHandler {
     }
 
     @Override
+    public void sendEof() {
+
+    }
+
+    @Override
     public void asrClose() {
         funasrWsClient.sendEof();
         stop = true;

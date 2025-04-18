@@ -1,37 +1,53 @@
 package com.example.easymrcp.vad;
 
-import lombok.Setter;
+import ai.onnxruntime.OrtException;
+import com.example.easymrcp.asr.ASRConstant;
+import lombok.Getter;
+
+import java.util.Map;
 
 public class VadHandle {
-    private static final int SAMPLE_SIZE_BITS = 16;     // 位深度
-    // 分贝计算相关常量
-    private static final double MAX_AMPLITUDE = Math.pow(2, SAMPLE_SIZE_BITS - 1); // 16bit最大振幅值32768[[5]](https://blog.csdn.net/weixin_39668199/article/details/111786701)
-    private static final double REF_PRESSURE = 1.0;
-    @Setter// 参考声压（可根据需求调整）
-    private long lastSilence;
-    /**
-     * PCM分贝计算核心方法
-     * @param pcmData PCM字节数组
-     * @param length  有效数据长度
-     * @return 分贝值
-     */
-    public double calculateDecibel(byte[] pcmData, int length) {
-        int sampleCount = length / 2; // 16bit=2字节，每个采样点占2字节[[3]](https://www.5axxw.com/questions/simple/dbeo64)
-        double sum = 0.0;
-        // 遍历所有采样点
-        for (int i = 0; i < sampleCount; i++) {
-            // 将两个字节组合成short（16bit有符号）
-            short sample = (short) (
-                    (pcmData[2*i + 1] << 8) |
-                            (pcmData[2*i] & 0xFF)
-            );
+    private static final String MODEL_PATH = "D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\vad\\silero_vad.onnx";
+    private static final int SAMPLE_RATE = 8000;
+    private static final float START_THRESHOLD = 0.6f;
+    private static final float END_THRESHOLD = 0.45f;
+    private static final int MIN_SILENCE_DURATION_MS = 600;
+    private static final int SPEECH_PAD_MS = 500;
+    private static final int WINDOW_SIZE_SAMPLES = 2048;
 
-            // 计算振幅绝对值并累加[[8]](https://blog.csdn.net/balijinyi/article/details/80284520)
-            sum += Math.abs(sample);
+    SlieroVadDetector vadDetector;
+    @Getter
+    private Boolean isSpeaking = false;
+
+    public VadHandle() {
+        // Initialize the Voice Activity Detector
+        try {
+            vadDetector = new SlieroVadDetector(MODEL_PATH, START_THRESHOLD, END_THRESHOLD, SAMPLE_RATE, MIN_SILENCE_DURATION_MS, SPEECH_PAD_MS);
+        } catch (OrtException e) {
+            System.err.println("Error initializing the VAD detector: " + e.getMessage());
+        }
+    }
+
+    public void receivePcm(byte[] pcmData) {
+        // Apply the Voice Activity Detector to the data and get the result
+        Map<String, Double> detectResult = null;
+        try {
+            detectResult = vadDetector.apply(pcmData, true);
+        } catch (Exception e) {
+            System.err.println("Error applying VAD detector: " + e.getMessage());
         }
 
-        // 计算平均振幅并转换为分贝[[5]](https://blog.csdn.net/weixin_39668199/article/details/111786701)
-        double avgAmplitude = sum / sampleCount;
-        return 20 * Math.log10(avgAmplitude / MAX_AMPLITUDE * REF_PRESSURE);
+        if (!detectResult.isEmpty()) {
+            if (detectResult.containsKey("start")) {
+                isSpeaking = true;
+            } else if (detectResult.containsKey("end")) {
+                isSpeaking = false;
+            }
+            System.out.println(detectResult);
+        }
+    }
+
+    public void release() {
+
     }
 }

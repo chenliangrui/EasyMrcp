@@ -133,6 +133,12 @@
             <artifactId>okhttp</artifactId>
             <version>4.10.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>1.16.0-rc1</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

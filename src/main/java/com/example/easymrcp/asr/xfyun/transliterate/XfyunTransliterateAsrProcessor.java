@@ -54,6 +54,11 @@ public class XfyunTransliterateAsrProcessor extends AsrHandler {
     }
 
     @Override
+    public void sendEof() {
+
+    }
+
+    @Override
     public void asrClose() {
         xfyunWsClient.sendEof();
         xfyunWsClient.client.close();
