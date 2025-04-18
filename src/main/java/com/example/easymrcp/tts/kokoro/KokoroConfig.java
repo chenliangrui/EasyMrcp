@@ -1,6 +1,6 @@
 package com.example.easymrcp.tts.kokoro;
 
-import com.example.easymrcp.domain.BaseConfig;
+import com.example.easymrcp.domain.TtsConfig;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,10 +9,10 @@ import org.springframework.context.annotation.PropertySource;
 
 @Data
 @Configuration
-@ConfigurationProperties
+@ConfigurationProperties(prefix = "kokoro")
 @EqualsAndHashCode(callSuper = true)
 @PropertySource(value = {"classpath:tts/kokoro.properties", "file:tts/kokoro.properties"}, ignoreResourceNotFound = true)
-public class KokoroConfig extends BaseConfig {
+public class KokoroConfig extends TtsConfig {
     private String apiUrl;
     private String model;
     private String voice;

@@ -1,7 +1,10 @@
 package com.example.easymrcp.tts;
 
+import com.example.easymrcp.domain.AsrConfig;
+import com.example.easymrcp.domain.TtsConfig;
 import com.example.easymrcp.mrcp.TtsCallback;
 import com.example.easymrcp.rtp.RtpConnection;
+import com.example.easymrcp.tts.kokoro.KokoroConfig;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,7 +16,6 @@ public abstract class TtsHandler implements RtpConnection {
     @Setter
     private TtsCallback callback;
     boolean stop = false;
-    @Setter
     protected String reSample;
 
     protected RealTimeAudioProcessor processor;
@@ -30,6 +32,12 @@ public abstract class TtsHandler implements RtpConnection {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public void setConfig(TtsConfig ttsConfig) {
+        if (ttsConfig.getReSample() != null && !ttsConfig.getReSample().isEmpty()) {
+            this.reSample = ttsConfig.getReSample();
+        }
     }
 
     public void transmit(String text) {

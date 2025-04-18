@@ -3,6 +3,8 @@ package com.example.easymrcp.asr.xfyun.dictation;
 import com.example.easymrcp.mrcp.AsrCallback;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.WebSocket;
@@ -21,17 +23,19 @@ import java.util.concurrent.CountDownLatch;
  * 讯飞云实时语音听写（一句话语音识别）
  * https://www.xfyun.cn/services/voicedictation
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class XfyunDictationWsClient extends WebSocketListener {
-    private static final String hostUrl = "https://iat-api.xfyun.cn/v2/iat"; //中英文，http url 不支持解析 ws/wss schema
+    private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
-    private static final String appid = "c22aeabc"; //在控制台-我的应用获取
-    private static final String apiSecret = "NjAwYWYyZDQ5ZjJjNjZhY2UzMWJjMThl"; //在控制台-我的应用-语音听写（流式版）获取
-    private static final String apiKey = "f23da979c109e5c31c0dc9dd5d3052a5"; //在控制台-我的应用-语音听写（流式版）获取
-    private static final String file = "C:\\Users\\25212\\Downloads\\iat_ws_java_demo\\iat_ws_java_demo\\resource\\iat\\16k_10.pcm"; // 中文
-    public static final int StatusFirstFrame = 0;
-    public static final int StatusContinueFrame = 1;
-    public static final int StatusLastFrame = 2;
-    public static final Gson json = new Gson();
+    private String appid; //在控制台-我的应用获取
+    private String apiSecret; //在控制台-我的应用-语音听写（流式版）获取
+    private String apiKey; //在控制台-我的应用-语音听写（流式版）获取
+
+    public int StatusFirstFrame = 0;
+    public int StatusContinueFrame = 1;
+    public int StatusLastFrame = 2;
+    public Gson json = new Gson();
     XfyunDictationWsClient.Decoder decoder = new XfyunDictationWsClient.Decoder();
     // 开始时间
     private static Date dateBegin = new Date();
@@ -65,8 +69,8 @@ public class XfyunDictationWsClient extends WebSocketListener {
         XfyunDictationWsClient.ResponseData resp = json.fromJson(text, XfyunDictationWsClient.ResponseData.class);
         if (resp != null) {
             if (resp.getCode() != 0) {
-                System.out.println( "code=>" + resp.getCode() + " error=>" + resp.getMessage() + " sid=" + resp.getSid());
-                System.out.println( "错误码查询链接：https://www.xfyun.cn/document/error-code");
+                System.out.println("code=>" + resp.getCode() + " error=>" + resp.getMessage() + " sid=" + resp.getSid());
+                System.out.println("错误码查询链接：https://www.xfyun.cn/document/error-code");
                 return;
             }
             if (resp.getData() != null) {
@@ -201,34 +205,43 @@ public class XfyunDictationWsClient extends WebSocketListener {
                 build();
         return httpUrl.toString();
     }
+
     public static class ResponseData {
         private int code;
         private String message;
         private String sid;
         private XfyunDictationWsClient.Data data;
+
         public int getCode() {
             return code;
         }
+
         public String getMessage() {
             return this.message;
         }
+
         public String getSid() {
             return sid;
         }
+
         public XfyunDictationWsClient.Data getData() {
             return data;
         }
     }
+
     public static class Data {
         private int status;
         private XfyunDictationWsClient.Result result;
+
         public int getStatus() {
             return status;
         }
+
         public XfyunDictationWsClient.Result getResult() {
             return result;
         }
     }
+
     public static class Result {
         int bg;
         int ed;
@@ -238,6 +251,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
         XfyunDictationWsClient.Ws[] ws;
         boolean ls;
         JsonObject vad;
+
         public XfyunDictationWsClient.Text getText() {
             XfyunDictationWsClient.Text text = new XfyunDictationWsClient.Text();
             StringBuilder sb = new StringBuilder();
@@ -252,19 +266,22 @@ public class XfyunDictationWsClient extends WebSocketListener {
             text.bg = this.bg;
             text.ed = this.ed;
             text.ls = this.ls;
-            text.vad = this.vad==null ? null : this.vad;
+            text.vad = this.vad == null ? null : this.vad;
             return text;
         }
     }
+
     public static class Ws {
         XfyunDictationWsClient.Cw[] cw;
         int bg;
         int ed;
     }
+
     public static class Cw {
         int sc;
         String w;
     }
+
     public static class Text {
         int sn;
         int bg;
@@ -275,6 +292,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
         boolean deleted;
         boolean ls;
         JsonObject vad;
+
         @Override
         public String toString() {
             return "Text{" +
@@ -286,17 +304,20 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     ", pgs=" + pgs +
                     ", rg=" + Arrays.toString(rg) +
                     ", deleted=" + deleted +
-                    ", vad=" + (vad==null ? "null" : vad.getAsJsonArray("ws").toString()) +
+                    ", vad=" + (vad == null ? "null" : vad.getAsJsonArray("ws").toString()) +
                     '}';
         }
     }
+
     //解析返回数据，仅供参考
     public static class Decoder {
         private XfyunDictationWsClient.Text[] texts;
         private int defc = 10;
+
         public Decoder() {
             this.texts = new XfyunDictationWsClient.Text[this.defc];
         }
+
         public synchronized void decode(XfyunDictationWsClient.Text text) {
             if (text.sn >= this.defc) {
                 this.resize();
@@ -308,6 +329,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
             }
             this.texts[text.sn] = text;
         }
+
         public String toString() {
             StringBuilder sb = new StringBuilder();
             for (XfyunDictationWsClient.Text t : this.texts) {
@@ -317,6 +339,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
             }
             return sb.toString();
         }
+
         public void resize() {
             int oc = this.defc;
             this.defc <<= 1;
@@ -326,9 +349,10 @@ public class XfyunDictationWsClient extends WebSocketListener {
                 this.texts[i] = old[i];
             }
         }
-        public void discard(){
-            for(int i=0;i<this.texts.length;i++){
-                this.texts[i]= null;
+
+        public void discard() {
+            for (int i = 0; i < this.texts.length; i++) {
+                this.texts[i] = null;
             }
         }
     }

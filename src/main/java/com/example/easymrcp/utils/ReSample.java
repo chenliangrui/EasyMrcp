@@ -1,5 +1,6 @@
 package com.example.easymrcp.utils;
 
+//8k采样率转16k采样率
 public class ReSample {
     // 重采样核心算法（线性插值+简单滤波）
     public static byte[] resampleFrame(byte[] inputFrame) {

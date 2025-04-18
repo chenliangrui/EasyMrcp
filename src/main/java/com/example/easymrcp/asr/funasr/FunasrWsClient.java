@@ -11,6 +11,8 @@
 package com.example.easymrcp.asr.funasr;
 
 import com.example.easymrcp.mrcp.AsrCallback;
+import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -27,11 +29,16 @@ import java.util.regex.Pattern;
 /** This example demonstrates how to connect to websocket server. */
 public class FunasrWsClient extends WebSocketClient {
     private boolean iseof = false;
-    static String mode = "2pass";
-    static String hotwords = "";
-    static String fsthotwords = "";
-    static String strChunkSize = "5,10,5";
-    static int chunkInterval = 10;
+    @Setter
+    String mode = "2pass";
+    @Setter
+    String hotwords = "";
+    @Setter
+    String fsthotwords = "";
+    @Setter
+    String strChunkSize = "5,10,5";
+    @Setter
+    int chunkInterval = 10;
     AsrCallback callback;
     Boolean stop;
     CountDownLatch countDownLatch;
@@ -59,10 +66,10 @@ public class FunasrWsClient extends WebSocketClient {
             obj.put("chunk_interval", new Integer(chunkInterval));
             obj.put("wav_name", wavName);
 
-            if (FunasrWsClient.hotwords.trim().length() > 0) {
+            if (hotwords.trim().length() > 0) {
                 String regex = "\\d+";
                 JSONObject jsonitems = new JSONObject();
-                String[] items = FunasrWsClient.hotwords.trim().split(" ");
+                String[] items = hotwords.trim().split(" ");
                 Pattern pattern = Pattern.compile(regex);
                 String tmpWords = "";
                 for (int i = 0; i < items.length; i++) {

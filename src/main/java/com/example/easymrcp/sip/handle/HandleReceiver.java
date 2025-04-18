@@ -67,7 +67,6 @@ public class HandleReceiver {
                             int asrRtpPort = sipContext.getAsrRtpPort();
                             AsrHandler asrHandler = asrChose.getAsrHandler();
                             asrHandler.setChannelId(channelID);
-                            //TODO 等待asr连接成功
                             asrHandler.create(null, asrRtpPort,null, 0);
                             asrHandler.receive();
                             rtpSession.addChannel(channelID, asrHandler);

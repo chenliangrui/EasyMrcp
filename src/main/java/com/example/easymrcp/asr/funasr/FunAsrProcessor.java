@@ -12,18 +12,14 @@ import java.net.URI;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public class FunAsrProcessor extends AsrHandler {
-    String strChunkSize;
-    int chunkInterval;
-    int sendChunkSize;
     String srvIp;
     String srvPort;
     FunasrWsClient funasrWsClient;
+    FunasrConfig funasrConfig;
     AsrCallback funasrCallback;
 
     public FunAsrProcessor(FunasrConfig funasrConfig) {
-        this.strChunkSize = funasrConfig.getStrChunkSize();
-        this.chunkInterval = funasrConfig.getChunkInterval();
-        this.sendChunkSize = funasrConfig.getSendChunkSize();
+        this.funasrConfig = funasrConfig;
         this.srvIp = funasrConfig.getSrvIp();
         this.srvPort = funasrConfig.getSrvPort();
     }
@@ -32,18 +28,7 @@ public class FunAsrProcessor extends AsrHandler {
     @Override
     public void create() {
         try {
-            int RATE = 8000;
-            String[] chunkList = strChunkSize.split(",");
-            int int_chunk_size = 60 * Integer.valueOf(chunkList[1].trim()) / chunkInterval;
-            int CHUNK = Integer.valueOf(RATE / 1000 * int_chunk_size);
-            int stride = Integer.valueOf(60 * Integer.valueOf(chunkList[1].trim()) / chunkInterval / 1000 * 8000 * 2);
-            System.out.println("chunk_size:" + int_chunk_size);
-            System.out.println("CHUNK:" + CHUNK);
-            System.out.println("stride:" + stride);
-            sendChunkSize = CHUNK * 2;
-
             String wsAddress = "ws://" + srvIp + ":" + srvPort;
-
             funasrCallback = new AsrCallback() {
                 @Override
                 public void apply(String msg) {
@@ -51,6 +36,11 @@ public class FunAsrProcessor extends AsrHandler {
                 }
             };
             funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop, getCountDownLatch());
+            funasrWsClient.setMode(funasrConfig.getMode());
+            funasrWsClient.setHotwords(funasrConfig.getHotwords());
+            funasrWsClient.setFsthotwords(funasrConfig.getFsthotwords());
+            funasrWsClient.setStrChunkSize(funasrConfig.getStrChunkSize());
+            funasrWsClient.setChunkInterval(funasrConfig.getChunkInterval());
             funasrWsClient.connect();
             System.out.println("wsAddress:" + wsAddress);
         } catch (Exception e) {

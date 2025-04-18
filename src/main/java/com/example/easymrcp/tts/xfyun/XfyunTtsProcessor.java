@@ -20,23 +20,32 @@ import java.util.*;
 @Slf4j
 public class XfyunTtsProcessor extends TtsHandler {
     // 地址与鉴权信息
-    public static final String hostUrl = "https://tts-api.xfyun.cn/v2/tts";
+    public String hostUrl;
     // 均到控制台-语音合成页面获取
-    public static final String APPID = "c22aeabc";
-    public static final String APISecret = "NjAwYWYyZDQ5ZjJjNjZhY2UzMWJjMThl";
-    public static final String APIKey = "f23da979c109e5c31c0dc9dd5d3052a5";
+    public String APPID;
+    public String APISecret;
+    public String APIKey;
     // 合成文本
     public String text;
     // 合成文本编码格式
-    public final String TTE = "UTF8"; // 小语种必须使用UNICODE编码作为值
+    public String TTE; // 小语种必须使用UNICODE编码作为值
     // 发音人参数。到控制台-我的应用-语音合成-添加试用或购买发音人，添加后即显示该发音人参数值，若试用未添加的发音人会报错11200
-    public String VCN = "x4_panting";
+    public String VCN;
     // 合成文件存储地址以及名称
     public String OUTPUT_FILE_PATH = "src/main/resources/" + System.currentTimeMillis() + ".pcm";
     // json
     public Gson gson = new Gson();
     public boolean wsCloseFlag = false;
     String wsUrl;
+
+    public XfyunTtsProcessor(XfyunTtsConfig xfyunTtsConfig) {
+        this.hostUrl = xfyunTtsConfig.hostUrl;
+        this.APPID = xfyunTtsConfig.APPID;
+        this.APIKey = xfyunTtsConfig.APIKey;
+        this.APISecret = xfyunTtsConfig.APISecret;
+        this.TTE = xfyunTtsConfig.TTE;
+        this.VCN = xfyunTtsConfig.VCN;
+    }
 
     @Override
     public void create() {

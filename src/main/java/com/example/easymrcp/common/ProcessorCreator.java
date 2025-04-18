@@ -10,13 +10,14 @@ import com.example.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcess
 import com.example.easymrcp.tts.kokoro.KokoroConfig;
 import com.example.easymrcp.tts.kokoro.KokoroProcessor;
 import com.example.easymrcp.tts.TtsHandler;
+import com.example.easymrcp.tts.xfyun.XfyunTtsConfig;
 import com.example.easymrcp.tts.xfyun.XfyunTtsProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 根据配置决定加载某个asr
+ * 根据配置决定加载某个asr或tts
  */
 @Component
 public class ProcessorCreator {
@@ -30,39 +31,38 @@ public class ProcessorCreator {
     KokoroConfig kokoroConfig;
     @Autowired
     XfyunAsrConfig xfyunAsrConfig;
+    @Autowired
+    XfyunTtsConfig xfyunTtsConfig;
 
     public AsrHandler getAsrHandler() {
-        if (asrMode.equals("funasr")) {
-            FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);
-            if (funasrConfig.getIdentifyPatterns() != null && !funasrConfig.getIdentifyPatterns().isEmpty()) {
-                funAsrProcessor.setIdentifyPatterns(funasrConfig.getIdentifyPatterns());
-            }
-            return funAsrProcessor;
-        } else if (asrMode.equals("xfyun")) {
-            xfyunAsrConfig.setIdentifyPatterns(ASRConstant.IDENTIFY_PATTERNS_DICTATION);
-            if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
-                XfyunDictationAsrProcessor xfyunDictationAsrProcessor = new XfyunDictationAsrProcessor();
-                xfyunDictationAsrProcessor.setIdentifyPatterns(xfyunAsrConfig.getIdentifyPatterns());
-                return xfyunDictationAsrProcessor;
-            } else if (ASRConstant.IDENTIFY_PATTERNS_TRANSLITERATE.equals(xfyunAsrConfig.getIdentifyPatterns())) {
-                XfyunTransliterateAsrProcessor xfyunTransliterateAsrProcessor = new XfyunTransliterateAsrProcessor();
-                xfyunTransliterateAsrProcessor.setIdentifyPatterns(xfyunAsrConfig.getIdentifyPatterns());
-                return xfyunTransliterateAsrProcessor;
-            }
+        switch (asrMode) {
+            case "funasr":
+                FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);
+                funAsrProcessor.setConfig(funasrConfig);
+                return funAsrProcessor;
+            case "xfyun":
+                if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
+                    XfyunDictationAsrProcessor xfyunDictationAsrProcessor = new XfyunDictationAsrProcessor(xfyunAsrConfig);
+                    xfyunDictationAsrProcessor.setConfig(xfyunAsrConfig);
+                    return xfyunDictationAsrProcessor;
+                } else if (ASRConstant.IDENTIFY_PATTERNS_TRANSLITERATE.equals(xfyunAsrConfig.getIdentifyPatterns())) {
+                    XfyunTransliterateAsrProcessor xfyunTransliterateAsrProcessor = new XfyunTransliterateAsrProcessor(xfyunAsrConfig);
+                    xfyunTransliterateAsrProcessor.setConfig(xfyunAsrConfig);
+                    return xfyunTransliterateAsrProcessor;
+                }
         }
         return null;
     }
 
     public TtsHandler getTtsHandler() {
-        if (ttsMode.equals("kokoro")) {
-            KokoroProcessor kokoroProcessor = new KokoroProcessor(kokoroConfig);
-            if (kokoroConfig.getReSample() != null && !kokoroConfig.getReSample().isEmpty()) {
-                kokoroProcessor.setReSample(kokoroConfig.getReSample());
-            }
-            return kokoroProcessor;
-        } else if (ttsMode.equals("xfyun")) {
-            XfyunTtsProcessor xfyunTtsProcessor = new XfyunTtsProcessor();
-            return xfyunTtsProcessor;
+        switch (ttsMode) {
+            case "kokoro":
+                KokoroProcessor kokoroProcessor = new KokoroProcessor(kokoroConfig);
+                kokoroProcessor.setConfig(kokoroConfig);
+                return kokoroProcessor;
+            case "xfyun":
+                XfyunTtsProcessor xfyunTtsProcessor = new XfyunTtsProcessor(xfyunTtsConfig);
+                return xfyunTtsProcessor;
         }
         return null;
     }

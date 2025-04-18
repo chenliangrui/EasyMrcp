@@ -1,5 +1,6 @@
 package com.example.easymrcp.asr;
 
+import com.example.easymrcp.domain.AsrConfig;
 import com.example.easymrcp.mrcp.AsrCallback;
 import com.example.easymrcp.rtp.G711uDecoder;
 import com.example.easymrcp.rtp.RtpConnection;
@@ -27,8 +28,8 @@ public abstract class AsrHandler implements RtpConnection {
     private String channelId;
     @Setter
     private AsrCallback callback;
-    @Setter
     protected String identifyPatterns;
+    protected String reSample;
 
     private DatagramSocket socket;
     private int RTP_PORT; // RTP端口
@@ -46,6 +47,15 @@ public abstract class AsrHandler implements RtpConnection {
 //            throw new RuntimeException(e);
 //        }
 //    }
+
+    public void setConfig(AsrConfig asrConfig) {
+        if (asrConfig.getIdentifyPatterns() != null && !asrConfig.getIdentifyPatterns().isEmpty()) {
+            this.identifyPatterns = asrConfig.getIdentifyPatterns();
+        }
+        if (asrConfig.getReSample() != null && !asrConfig.getReSample().isEmpty()) {
+            this.reSample = asrConfig.getReSample();
+        }
+    }
 
     @Override
     public void create(String localIp, int localPort, String remoteIp, int remotePort) {

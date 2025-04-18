@@ -1,6 +1,7 @@
 package com.example.easymrcp.asr.xfyun.dictation;
 
 import com.example.easymrcp.asr.AsrHandler;
+import com.example.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.example.easymrcp.mrcp.AsrCallback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -10,14 +11,21 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class XfyunDictationAsrProcessor extends AsrHandler {
-    private static final String hostUrl = "https://iat-api.xfyun.cn/v2/iat"; //中英文，http url 不支持解析 ws/wss schema
+    private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
-    private static final String appid = "c22aeabc"; //在控制台-我的应用获取
-    private static final String apiSecret = "NjAwYWYyZDQ5ZjJjNjZhY2UzMWJjMThl"; //在控制台-我的应用-语音听写（流式版）获取
-    private static final String apiKey = "f23da979c109e5c31c0dc9dd5d3052a5"; //在控制台-我的应用-语音听写（流式版）获取
+    private String appid; //在控制台-我的应用获取
+    private String apiSecret; //在控制台-我的应用-语音听写（流式版）获取
+    private String apiKey; //在控制台-我的应用-语音听写（流式版）获取
     AsrCallback funasrCallback;
     XfyunDictationWsClient xfyunWsClient;
     WebSocket webSocket;
+
+    public XfyunDictationAsrProcessor(XfyunAsrConfig xfyunAsrConfig) {
+        this.hostUrl = xfyunAsrConfig.getHostUrl();
+        this.appid = xfyunAsrConfig.getAPPID();
+        this.apiSecret = xfyunAsrConfig.getAPISecret();
+        this.apiKey = xfyunAsrConfig.getAPIKey();
+    }
 
     @Override
     public void create() {
@@ -42,6 +50,10 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
             }
         };
         xfyunWsClient = new XfyunDictationWsClient(funasrCallback, stop, getCountDownLatch());
+        xfyunWsClient.setHostUrl(hostUrl);
+        xfyunWsClient.setAppid(appid);
+        xfyunWsClient.setApiSecret(apiSecret);
+        xfyunWsClient.setApiKey(apiKey);
         webSocket = client.newWebSocket(request, xfyunWsClient);
     }
 
