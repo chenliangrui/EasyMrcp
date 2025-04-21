@@ -2,6 +2,8 @@ package com.example.easymrcp.domain;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
 public class BaseConfig {
     /**

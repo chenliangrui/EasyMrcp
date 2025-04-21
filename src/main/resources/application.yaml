@@ -1,14 +1,14 @@
 server:
   port: 8080
 sip:
-  sipServer: 172.16.2.19
+  sipServer: 192.168.31.29
   sipPort: 8060
   mrcpServerPort: 1544
 mrcp:
   # xfyun、funasr
-  asrMode: funasr
+  asrMode: xfyun
   # xfyun、kokoro
-  ttsMode: kokoro
+  ttsMode: xfyun
 rtp:
   # asr的rtp端口范围
   asrStartPort: 5000
