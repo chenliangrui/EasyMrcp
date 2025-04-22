@@ -3,8 +3,9 @@ package com.example.easymrcp.asr.xfyun.transliterate;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.example.easymrcp.asr.xfyun.transliterate.util.EncryptUtil;
+import com.example.easymrcp.asr.AsrText;
 import com.example.easymrcp.mrcp.AsrCallback;
+import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft;
 import org.java_websocket.handshake.ServerHandshake;
@@ -21,22 +22,24 @@ import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 讯飞云实时语音转写（长时间语言转写）
  * 地址:https://www.xfyun.cn/services/rtasr
  */
+@Slf4j
 public class XfyunTransliterateWsClient {
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyy-MM-dd HH:mm:ss.SSS");
-    static AsrCallback xfyunAsrCallback;
     Boolean stop;
     MyWebSocketClient client;
+    static AsrText asrText;
 
     public XfyunTransliterateWsClient(AsrCallback xfyunAsrCallback, Boolean stop, MyWebSocketClient client) {
-        this.xfyunAsrCallback = xfyunAsrCallback;
         this.stop = stop;
         this.client = client;
+        asrText = new AsrText(xfyunAsrCallback);
     }
 
     public void sendBuffer(byte[] buffer) {
@@ -74,7 +77,7 @@ public class XfyunTransliterateWsClient {
         return sdf.format(new Date());
     }
 
-    public static class MyWebSocketClient extends WebSocketClient {
+    static class MyWebSocketClient extends WebSocketClient {
 
         private CountDownLatch handshakeSuccess;
         private CountDownLatch connectClose;
@@ -104,7 +107,8 @@ public class XfyunTransliterateWsClient {
                 // 转写结果
                 String data = getContent(msgObj.getString("data"));
                 System.out.println(getCurrentTimeStr() + "\tresult: " + data);
-                xfyunAsrCallback.apply(data);
+                asrText.updateAccumulatedText(data);
+                asrText.resetTimer(); // 重置倒计时器
             } else if (Objects.equals("error", action)) {
                 // 连接发生错误
                 System.out.println("Error: " + msg);
@@ -166,6 +170,7 @@ public class XfyunTransliterateWsClient {
 
     // 把转写结果解析为句子
     public static String getContent(String message) {
+        log.info("message: " + message);
         StringBuffer resultBuilder = new StringBuffer();
         try {
             JSONObject messageObj = JSON.parseObject(message);

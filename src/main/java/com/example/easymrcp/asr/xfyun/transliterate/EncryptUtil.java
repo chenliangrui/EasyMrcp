@@ -1,4 +1,4 @@
-package com.example.easymrcp.asr.xfyun.transliterate.util;
+package com.example.easymrcp.asr.xfyun.transliterate;
 
 import org.apache.commons.codec.binary.Base64;
 
