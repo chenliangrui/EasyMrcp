@@ -1,14 +1,18 @@
 server:
+  # 服务端口
   port: 8080
 sip:
-  sipServer: 172.16.2.19
+  # sip服务器地址，填写项目运行的ip地址
+  sipServer: 192.168.31.29
+  # sip服务器端口
   sipPort: 8060
+  # mrcp服务器端口
   mrcpServerPort: 1544
 mrcp:
-  # xfyun、funasr
-  asrMode: funasr
-  # xfyun、kokoro
-  ttsMode: kokoro
+  # 选择一个asr服务，目前已经集成：xfyun、funasr
+  asrMode: xfyun
+  # 选择一个tts服务，目前已经集成：xfyun、kokoro
+  ttsMode: xfyun
 rtp:
   # asr的rtp端口范围
   asrStartPort: 5000

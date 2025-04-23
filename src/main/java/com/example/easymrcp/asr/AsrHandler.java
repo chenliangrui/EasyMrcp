@@ -6,6 +6,7 @@ import com.example.easymrcp.rtp.G711uDecoder;
 import com.example.easymrcp.rtp.RtpConnection;
 import com.example.easymrcp.rtp.RtpPacket;
 import com.example.easymrcp.tts.RingBuffer;
+import com.example.easymrcp.utils.ReSample;
 import com.example.easymrcp.vad.VadHandle;
 import lombok.Data;
 import lombok.Getter;
@@ -104,7 +105,12 @@ public abstract class AsrHandler implements RtpConnection {
                         byte[] g711Data = parsedPacket.getPayload();
                         // G.711u解码为PCM
                         byte[] pcmData = G711uDecoder.decodeG711U(g711Data);
-                        inputRingBuffer.put(pcmData);
+                        if (reSample != null && reSample.equals("upsample8kTo16k")) {
+                            byte[] bytes = ReSample.resampleFrame(pcmData);
+                            inputRingBuffer.put(bytes);
+                        } else {
+                            inputRingBuffer.put(pcmData);
+                        }
 //                        byte[] bytes = ReSample.resampleFrame(pcmData);
 //                        try {
 //                            fileOutputStream.write(bytes);
