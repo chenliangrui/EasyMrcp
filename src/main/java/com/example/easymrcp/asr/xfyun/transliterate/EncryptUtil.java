@@ -10,6 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 
+/**
+ * 讯飞云官方提供示例代码
+ */
 public class EncryptUtil {
 
     /**

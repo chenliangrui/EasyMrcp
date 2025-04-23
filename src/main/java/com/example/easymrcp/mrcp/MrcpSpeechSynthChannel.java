@@ -16,6 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Mrcp协议中tts处理
+ */
 @Slf4j
 public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
     TtsHandler ttsHandler;

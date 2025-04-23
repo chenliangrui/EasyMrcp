@@ -16,6 +16,9 @@ import org.mrcp4j.server.provider.RecogOnlyRequestHandler;
 
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Mrcp协议中asr处理
+ */
 @Slf4j
 public class MrcpRecogChannel implements RecogOnlyRequestHandler {
     private AsrHandler asrHandler;

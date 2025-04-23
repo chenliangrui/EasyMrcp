@@ -6,6 +6,9 @@ import org.java_websocket.handshake.ClientHandshakeBuilder;
 
 import javax.validation.constraints.NotNull;
 
+/**
+ * 讯飞云官方提供示例代码
+ */
 @SuppressWarnings("deprecation")
 public class DraftWithOrigin extends Draft_6455 {
 

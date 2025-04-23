@@ -1,5 +1,8 @@
 package com.example.easymrcp.rtp;
 
+/**
+ * 解码G.711U字节流为PCM
+ */
 public class G711uDecoder {
     // G.711U解码表（U-law转16位PCM）
     private static final short[] ULAW_TABLE = new short[256];

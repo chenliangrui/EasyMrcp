@@ -10,6 +10,10 @@ import okhttp3.WebSocket;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 讯飞云实时语音听写（一句话语音识别）
+ * https://www.xfyun.cn/services/voicedictation
+ */
 public class XfyunDictationAsrProcessor extends AsrHandler {
     private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
