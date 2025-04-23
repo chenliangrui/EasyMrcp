@@ -79,9 +79,10 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
 
     @Override
     public MrcpResponse stop(StopRequest stopRequest, MrcpSession mrcpSession) {
+        log.info("MrcpSpeechSynthChannel stop");
         MrcpRequestState requestState = MrcpRequestState.COMPLETE;
         short statusCode = -1;
-        //TODO 语音识别打断
+        //TODO 语音识别打断,需要关闭其他资源？
         ttsHandler.stop();
         statusCode = MrcpResponse.STATUS_SUCCESS;
 

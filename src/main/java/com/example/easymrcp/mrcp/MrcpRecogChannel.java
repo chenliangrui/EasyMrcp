@@ -40,7 +40,14 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
         AsrCallback callback = new AsrCallback() {
             @Override
             public void apply(String msg) {
-                // 语音识别完成
+                // 发送后IN_PROGRESS会打断tts，添加在此处是当完成asr识别时会打断当前正在播放的tts
+                MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
+                try {
+                    mrcpSession.postEvent(event);
+                } catch (TimeoutException e) {
+                    log.error("postEvent START_OF_INPUT error", e);
+                }
+                // 发送识别完成事件
                 try {
                     MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
                     CompletionCause completionCause = new CompletionCause((short) 0, "success");
@@ -50,30 +57,13 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                         mrcpSession.postEvent(eventComplete);
                     }
                 } catch (TimeoutException e) {
-                    throw new RuntimeException(e);
+                    log.error("postEvent RECOGNITION_COMPLETE error", e);
                 }
             }
         };
         asrHandler.setCallback(callback);
         log.info("MrcpRecogChannel recognize");
         MrcpResponse response = mrcpSession.createResponse(MrcpResponse.STATUS_SUCCESS, MrcpRequestState.IN_PROGRESS);
-        //TODO 发送后IN_PROGRESS会打断语音合成，发送时机需要考虑
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    Thread.sleep(10000);
-//                } catch (InterruptedException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
-//                try {
-//                    mrcpSession.postEvent(event);
-//                } catch (TimeoutException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//        }).start();
         return response;
     }
 
