@@ -58,6 +58,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
         super.onOpen(webSocket, response);
         this.webSocket = webSocket;
         start();
+        dateBegin = new Date();
         // 必须执行，此时asr创建成功，并且开始识别
         countDownLatch.countDown();
     }
@@ -76,7 +77,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
             if (resp.getData() != null) {
                 if (resp.getData().getResult() != null) {
                     XfyunDictationWsClient.Text te = resp.getData().getResult().getText();
-                    //System.out.println(te.toString());
+                    System.out.println(te.toString());
                     try {
                         decoder.decode(te);
                         System.out.println("中间识别结果 ==》" + decoder.toString());

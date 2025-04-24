@@ -123,11 +123,13 @@ public abstract class AsrHandler implements RtpConnection {
                                 Boolean isSpeakingBefore = vadHandle.getIsSpeaking();
                                 vadHandle.receivePcm(take);
                                 if (vadHandle.getIsSpeaking()) {
+//                                    log.info(String.valueOf(take.length));
                                     if (!isSpeakingBefore) {
                                         reCreate();
                                     }
                                     receive(take);
-                                } else {
+                                } else if (isSpeakingBefore) {
+                                    log.info("send eof");
                                     sendEof();
                                 }
                             } else {

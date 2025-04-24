@@ -3,7 +3,7 @@ server:
   port: 8080
 sip:
   # sip服务器地址，填写项目运行的ip地址
-  sipServer: 192.168.31.29
+  sipServer: 172.16.2.19
   # sip服务器端口
   sipPort: 8060
   # mrcp服务器端口
