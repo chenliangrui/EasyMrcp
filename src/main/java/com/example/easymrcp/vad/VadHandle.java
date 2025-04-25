@@ -3,9 +3,11 @@ package com.example.easymrcp.vad;
 import ai.onnxruntime.OrtException;
 import com.example.easymrcp.asr.ASRConstant;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
+@Slf4j
 public class VadHandle {
     private static final String MODEL_PATH = "D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\vad\\silero_vad.onnx";
     private static final int SAMPLE_RATE = 8000;
@@ -43,7 +45,7 @@ public class VadHandle {
             } else if (detectResult.containsKey("end")) {
                 isSpeaking = false;
             }
-            System.out.println(detectResult);
+            log.info(detectResult.toString());
         }
     }
 

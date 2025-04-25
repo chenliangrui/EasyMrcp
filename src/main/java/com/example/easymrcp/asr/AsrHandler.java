@@ -123,9 +123,15 @@ public abstract class AsrHandler implements RtpConnection {
                                 Boolean isSpeakingBefore = vadHandle.getIsSpeaking();
                                 vadHandle.receivePcm(take);
                                 if (vadHandle.getIsSpeaking()) {
-//                                    log.info(String.valueOf(take.length));
+                                    log.info(String.valueOf(take.length));
                                     if (!isSpeakingBefore) {
                                         reCreate();
+                                        try {
+                                            //TODO 由于没有向vad发送数据导致vad识别成正在说话，需要确保vad发送不中断
+                                            Thread.sleep(3000);
+                                        } catch (InterruptedException e) {
+                                            throw new RuntimeException(e);
+                                        }
                                     }
                                     receive(take);
                                 } else if (isSpeakingBefore) {
