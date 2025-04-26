@@ -33,6 +33,8 @@ public class SlieroVadOnnxModel {
         opts.setIntraOpNumThreads(1);
         // Add a CPU device, setting to false disables CPU execution optimization
         opts.addCPU(true);
+        // no log
+        opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT);
         // Create an ONNX session using the environment, model path, and options
         session = env.createSession(modelPath, opts);
         // Reset states
