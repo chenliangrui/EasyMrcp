@@ -171,7 +171,17 @@ while session:ready() == true do
 end
 ```
 
-这个脚本的作用是freeswitch侧作为mrcp客户端通过sip和mrcp去控制asr和tts过程。拨打电话成功后会听到tts合成的提示语音，此时说话就可以进行asr，接收到asr的文字之后发送给tts进行合成，此时就可以听到刚才说的话了。一直重复整个过程并且支持语音打断，直到用户挂断电话。
+这个脚本的作用是freeswitch侧作为mrcp客户端通过sip和mrcp去控制asr和tts过程。拨打电话成功后会听到tts合成的提示语音，
+此时说话就可以进行asr，接收到asr的文字之后发送给tts进行合成，此时就可以听到刚才说的话了。一直重复整个过程并且支持语音打断，直到用户挂断电话。
+
+我们需要在/usr/local/freeswitch/grammar目录新增hello.gram语法文件，可以为空语法文件须满足语音识别语法规范1.0标准（简称 SRGS1.0），
+该语法文件 ASR 引擎在进行识别时可以使用。
+```plain
+   #JSGF V1.0;
+   /** JSGF Grammar for example */
+   grammar example;
+   public <results> = [];
+```
 
 ### 配置asr/tts配置文件
 请选择要使用的一种asr和tts进行对应配置。
@@ -193,7 +203,10 @@ mrcp:
 ```
 
 ### 命令运行
-`java -jar EasyMrcp-x.x.x.jar`
+正常运行项目，使用如下命令：  
+`java -jar EasyMrcp-x.x.x.jar`  
+Windows中运行EasyMrcp，如果freeswitch脚本asr识别结果出现乱码则尝试添加utf-8编码运行，
+乱码后会导致tts无法合成：`java -Dfile.encoding=utf8 -jar EasyMrcp-x.x.x.jar`
 
 # 联系我
 加入QQ群：
