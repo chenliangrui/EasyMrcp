@@ -87,10 +87,12 @@ public class XfyunTtsProcessor extends TtsHandler {
                     }
                     if (myJsonParse.data != null) {
                         try {
-                            byte[] textBase64Decode = Base64.getDecoder().decode(myJsonParse.data.audio);
-                            processor.putData(textBase64Decode, textBase64Decode.length);
+                            if (myJsonParse.data.audio != null) {
+                                byte[] textBase64Decode = Base64.getDecoder().decode(myJsonParse.data.audio);
+                                processor.putData(textBase64Decode, textBase64Decode.length);
+                            }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            log.error(e.getMessage(), e);
                         }
                         if (myJsonParse.data.status == 2) {
                             System.out.println("本次请求的sid==>" + myJsonParse.sid);

@@ -2,6 +2,8 @@ package com.example.easymrcp.tts;
 
 import lombok.Getter;
 
+import java.util.concurrent.ArrayBlockingQueue;
+
 /**
  * TODO 解决RingBuffer覆盖问题
  */
@@ -58,4 +60,19 @@ public class RingBuffer {
         return result;
     }
 
+    public synchronized byte[] peek(int maxLength) {
+        if (available <= 0) return null;
+
+        int bytesToRead = Math.min(maxLength, available);
+        byte[] result = new byte[bytesToRead];
+
+        int firstPart = Math.min(bytesToRead, capacity - readPos);
+        System.arraycopy(buffer, readPos, result, 0, firstPart);
+
+        if (bytesToRead > firstPart) {
+            System.arraycopy(buffer, 0, result, firstPart, bytesToRead - firstPart);
+        }
+
+        return result;
+    }
 }

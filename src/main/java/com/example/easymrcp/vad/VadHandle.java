@@ -20,6 +20,8 @@ public class VadHandle {
     SlieroVadDetector vadDetector;
     @Getter
     private Boolean isSpeaking = false;
+    // 为解决vad会重复判断的问题，这里记录上一次vad时间，讲话间隔小于1秒的不视为讲话
+    private Double lastVad = 0.0;
 
     public VadHandle() {
         // Initialize the Voice Activity Detector
@@ -40,12 +42,13 @@ public class VadHandle {
         }
 
         if (!detectResult.isEmpty()) {
-            if (detectResult.containsKey("start")) {
+            if (detectResult.containsKey("start") && detectResult.get("start") - lastVad > 1) {
                 isSpeaking = true;
             } else if (detectResult.containsKey("end")) {
                 isSpeaking = false;
+                lastVad = detectResult.get("end");
             }
-            log.info(detectResult.toString());
+            log.info("vad status: {}", detectResult);
         }
     }
 
