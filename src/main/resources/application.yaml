@@ -2,7 +2,7 @@ server:
   # 服务端口
   port: 8080
 sip:
-  # sip服务器地址，填写项目运行的ip地址
+  # EasyMrcp要监听的sip服务器地址，填写项目运行的ip地址
   sipServer: 192.168.31.29
   # sip服务器端口
   sipPort: 8060

@@ -5,11 +5,12 @@ import com.example.easymrcp.asr.ASRConstant;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.util.Map;
 
 @Slf4j
 public class VadHandle {
-    private static final String MODEL_PATH = "D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\vad\\silero_vad.onnx";
+    private static final String MODEL_PATH = "silero_vad.onnx";
     private static final int SAMPLE_RATE = 8000;
     private static final float START_THRESHOLD = 0.6f;
     private static final float END_THRESHOLD = 0.45f;
@@ -26,7 +27,20 @@ public class VadHandle {
     public VadHandle() {
         // Initialize the Voice Activity Detector
         try {
-            vadDetector = new SlieroVadDetector(MODEL_PATH, START_THRESHOLD, END_THRESHOLD, SAMPLE_RATE, MIN_SILENCE_DURATION_MS, SPEECH_PAD_MS);
+            String modePath = null;
+            String path = System.getProperty("user.dir");
+            File file = new File(path + "\\src\\main\\resources\\" + MODEL_PATH);
+            if (!file.exists()) {
+                String os = System.getProperty("os.name");
+                if (os != null && os.toLowerCase().startsWith("windows")) {
+                    modePath = path + "\\" + MODEL_PATH;
+                } else if (os != null && os.toLowerCase().startsWith("linux")) {
+                    modePath = path + "/" + MODEL_PATH;
+                }
+            } else {
+                modePath = path + "\\src\\main\\resources\\" + MODEL_PATH;
+            }
+            vadDetector = new SlieroVadDetector(modePath, START_THRESHOLD, END_THRESHOLD, SAMPLE_RATE, MIN_SILENCE_DURATION_MS, SPEECH_PAD_MS);
         } catch (OrtException e) {
             System.err.println("Error initializing the VAD detector: " + e.getMessage());
         }
@@ -48,7 +62,7 @@ public class VadHandle {
                 isSpeaking = false;
                 lastVad = detectResult.get("end");
             }
-            log.info("vad status: {}", detectResult);
+            log.trace("vad status: {}", detectResult);
         }
     }
 
