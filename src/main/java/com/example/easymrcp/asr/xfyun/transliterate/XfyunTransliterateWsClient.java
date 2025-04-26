@@ -47,7 +47,7 @@ public class XfyunTransliterateWsClient {
 
     public void sendEof() {
         send(client, "{\"end\": true}".getBytes());
-        System.out.println(getCurrentTimeStr() + "\t发送结束标识完成");
+        log.info(getCurrentTimeStr() + "\t发送结束标识完成");
     }
 
     // 生成握手参数
@@ -91,7 +91,7 @@ public class XfyunTransliterateWsClient {
 
         @Override
         public void onOpen(ServerHandshake handshake) {
-            System.out.println(getCurrentTimeStr() + "\t连接建立成功！");
+            log.info(getCurrentTimeStr() + "\t连接建立成功！");
         }
 
         @Override
@@ -100,44 +100,44 @@ public class XfyunTransliterateWsClient {
             String action = msgObj.getString("action");
             if (Objects.equals("started", action)) {
                 // 握手成功
-                System.out.println(getCurrentTimeStr() + "\t握手成功！sid: " + msgObj.getString("sid"));
+                log.info(getCurrentTimeStr() + "\t握手成功！sid: " + msgObj.getString("sid"));
                 handshakeSuccess.countDown();
             } else if (Objects.equals("result", action)) {
                 // 转写结果
                 String data = getContent(msgObj.getString("data"));
-                System.out.println(getCurrentTimeStr() + "\tresult: " + data);
+                log.info(getCurrentTimeStr() + "\tresult: " + data);
                 asrText.updateAccumulatedText(data);
                 asrText.resetTimer(); // 重置倒计时器
             } else if (Objects.equals("error", action)) {
                 // 连接发生错误
-                System.out.println("Error: " + msg);
+                log.info("Error: " + msg);
                 System.exit(0);
             }
         }
 
         @Override
         public void onError(Exception e) {
-            System.out.println(getCurrentTimeStr() + "\t连接发生错误：" + e.getMessage() + ", " + new Date());
+            log.info(getCurrentTimeStr() + "\t连接发生错误：" + e.getMessage() + ", " + new Date());
             e.printStackTrace();
             System.exit(0);
         }
 
         @Override
         public void onClose(int arg0, String arg1, boolean arg2) {
-            System.out.println(getCurrentTimeStr() + "\t链接关闭");
+            log.info(getCurrentTimeStr() + "\t链接关闭");
         }
 
         @Override
         public void onMessage(ByteBuffer bytes) {
             try {
-                System.out.println(getCurrentTimeStr() + "\t服务端返回：" + new String(bytes.array(), "UTF-8"));
+                log.info(getCurrentTimeStr() + "\t服务端返回：" + new String(bytes.array(), "UTF-8"));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }
 
         public void trustAllHosts(XfyunTransliterateWsClient.MyWebSocketClient appClient) {
-            System.out.println("wss");
+            log.info("wss");
             TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
                 @Override
                 public X509Certificate[] getAcceptedIssuers() {

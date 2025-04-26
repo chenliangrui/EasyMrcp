@@ -40,7 +40,6 @@ public class XfyunTransliterateAsrProcessor extends AsrHandler {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("开始发送音频数据");
 
         xfyunAsrCallback = new AsrCallback() {
             @Override

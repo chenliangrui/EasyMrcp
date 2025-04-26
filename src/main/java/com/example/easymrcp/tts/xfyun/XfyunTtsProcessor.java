@@ -74,16 +74,16 @@ public class XfyunTtsProcessor extends TtsHandler {
             WebSocketClient webSocketClient = new WebSocketClient(uri) {
                 @Override
                 public void onOpen(ServerHandshake serverHandshake) {
-                    System.out.println("ws建立连接成功...");
+                    log.info("ws建立连接成功...");
                 }
 
                 @Override
                 public void onMessage(String text) {
-                    //System.out.println(text);//打印响应参数到控制台
+                    //log.info(text);//打印响应参数到控制台
                     JsonParse myJsonParse = gson.fromJson(text, JsonParse.class);
                     if (myJsonParse.code != 0) {
-                        System.out.println("发生错误，错误码为：" + myJsonParse.code);
-                        System.out.println("本次请求的sid为：" + myJsonParse.sid);
+                        log.info("发生错误，错误码为：" + myJsonParse.code);
+                        log.info("本次请求的sid为：" + myJsonParse.sid);
                     }
                     if (myJsonParse.data != null) {
                         try {
@@ -95,7 +95,7 @@ public class XfyunTtsProcessor extends TtsHandler {
                             log.error(e.getMessage(), e);
                         }
                         if (myJsonParse.data.status == 2) {
-                            System.out.println("本次请求的sid==>" + myJsonParse.sid);
+                            log.info("本次请求的sid==>" + myJsonParse.sid);
                             // 可以关闭连接，释放资源
                             wsCloseFlag = true;
                         }
@@ -104,24 +104,24 @@ public class XfyunTtsProcessor extends TtsHandler {
 
                 @Override
                 public void onClose(int i, String s, boolean b) {
-                    System.out.println("ws链接已关闭，本次请求完成...");
+                    log.info("ws链接已关闭，本次请求完成...");
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    System.out.println("发生错误 " + e.getMessage());
+                    log.info("发生错误 " + e.getMessage());
                 }
             };
             // 建立连接
             webSocketClient.connect();
             while (!webSocketClient.getReadyState().equals(ReadyState.OPEN)) {
-                //System.out.println("正在连接...");
+                //log.info("正在连接...");
                 Thread.sleep(100);
             }
             MyThread webSocketThread = new MyThread(webSocketClient);
             webSocketThread.start();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.info(e.getMessage());
         }
     }
 
@@ -181,7 +181,7 @@ public class XfyunTtsProcessor extends TtsHandler {
         String preStr = "host: " + url.getHost() + "\n" +
                 "date: " + date + "\n" +
                 "GET " + url.getPath() + " HTTP/1.1";
-        //System.out.println(preStr);
+        //log.info(preStr);
         // SHA256加密
         Mac mac = Mac.getInstance("hmacsha256");
         SecretKeySpec spec = new SecretKeySpec(apiSecret.getBytes(StandardCharsets.UTF_8), "hmacsha256");

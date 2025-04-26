@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.Response;
 import okhttp3.WebSocket;
@@ -24,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
  * https://www.xfyun.cn/services/voicedictation
  */
 @Data
+@Slf4j
 @EqualsAndHashCode(callSuper = true)
 public class XfyunDictationWsClient extends WebSocketListener {
     private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
@@ -66,35 +68,35 @@ public class XfyunDictationWsClient extends WebSocketListener {
     @Override
     public void onMessage(WebSocket webSocket, String text) {
         super.onMessage(webSocket, text);
-        //System.out.println(text);
+        //log.info(text);
         XfyunDictationWsClient.ResponseData resp = json.fromJson(text, XfyunDictationWsClient.ResponseData.class);
         if (resp != null) {
             if (resp.getCode() != 0) {
-                System.out.println("code=>" + resp.getCode() + " error=>" + resp.getMessage() + " sid=" + resp.getSid());
-                System.out.println("错误码查询链接：https://www.xfyun.cn/document/error-code");
+                log.info("code=>" + resp.getCode() + " error=>" + resp.getMessage() + " sid=" + resp.getSid());
+                log.info("错误码查询链接：https://www.xfyun.cn/document/error-code");
                 return;
             }
             if (resp.getData() != null) {
                 if (resp.getData().getResult() != null) {
                     XfyunDictationWsClient.Text te = resp.getData().getResult().getText();
-                    System.out.println(te.toString());
+                    log.info(te.toString());
                     try {
                         decoder.decode(te);
-                        System.out.println("中间识别结果 ==》" + decoder.toString());
+                        log.info("中间识别结果 ==》" + decoder.toString());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
                 if (resp.getData().getStatus() == 2) {
                     // todo  resp.data.status ==2 说明数据全部返回完毕，可以关闭连接，释放资源
-                    System.out.println("session end ");
+                    log.info("session end ");
                     dateEnd = new Date();
-                    System.out.println(sdf.format(dateBegin) + "开始");
-                    System.out.println(sdf.format(dateEnd) + "结束");
-                    System.out.println("耗时:" + (dateEnd.getTime() - dateBegin.getTime()) + "ms");
+                    log.info(sdf.format(dateBegin) + "开始");
+                    log.info(sdf.format(dateEnd) + "结束");
+                    log.info("耗时:" + (dateEnd.getTime() - dateBegin.getTime()) + "ms");
                     String result = decoder.toString();
-                    System.out.println("最终识别结果 ==》" + result);
-                    System.out.println("本次识别sid ==》" + resp.getSid());
+                    log.info("最终识别结果 ==》" + result);
+                    log.info("本次识别sid ==》" + resp.getSid());
                     if (!stop && !result.isEmpty()) callback.apply(result);
                     decoder.discard();
                     webSocket.close(1000, "");
@@ -111,10 +113,10 @@ public class XfyunDictationWsClient extends WebSocketListener {
         try {
             if (null != response) {
                 int code = response.code();
-                System.out.println("onFailure code:" + code);
-                System.out.println("onFailure body:" + response.body().string());
+                log.info("onFailure code:" + code);
+                log.info("onFailure body:" + response.body().string());
                 if (101 != code) {
-                    System.out.println("connection failed");
+                    log.info("connection failed");
                     System.exit(0);
                 }
             }
@@ -188,7 +190,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
         StringBuilder builder = new StringBuilder("host: ").append(url.getHost()).append("\n").//
                 append("date: ").append(date).append("\n").//
                 append("GET ").append(url.getPath()).append(" HTTP/1.1");
-        //System.out.println(builder);
+        //log.info(builder);
         Charset charset = Charset.forName("UTF-8");
         Mac mac = Mac.getInstance("hmacsha256");
         SecretKeySpec spec = new SecretKeySpec(apiSecret.getBytes(charset), "hmacsha256");
@@ -196,9 +198,9 @@ public class XfyunDictationWsClient extends WebSocketListener {
         byte[] hexDigits = mac.doFinal(builder.toString().getBytes(charset));
         String sha = Base64.getEncoder().encodeToString(hexDigits);
 
-        //System.out.println(sha);
+        //log.info(sha);
         String authorization = String.format("api_key=\"%s\", algorithm=\"%s\", headers=\"%s\", signature=\"%s\"", apiKey, "hmac-sha256", "host date request-line", sha);
-        //System.out.println(authorization);
+        //log.info(authorization);
         HttpUrl httpUrl = HttpUrl.parse("https://" + url.getHost() + url.getPath()).newBuilder().//
                 addQueryParameter("authorization", Base64.getEncoder().encodeToString(authorization.getBytes(charset))).//
                 addQueryParameter("date", date).//

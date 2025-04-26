@@ -49,7 +49,7 @@ public class RealTimeAudioProcessor {
                     byte[] pcm;
                     while ((pcm = inputRingBuffer.take(102400)) == null) {
                         Thread.sleep(200); // 非阻塞等待
-                        log.info("inputRingBuffer available: {}", inputRingBuffer.getAvailable());
+//                        log.info("inputRingBuffer available: {}", inputRingBuffer.getAvailable());
                         if (stop) {
                             return;
                         }
