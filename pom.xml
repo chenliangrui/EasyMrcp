@@ -139,6 +139,13 @@
             <artifactId>onnxruntime</artifactId>
             <version>1.16.0-rc1</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.tencentcloudapi</groupId>
+            <artifactId>tencentcloud-speech-sdk-java</artifactId>
+            <!--建议使用最新版本-->
+            <version>1.0.53</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

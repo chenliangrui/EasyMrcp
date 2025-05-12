@@ -4,6 +4,8 @@ import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.asr.funasr.FunAsrProcessor;
 import com.cfsl.easymrcp.asr.funasr.FunasrConfig;
+import com.cfsl.easymrcp.asr.tencentcloud.TxCloudConfig;
+import com.cfsl.easymrcp.asr.tencentcloud.TxCloudProcessor;
 import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
@@ -33,6 +35,8 @@ public class ProcessorCreator {
     XfyunAsrConfig xfyunAsrConfig;
     @Autowired
     XfyunTtsConfig xfyunTtsConfig;
+    @Autowired
+    TxCloudConfig txCloudConfig;
 
     public AsrHandler getAsrHandler() {
         switch (asrMode) {
@@ -49,6 +53,12 @@ public class ProcessorCreator {
                     XfyunTransliterateAsrProcessor xfyunTransliterateAsrProcessor = new XfyunTransliterateAsrProcessor(xfyunAsrConfig);
                     xfyunTransliterateAsrProcessor.setConfig(xfyunAsrConfig);
                     return xfyunTransliterateAsrProcessor;
+                }
+            case "tencent-cloud":
+                if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
+                    TxCloudProcessor txCloudProcessor = new TxCloudProcessor(txCloudConfig);
+                    txCloudProcessor.setConfig(txCloudConfig);
+                    return txCloudProcessor;
                 }
         }
         return null;
