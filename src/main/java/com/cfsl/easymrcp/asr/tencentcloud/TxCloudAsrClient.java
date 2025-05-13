@@ -10,15 +10,15 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.UUID;
 
 @Slf4j
-public class TxCloudClient {
+public class TxCloudAsrClient {
 
     SpeechClient proxy = new SpeechClient(AsrConstant.DEFAULT_RT_REQ_URL);
-    TxCloudConfig txCloudConfig;
+    TxCloudAsrConfig txCloudConfig;
     SpeechRecognizer speechRecognizer;
     AsrCallback txCloudCallback;
     long currentTimeMillis;
 
-    public TxCloudClient(TxCloudConfig txCloudConfig, AsrCallback txCloudCallback) {
+    public TxCloudAsrClient(TxCloudAsrConfig txCloudConfig, AsrCallback txCloudCallback) {
         this.txCloudConfig = txCloudConfig;
         this.txCloudCallback = txCloudCallback;
     }
@@ -27,7 +27,7 @@ public class TxCloudClient {
         Credential credential = new Credential(txCloudConfig.getAppId(), txCloudConfig.getSecretId(), txCloudConfig.getSecretKey());
         SpeechRecognizerRequest request = SpeechRecognizerRequest.init();
         request.setEngineModelType("8k_zh");
-        request.setVoiceFormat(12);
+        request.setVoiceFormat(1);
         request.setVoiceId(UUID.randomUUID().toString());//voice_id为请求标识，需要保持全局唯一（推荐使用 uuid），遇到问题需要提供该值方便服务端排查
         // request.set("hotword_list", "腾讯云|10,语音识别|5,ASR|11"); //sdk暂未支持参数，可通过该方法设置
         log.debug("voice_id:{}", request.getVoiceId());

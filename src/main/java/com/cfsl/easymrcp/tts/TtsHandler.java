@@ -53,9 +53,9 @@ public abstract class TtsHandler implements RtpConnection {
 
     public abstract void create();
 
-    public abstract void ttsClose();
-
     public abstract void speak(String text);
+
+    public abstract void ttsClose();
 
     public void stop() {
         stop = true;

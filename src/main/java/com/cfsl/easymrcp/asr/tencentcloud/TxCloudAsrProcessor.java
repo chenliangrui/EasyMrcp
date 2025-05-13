@@ -9,13 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
-public class TxCloudProcessor extends AsrHandler {
+public class TxCloudAsrProcessor extends AsrHandler {
 
-    TxCloudConfig txCloudConfig;
-    TxCloudClient txCloudClient;
+    TxCloudAsrConfig txCloudConfig;
+    TxCloudAsrClient txCloudClient;
     AsrCallback txCloudCallback;
 
-    public TxCloudProcessor(TxCloudConfig txCloudConfig) {
+    public TxCloudAsrProcessor(TxCloudAsrConfig txCloudConfig) {
         this.txCloudConfig = txCloudConfig;
     }
 
@@ -27,7 +27,7 @@ public class TxCloudProcessor extends AsrHandler {
                 getCallback().apply(msg);
             }
         };
-        txCloudClient = new TxCloudClient(txCloudConfig, txCloudCallback);
+        txCloudClient = new TxCloudAsrClient(txCloudConfig, txCloudCallback);
         txCloudClient.create();
         // 必须执行，此时asr创建成功，并且开始识别
         // 腾讯云sdk已经进行了封装，解决了异步问题，同样需要执行countDown

@@ -4,14 +4,17 @@ import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.asr.funasr.FunAsrProcessor;
 import com.cfsl.easymrcp.asr.funasr.FunasrConfig;
-import com.cfsl.easymrcp.asr.tencentcloud.TxCloudConfig;
-import com.cfsl.easymrcp.asr.tencentcloud.TxCloudProcessor;
+import com.cfsl.easymrcp.asr.tencentcloud.TxCloudAsrConfig;
+import com.cfsl.easymrcp.asr.tencentcloud.TxCloudAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
+import com.cfsl.easymrcp.domain.TtsConfig;
 import com.cfsl.easymrcp.tts.kokoro.KokoroConfig;
 import com.cfsl.easymrcp.tts.kokoro.KokoroProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
+import com.cfsl.easymrcp.tts.tencentcloud.TxCloudTtsConfig;
+import com.cfsl.easymrcp.tts.tencentcloud.TxCloudTtsProcessor;
 import com.cfsl.easymrcp.tts.xfyun.XfyunTtsConfig;
 import com.cfsl.easymrcp.tts.xfyun.XfyunTtsProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +39,9 @@ public class ProcessorCreator {
     @Autowired
     XfyunTtsConfig xfyunTtsConfig;
     @Autowired
-    TxCloudConfig txCloudConfig;
+    TxCloudAsrConfig txCloudAsrConfig;
+    @Autowired
+    TxCloudTtsConfig txCloudTtsConfig;;
 
     public AsrHandler getAsrHandler() {
         switch (asrMode) {
@@ -56,8 +61,8 @@ public class ProcessorCreator {
                 }
             case "tencent-cloud":
                 if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
-                    TxCloudProcessor txCloudProcessor = new TxCloudProcessor(txCloudConfig);
-                    txCloudProcessor.setConfig(txCloudConfig);
+                    TxCloudAsrProcessor txCloudProcessor = new TxCloudAsrProcessor(txCloudAsrConfig);
+                    txCloudProcessor.setConfig(txCloudAsrConfig);
                     return txCloudProcessor;
                 }
         }
@@ -73,6 +78,10 @@ public class ProcessorCreator {
             case "xfyun":
                 XfyunTtsProcessor xfyunTtsProcessor = new XfyunTtsProcessor(xfyunTtsConfig);
                 return xfyunTtsProcessor;
+            case "tencent-cloud":
+                TxCloudTtsProcessor txCloudAsrProcessor = new TxCloudTtsProcessor(txCloudTtsConfig);
+                txCloudAsrProcessor.setConfig(txCloudTtsConfig);
+                return txCloudAsrProcessor;
         }
         return null;
     }
