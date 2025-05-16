@@ -1,10 +1,14 @@
 package com.cfsl.easymrcp.tts;
 
+import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sound.sampled.LineUnavailableException;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -18,6 +22,16 @@ public class RealTimeAudioProcessor {
     private TtsCallback callback;
     private String reSample;
 
+//    FileOutputStream fileOutputStream;
+//
+//    {
+//        try {
+//            fileOutputStream = new FileOutputStream("D:\\code\\EasyMrcp\\src\\main\\resources\\test.pcm", true);
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+
     public RealTimeAudioProcessor(int localPort, String reSample) {
         this.localPort = localPort;
         this.reSample = reSample;
@@ -25,7 +39,7 @@ public class RealTimeAudioProcessor {
 
     // 线程间缓冲队列
     private final RingBuffer inputRingBuffer = new RingBuffer(1000000);
-    private final ArrayBlockingQueue<byte[]> outputQueue = new ArrayBlockingQueue<>(10000);
+    private final RingBuffer outputQueue = new RingBuffer(1000000);
 
     private boolean stop;
 
@@ -56,16 +70,21 @@ public class RealTimeAudioProcessor {
                     }
                     byte[] bytes;
                     if (reSample != null && reSample.equals("downsample24kTo8k")) {
-                         bytes = downsample24kTo8k(pcm);
+                        bytes = downsample24kTo8k(pcm);
                     } else {
                         bytes = pcm;
                     }
+//                    try {
+//                        fileOutputStream.write(bytes);
+//                    } catch (IOException e) {
+//                        throw new RuntimeException(e);
+//                    }
                     // G711编码
                     byte[] g711uBytes = G711UEncoder.encode(bytes);
-                    outputQueue.add(g711uBytes);
+                    outputQueue.put(g711uBytes);
                     if (pcm[pcm.length - 2] == TTSConstant.TTS_END_BYTE && pcm[pcm.length - 1] == TTSConstant.TTS_END_BYTE) {
                         // 结束
-                        outputQueue.add(TTSConstant.TTS_END_FLAG); // 结束标记
+                        outputQueue.put(TTSConstant.TTS_END_FLAG); // 结束标记
                     }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
@@ -82,7 +101,6 @@ public class RealTimeAudioProcessor {
 
         // 2. 计算输出数据长度（向下取整）
         int inputSampleCount = adjustedInputLength / 2;
-        System.out.println("inputSampleCount: " + inputSampleCount);
         int outputSampleCount = inputSampleCount / sampleRateRatio;
         int outputLength = outputSampleCount * 2;
         byte[] outputData = new byte[outputLength];
@@ -122,27 +140,44 @@ public class RealTimeAudioProcessor {
             }
             while (true) {
                 try {
-                    byte[] payload = outputQueue.poll(10, TimeUnit.SECONDS);
+                    // 控制每次分包是160字节 * n
+                    byte[] peek = outputQueue.peek(EMConstant.VOIP_SAMPLES_PER_FRAME * 100);
+                    if (peek == null) {
+                        continue;
+                    }
+                    int packageCount = peek.length / EMConstant.VOIP_SAMPLES_PER_FRAME;
+                    int redundantData = peek.length % EMConstant.VOIP_SAMPLES_PER_FRAME;
+                    if (!(peek[peek.length - 2] == TTSConstant.TTS_END_BYTE) && !(peek[peek.length - 1] == TTSConstant.TTS_END_BYTE) && redundantData != 0) {
+                        if (packageCount > 1) {
+                            packageCount = packageCount - 1;
+                        } else {
+                            packageCount = 1;
+                        }
+                    } else if (packageCount == 0) {
+                        packageCount = 1;
+                    }
+                    byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
                     if (stop) {
                         return;
                     }
-                    if (payload == null) {
-                        continue;
-                    }
                     sender.sendFrame(payload);
-                    if (payload[0] == TTSConstant.TTS_END_BYTE && payload[1] == TTSConstant.TTS_END_BYTE) {
+                    if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         stopRtpSender();
                         callback.apply(null);
                     }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
-//            Thread.sleep(FRAME_DURATION); // 控制发送速率
             }
         }).start();
     }
 
     public void stopRtpSender() {
         this.stop = true;
+//        try {
+//            fileOutputStream.close();
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 }

@@ -13,6 +13,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -39,6 +41,7 @@ public abstract class AsrHandler implements RtpConnection {
     protected Boolean stop = false;
     protected CountDownLatch countDownLatch = new CountDownLatch(1);
     VadHandle vadHandle;
+//    录音测试
 //    FileOutputStream fileOutputStream;
 //
 //    {
@@ -112,11 +115,6 @@ public abstract class AsrHandler implements RtpConnection {
                             inputRingBuffer.put(pcmData);
                         }
 //                        byte[] bytes = ReSample.resampleFrame(pcmData);
-//                        try {
-//                            fileOutputStream.write(bytes);
-//                        } catch (IOException e) {
-//                            throw new RuntimeException(e);
-//                        }
                         if (inputRingBuffer.getAvailable() >= 2048) {
                             byte[] take = inputRingBuffer.take(2048);
                             if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
@@ -126,6 +124,11 @@ public abstract class AsrHandler implements RtpConnection {
                                     if (!isSpeakingBefore) {
                                         reCreate();
                                     }
+//                                    try {
+//                                        fileOutputStream.write(take);
+//                                    } catch (IOException e) {
+//                                        throw new RuntimeException(e);
+//                                    }
                                     receive(take);
                                 } else if (isSpeakingBefore) {
                                     log.info("send eof");

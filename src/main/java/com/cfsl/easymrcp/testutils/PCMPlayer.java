@@ -15,7 +15,7 @@ public class PCMPlayer {
         try {
             FileInputStream fis = new FileInputStream(args[0]);
             AudioFormat.Encoding encoding =  new AudioFormat.Encoding("PCM_SIGNED");
-            AudioFormat format = new AudioFormat(encoding,16000, 16, 1, 2, 16000 ,false);//编码格式，采样率，每个样本的位数，声道，帧长（字节），帧数，是否按big-endian字节顺序存储
+            AudioFormat format = new AudioFormat(encoding,8000, 16, 1, 2, 8000 ,false);//编码格式，采样率，每个样本的位数，声道，帧长（字节），帧数，是否按big-endian字节顺序存储
             SourceDataLine auline = null;
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
 

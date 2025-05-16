@@ -1,5 +1,7 @@
 package com.cfsl.easymrcp.tts;
 
+import com.cfsl.easymrcp.common.EMConstant;
+
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -8,9 +10,6 @@ public class G711RtpSender {
     // RTP配置参数
     private int RTP_HEADER_SIZE = 12;
     private int PAYLOAD_TYPE = 0;  // G.711u的RTP载荷类型
-    private final int SAMPLE_RATE = 8000;
-    private int FRAME_DURATION = 20; // 每帧20ms
-    private int SAMPLES_PER_FRAME = SAMPLE_RATE * FRAME_DURATION / 1000;
 
     // RTP头部字段
 //    private int sequenceNumber = new Random().nextInt(Short.MAX_VALUE);
@@ -34,11 +33,11 @@ public class G711RtpSender {
     public void sendFrame(byte[] g711Data) throws Exception {
         int offset = 0;
         while (offset < g711Data.length) {
-            int frameSize = Math.min(SAMPLES_PER_FRAME, g711Data.length - offset);
+            int frameSize = Math.min(EMConstant.VOIP_SAMPLES_PER_FRAME, g711Data.length - offset);
             byte[] rtpPacket = buildRtpPacket(g711Data, offset, frameSize);
             DatagramPacket packet = new DatagramPacket(rtpPacket, rtpPacket.length, destAddress, destPort);
             socket.send(packet);
-            Thread.sleep(FRAME_DURATION-1); // 控制发送速率
+            Thread.sleep(EMConstant.VOIP_FRAME_DURATION-1); // 控制发送速率
 
             offset += frameSize;
             updateHeader(); // 更新序列号和时间戳
@@ -63,6 +62,6 @@ public class G711RtpSender {
 
     private void updateHeader() {
         sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
-        timestamp += SAMPLES_PER_FRAME; // 时间戳增量=8000*0.02=160
+        timestamp += EMConstant.VOIP_SAMPLES_PER_FRAME; // 时间戳增量=8000*0.02=160
     }
 }
