@@ -139,6 +139,7 @@ make mod_unimrcp-install
     </condition>
 </extension>
 ```
+上述是拨打以888开头的号码就可以运行提供的下述脚本，体验asr、tts的demo。
 
 在/usr/local/freeswitch/scripts目录下新增names.lua脚本：
 
@@ -207,6 +208,8 @@ mrcp:
 `java -jar EasyMrcp-x.x.x.jar`  
 Windows中运行EasyMrcp，如果freeswitch脚本asr识别结果出现乱码则尝试添加utf-8编码运行，
 乱码后会导致tts无法合成：`java -Dfile.encoding=utf8 -jar EasyMrcp-x.x.x.jar`
+
+拨打电话8888即可听到欢迎语，后续可以进行多轮的对话，EasyMrcp会重复你的话。
 
 # 联系我
 加入QQ群：
