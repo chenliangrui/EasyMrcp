@@ -142,6 +142,9 @@ public class RealTimeAudioProcessor {
                 try {
                     // 控制每次分包是160字节 * n
                     byte[] peek = outputQueue.peek(EMConstant.VOIP_SAMPLES_PER_FRAME * 100);
+                    if (stop) {
+                        return;
+                    }
                     if (peek == null) {
                         continue;
                     }
@@ -157,9 +160,6 @@ public class RealTimeAudioProcessor {
                         packageCount = 1;
                     }
                     byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
-                    if (stop) {
-                        return;
-                    }
                     sender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         stopRtpSender();

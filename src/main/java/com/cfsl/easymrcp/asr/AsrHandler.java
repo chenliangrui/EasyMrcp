@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -80,6 +81,8 @@ public abstract class AsrHandler implements RtpConnection {
     public void receive() {
         try {
             socket = new DatagramSocket(RTP_PORT);
+            // 超过10s没有收到数据包，抛出异常
+            socket.setSoTimeout(10000);
             if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
                 vadHandle = new VadHandle();
             }
@@ -92,7 +95,7 @@ public abstract class AsrHandler implements RtpConnection {
                         try {
                             socket.receive(packet); // 阻塞等待数据
                         } catch (IOException e) {
-                            if (e.getMessage().equals("socket closed")) {
+                            if (e.getMessage().equals("socket closed") || e instanceof SocketTimeoutException) {
                                 log.info("rtp socket {} port closed", RTP_PORT);
                             } else {
                                 log.error(e.getMessage(), e);
