@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.asr.xfyun.dictation;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.WebSocket;
@@ -11,6 +12,7 @@ import okhttp3.WebSocket;
  * 讯飞云实时语音听写（一句话语音识别）
  * https://www.xfyun.cn/services/voicedictation
  */
+@Slf4j
 public class XfyunDictationAsrProcessor extends AsrHandler {
     private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
@@ -35,7 +37,7 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
         try {
             authUrl = XfyunDictationWsClient.getAuthUrl(hostUrl, apiKey, apiSecret);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error(e.getMessage(), e);
         }
         OkHttpClient client = new OkHttpClient.Builder().build();
         //将url中的 schema http://和https://分别替换为ws:// 和 wss://

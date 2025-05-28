@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.example</groupId>
     <artifactId>EasyMrcp</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>EasyMRCP</name>
     <description>EasyMrcp</description>
     <properties>

@@ -105,13 +105,11 @@ public abstract class AsrHandler implements RtpConnection {
                         }
                         byte[] rtpData = packet.getData();
                         int packetLength = packet.getLength();
-//                        System.out.println("RTP数据包长度：" + packetLength);
                         // 解析RTP头部（前12字节）
                         RtpPacket parsedPacket = parseRtpHeader(rtpData, packetLength);
-                        // 提取G.711u负载
+                        // 提取G.711a负载
                         byte[] g711Data = parsedPacket.getPayload();
-                        // G.711u解码为PCM
-//                        byte[] pcmData = G711uDecoder.decodeG711U(g711Data);
+                        // G.711a解码为PCM
                         byte[] pcmData = G711AUtil.decode(g711Data);
                         if (reSample != null && reSample.equals("upsample8kTo16k")) {
                             byte[] bytes = ReSample.resampleFrame(pcmData);
