@@ -9,7 +9,7 @@ import java.util.Random;
 public class G711RtpSender {
     // RTP配置参数
     private int RTP_HEADER_SIZE = 12;
-    private int PAYLOAD_TYPE = 0;  // G.711u的RTP载荷类型
+    private int PAYLOAD_TYPE = 8;  // G.711u的RTP载荷类型
 
     // RTP头部字段
 //    private int sequenceNumber = new Random().nextInt(Short.MAX_VALUE);
@@ -49,7 +49,7 @@ public class G711RtpSender {
 
         // RTP头部（RFC3550）
         buffer.put((byte) 0x80);  // Version 2, no padding/extension/CSRC
-        buffer.put((byte) PAYLOAD_TYPE);
+        buffer.put((byte) (PAYLOAD_TYPE & 0x7F));
         buffer.putShort((short) sequenceNumber);
         buffer.putInt(timestamp);
         buffer.putInt(ssrc);

@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.tts;
 
 import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
+import com.cfsl.easymrcp.rtp.G711AUtil;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,7 +81,8 @@ public class RealTimeAudioProcessor {
 //                        throw new RuntimeException(e);
 //                    }
                     // G711编码
-                    byte[] g711uBytes = G711UEncoder.encode(bytes);
+//                    byte[] g711uBytes = G711UEncoder.encode(bytes);
+                    byte[] g711uBytes = G711AUtil.encode(bytes);
                     outputQueue.put(g711uBytes);
                     if (pcm[pcm.length - 2] == TTSConstant.TTS_END_BYTE && pcm[pcm.length - 1] == TTSConstant.TTS_END_BYTE) {
                         // 结束

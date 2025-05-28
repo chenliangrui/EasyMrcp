@@ -29,7 +29,7 @@ public class HandleInvite {
     @Autowired
     HandleTransmitter handleTransmitter;
     @Autowired
-    HandleOk handleBye;
+    HandleOk handleOk;
 
     private long _channelID = System.currentTimeMillis();
 
@@ -80,7 +80,7 @@ public class HandleInvite {
                 SdpMessage sdpSessionMessage = SdpMessage.createSdpSessionMessage(sessionDescription);
                 SdpMessage invite = invite(sdpSessionMessage, sipSession);
                 try {
-                    handleBye.sendResponse(sipSession, invite);
+                    handleOk.sendResponse(sipSession, invite);
                 } catch (SipException e) {
                     log.warn("error processing bye: " + e.getMessage(), e);
                     throw new SdpException(e.getMessage(), e);

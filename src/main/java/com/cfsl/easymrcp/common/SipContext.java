@@ -29,7 +29,8 @@ public class SipContext {
     public AddressFactory addressFactory;
     public MessageFactory messageFactory;
     public HeaderFactory headerFactory;
-    public List<String> supportProtocols = Arrays.asList("0", "8", "96");
+    // 使用的语音编码协议
+    public List<String> supportProtocols = Arrays.asList("8", "0", "96");
     @Value("${sip.sipServer}")
     public String sipServerIp;
     @Value("${sip.sipPort}")

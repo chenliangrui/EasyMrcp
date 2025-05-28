@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.asr;
 
 import com.cfsl.easymrcp.domain.AsrConfig;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.rtp.G711AUtil;
 import com.cfsl.easymrcp.rtp.G711uDecoder;
 import com.cfsl.easymrcp.rtp.RtpConnection;
 import com.cfsl.easymrcp.rtp.RtpPacket;
@@ -110,7 +111,8 @@ public abstract class AsrHandler implements RtpConnection {
                         // 提取G.711u负载
                         byte[] g711Data = parsedPacket.getPayload();
                         // G.711u解码为PCM
-                        byte[] pcmData = G711uDecoder.decodeG711U(g711Data);
+//                        byte[] pcmData = G711uDecoder.decodeG711U(g711Data);
+                        byte[] pcmData = G711AUtil.decode(g711Data);
                         if (reSample != null && reSample.equals("upsample8kTo16k")) {
                             byte[] bytes = ReSample.resampleFrame(pcmData);
                             inputRingBuffer.put(bytes);
