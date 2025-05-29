@@ -17,12 +17,14 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 | --- | --- | --- |
 | funAsr | 实时语音转写 | 阿里开源，免费可离线运行的asr，地址：[https://github.com/modelscope/FunASR](https://github.com/modelscope/FunASR) |
 | xfyun | 实时语音转写、一句话语音识别 | 科大讯飞在线asr服务，每天有免费额度。一句话语音识别：[https://www.xfyun.cn/services/voicedictation](https://www.xfyun.cn/services/voicedictation)   长时间实时语音转写：[https://www.xfyun.cn/services/rtasr](https://www.xfyun.cn/services/rtasr) |
+| tencent-cloud | 实时语音转写 | 目前使用EasyMrcp以一句话识别的模式集成的实时语音识别：[https://cloud.tencent.com/document/product/1093/52554](https://cloud.tencent.com/document/product/1093/52554) |
 
 
 | TTS | 支持的tts模式 | 简介 |
 | --- | --- | --- |
 | kokoro | 流式 | 离线的tts服务，开源免费，使用FastAPI项目：[https://github.com/remsky/Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) |
 | xfyun | 流式 | 科大讯飞在线tts服务，每天有免费额度。地址：[https://www.xfyun.cn/services/online_tts](https://www.xfyun.cn/services/online_tts) |
+| tencent-cloud | 流式 | 实时语音合成：[https://cloud.tencent.com/document/product/1093/52554](https://cloud.tencent.com/document/product/1093/52554) |
 
 
 # 更多文档支持
