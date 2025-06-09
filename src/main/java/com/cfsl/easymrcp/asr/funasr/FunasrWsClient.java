@@ -112,7 +112,7 @@ public class FunasrWsClient extends WebSocketClient {
 
             send(obj.toString());
             iseof = true;
-            return;
+            close();
         } catch (Exception e) {
             e.printStackTrace();
         }
