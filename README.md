@@ -186,13 +186,14 @@ end
    public <results> = [];
 ```
 
-### 配置asr/tts配置文件
+### 配置EasyMrcp配置文件
 请选择要使用的一种asr和tts进行对应配置。
 
-1. 配置项目目录下的`application.yaml`文件，主要需要修改的配置如下：  
-   配置`sipServer`EasyMrcp运行的ip地址。  
-   配置`asrMode`选择一个asr服务名称。  
-   配置`ttsMode`选择一个tts服务名称。
+1. 修改EasyMrcp服务器配置，设置运行ip和对接的服务类型，以下配置以科大讯飞asr和tts为例。  
+配置项目目录下的`application.yaml`文件，主要需要修改的配置如下：  
+配置`sipServer`EasyMrcp运行的ip地址。  
+配置`asrMode`选择一个asr服务名称。  
+配置`ttsMode`选择一个tts服务名称。
 
 ```plain
 sip:
@@ -203,6 +204,59 @@ mrcp:
   asrMode: xfyun
   # 选择一个tts服务，目前已经集成：xfyun、kokoro
   ttsMode: xfyun
+```
+
+2. 配置asr配置文件。  
+下面以配置科大讯飞asr为例，配置项目目录下的`asr/xfyun-asr.properties`。  
+示例使用科大讯飞的实时语音听写功能，需要配置科大讯飞的密钥等信息。  
+配置`xfyun-asr.APPID=`科大讯飞控制台appid。  
+配置`xfyun-asr.APISecret=`科大讯飞控制台secret。  
+配置`xfyun-asr.APIKey=`科大讯飞控制台key。  
+其余选项暂时不用修改。
+
+```plain
+####################################语音听写(流式版)####################################
+# 地址与鉴权信息
+xfyun-asr.host-url=https://iat-api.xfyun.cn/v2/iat
+# 均到控制台-语音合成页面获取
+xfyun-asr.APPID=
+xfyun-asr.APISecret=
+xfyun-asr.APIKey=
+# (必须) 配置asr语音识别模式: dictation(一句话语音识别) 或者 transliterate(长时间语音转写)
+xfyun-asr.identify-patterns=dictation
+
+
+####################################实时语音转写####################################
+## 地址与鉴权信息
+#xfyun-asr.host-url=rtasr.xfyun.cn/v1/ws
+## 均到控制台-语音合成页面获取
+#xfyun-asr.APPID=
+#xfyun-asr.APIKey=
+## (必须) 官方只支持16kHz音频，所以需要重采样（请勿随意修改）
+#xfyun-asr.re-sample=upsample8kTo16k
+## (必须) 配置asr语音识别模式: dictation(一句话语音识别) 或者 transliterate(长时间语音转写)
+#xfyun-asr.identify-patterns=transliterate
+```
+
+3. 配置tts配置文件。  
+下面以配置科大讯飞asr为例，配置项目目录下的`xfyun-tts.properties`。  
+示例使用科大讯飞的在线语音合成功能，需要配置科大讯飞的密钥等信息。  
+配置`xfyun-tts.APPID=`科大讯飞控制台appid。  
+配置`xfyun-tts.APISecret=`科大讯飞控制台secret。  
+配置`xfyun-tts.APIKey=`科大讯飞控制台key。  
+其余选项暂时不用修改。
+
+```plain
+# 地址与鉴权信息
+xfyun-tts.host-url=https://tts-api.xfyun.cn/v2/tts
+# 均到控制台-语音合成页面获取
+xfyun-tts.APPID=
+xfyun-tts.APISecret=
+xfyun-tts.APIKey=
+# 小语种必须使用UNICODE编码作为值
+xfyun-tts.TTE=UTF8
+# 发音人参数。到控制台-我的应用-语音合成-添加试用或购买发音人，添加后即显示该发音人参数值，若试用未添加的发音人会报错11200
+xfyun-tts.VCN=xiaoyan
 ```
 
 ### 命令运行
