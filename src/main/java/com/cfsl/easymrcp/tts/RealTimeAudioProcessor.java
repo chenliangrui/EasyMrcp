@@ -22,6 +22,8 @@ public class RealTimeAudioProcessor {
     @Setter
     private TtsCallback callback;
     private String reSample;
+    // 为解决24khz采样率重采样到8kHz采样率时数据长度不为6的倍数时导致的偶发的噪声问题，统一读取6 * n字节
+    private int receiveTakeBytes = 6 * 500;
 
 //    FileOutputStream fileOutputStream;
 //
@@ -62,13 +64,22 @@ public class RealTimeAudioProcessor {
             while (true) {
                 try {
                     byte[] pcm;
-                    while ((pcm = inputRingBuffer.take(102400)) == null) {
-                        Thread.sleep(200); // 非阻塞等待
+                    // 为解决24khz采样率重采样到8kHz采样率时数据长度不为6的倍数时导致的偶发的噪声问题，统一读取6 * n字节
+                    while (inputRingBuffer.getAvailable() == 0 || inputRingBuffer.getAvailable() < receiveTakeBytes) {
 //                        log.info("inputRingBuffer available: {}", inputRingBuffer.getAvailable());
+                        // 判断是否含有结束标志，有的话取出最后的音频数据
+                        if (inputRingBuffer.getAvailable() > 0) {
+                            byte[] peek = inputRingBuffer.peek(receiveTakeBytes);
+                            if (peek[peek.length - 2] == TTSConstant.TTS_END_BYTE && peek[peek.length - 1] == TTSConstant.TTS_END_BYTE) {
+                                break;
+                            }
+                        }
+                        Thread.sleep(200); // 非阻塞等待
                         if (stop) {
                             return;
                         }
                     }
+                    pcm = inputRingBuffer.take(receiveTakeBytes);
                     byte[] bytes;
                     if (reSample != null && reSample.equals("downsample24kTo8k")) {
                         bytes = downsample24kTo8k(pcm);
@@ -95,38 +106,45 @@ public class RealTimeAudioProcessor {
         }).start();
     }
 
-    public static byte[] downsample24kTo8k(byte[] inputData) {
-        int sampleRateRatio = 3; // 24k/8k=3
+    // 将 PCM 字节流从 24kHz 降采样到 8kHz
+    public static byte[] downsample24kTo8k(byte[] inputBytes) {
+        int sampleSize = 2; // 每个采样点 16-bit，即 2 字节
+        int ratio = 3;      // 24kHz -> 8kHz，每3个采样点降为1个
+        int totalSamples = inputBytes.length / sampleSize;
+        int newSamples = totalSamples / ratio;
+//        if (inputBytes.length % (2 * 3) != 0) {
+//            log.info("输入数据长度不是采样帧3的倍数，可能导致噪声");
+//        }
 
-        // 1. 调整输入长度为偶数值，丢弃不完整的采样点
-        int adjustedInputLength = inputData.length & 0xFFFFFFFE; // 等价于 inputLength - (inputLength % 2)
+        byte[] outputBytes = new byte[newSamples * sampleSize];
 
-        // 2. 计算输出数据长度（向下取整）
-        int inputSampleCount = adjustedInputLength / 2;
-        int outputSampleCount = inputSampleCount / sampleRateRatio;
-        int outputLength = outputSampleCount * 2;
-        byte[] outputData = new byte[outputLength];
+        for (int i = 0; i < newSamples; i++) {
+            int idx1 = i * ratio * sampleSize;
+            int idx2 = idx1 + sampleSize;
+            int idx3 = idx2 + sampleSize;
 
-        int outputIndex = 0;
-        int sum = 0;
-        int count = 0;
-
-        // 3. 安全循环：确保i+1不超过数组长度
-        for (int i = 0; i < adjustedInputLength; i += 2) {
-            short sample = (short) (((inputData[i + 1] & 0xFF) << 8) | (inputData[i] & 0xFF));
-            sum += sample;
-            count++;
-
-            // 每累积3个采样点，计算均值并写入输出
-            if (count == sampleRateRatio) {
-                short avg = (short) (sum / sampleRateRatio);
-                outputData[outputIndex++] = (byte) (avg & 0xFF);
-                outputData[outputIndex++] = (byte) ((avg >> 8) & 0xFF);
-                sum = 0;
-                count = 0;
+            // 防止越界（尾部可能不足 3 个采样点）
+            if (idx3 + 1 >= inputBytes.length) {
+                break;
             }
+
+            // 读取3个采样值（每个采样是2字节，小端）
+            int s1 = (inputBytes[idx1 + 1] << 8) | (inputBytes[idx1] & 0xFF);
+            int s2 = (inputBytes[idx2 + 1] << 8) | (inputBytes[idx2] & 0xFF);
+            int s3 = (inputBytes[idx3 + 1] << 8) | (inputBytes[idx3] & 0xFF);
+
+            int avg = (s1 + s2 + s3) / 3;
+
+            // 限幅防止溢出
+            if (avg > Short.MAX_VALUE) avg = Short.MAX_VALUE;
+            if (avg < Short.MIN_VALUE) avg = Short.MIN_VALUE;
+
+            // 写入输出（小端）
+            outputBytes[i * 2]     = (byte) (avg & 0xFF);
+            outputBytes[i * 2 + 1] = (byte) ((avg >> 8) & 0xFF);
         }
-        return outputData;
+
+        return outputBytes;
     }
 
     /**
