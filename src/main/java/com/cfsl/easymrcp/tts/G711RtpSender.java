@@ -1,15 +1,19 @@
 package com.cfsl.easymrcp.tts;
 
 import com.cfsl.easymrcp.common.EMConstant;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.concurrent.locks.LockSupport;
 
+@Slf4j
 public class G711RtpSender {
     // RTP配置参数
     private int RTP_HEADER_SIZE = 12;
     private int PAYLOAD_TYPE = 8;  // G.711u的RTP载荷类型
+    private long nextSendTime = 0;
 
     // RTP头部字段
 //    private int sequenceNumber = new Random().nextInt(Short.MAX_VALUE);
@@ -36,11 +40,23 @@ public class G711RtpSender {
             int frameSize = Math.min(EMConstant.VOIP_SAMPLES_PER_FRAME, g711Data.length - offset);
             byte[] rtpPacket = buildRtpPacket(g711Data, offset, frameSize);
             DatagramPacket packet = new DatagramPacket(rtpPacket, rtpPacket.length, destAddress, destPort);
+
             socket.send(packet);
-            Thread.sleep(EMConstant.VOIP_FRAME_DURATION-1); // 控制发送速率
+
+            long time = System.nanoTime();
+            if (nextSendTime == 0) {
+                nextSendTime = time;
+            }
+            long parkTime = time - nextSendTime;
+            if (parkTime < -20 * 1000000) {
+                LockSupport.parkNanos(20 * 1000000);
+            } else  {
+                LockSupport.parkNanos(-parkTime);
+            }
 
             offset += frameSize;
             updateHeader(); // 更新序列号和时间戳
+            nextSendTime += EMConstant.VOIP_FRAME_DURATION * 1000000;
         }
     }
 
