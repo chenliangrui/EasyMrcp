@@ -80,4 +80,8 @@ public class G711RtpSender {
         sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
         timestamp += EMConstant.VOIP_SAMPLES_PER_FRAME; // 时间戳增量=8000*0.02=160
     }
+
+    public void close() {
+        socket.close();
+    }
 }

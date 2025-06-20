@@ -156,13 +156,14 @@ public class RealTimeAudioProcessor {
             try {
                 sender = new G711RtpSender(localPort, destinationIp, destinationPort);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                log.error(e.getMessage(), e);
             }
             while (true) {
                 try {
                     // 控制每次分包是160字节 * n
                     byte[] peek = outputQueue.peek(EMConstant.VOIP_SAMPLES_PER_FRAME * 1000);
                     if (stop) {
+                        sender.close();
                         return;
                     }
                     if (peek == null) {
@@ -180,7 +181,7 @@ public class RealTimeAudioProcessor {
                         packageCount = 1;
                     }
                     byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
-                    log.info("send {} bytes", payload.length);
+                    log.debug("send {} bytes", payload.length);
                     sender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         stopRtpSender();

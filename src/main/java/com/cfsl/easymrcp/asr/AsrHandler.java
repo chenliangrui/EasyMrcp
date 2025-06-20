@@ -153,7 +153,7 @@ public abstract class AsrHandler implements RtpConnection {
 
     @Override
     public void close() {
-//        socket.close();
+        socket.close();
         asrClose();
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
             vadHandle.release();
@@ -167,8 +167,22 @@ public abstract class AsrHandler implements RtpConnection {
 
     public abstract void receive(byte[] pcmData);
 
+    /**
+     * 一句话语音识别情况下通知该asr客户端已经完成一句话识别的音频输入，实时语音识别可不做处理
+     * 注意该asr的连接应该在asr异步返回结果后手动关闭该asr连接，系统没有对此进行封装。
+     * 在该接口实现中应当完成以下操作：
+     * 1. 发送该asr客户端的eof消息（一句话语音识别应该都有eof的设计）
+     */
     public abstract void sendEof();
 
+    /**
+     * 实时语音识别情况下关闭与ipPBX的连接，一句话语音识别可不做处理
+     * 当通话完全结束时，会由sip bye触发调用此方法。因为一个实时语音识别覆盖了整个通话过程，
+     * 所以一次通话结束，就意味着整个实时语音识别结束。
+     * 在该接口实现中应当完成以下操作：
+     * 1. 发送该asr客户端的eof消息（如果某个asr有eof的设计）
+     * 2. 关闭该asr客户端的连接
+     */
     public abstract void asrClose();
 
     private void reCreate() {
