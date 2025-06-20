@@ -82,8 +82,8 @@ public class HandleReceiver {
                     }
                 }
             }
-        } catch (SdpException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
         rtpManage.addRtpSession(dialogId, rtpSession);
         return sdpMessage;
