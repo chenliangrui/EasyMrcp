@@ -3,7 +3,6 @@ package com.cfsl.easymrcp.asr;
 import com.cfsl.easymrcp.domain.AsrConfig;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.rtp.G711AUtil;
-import com.cfsl.easymrcp.rtp.G711uDecoder;
 import com.cfsl.easymrcp.rtp.RtpConnection;
 import com.cfsl.easymrcp.rtp.RtpPacket;
 import com.cfsl.easymrcp.tts.RingBuffer;
@@ -14,9 +13,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.BindException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
@@ -64,8 +62,9 @@ public abstract class AsrHandler implements RtpConnection {
     }
 
     @Override
-    public void create(String localIp, int localPort, String remoteIp, int remotePort) {
-        this.RTP_PORT = localPort;
+    public void create(String localIp, DatagramSocket localSocket, String remoteIp, int remotePort) {
+        this.socket = localSocket;
+        this.RTP_PORT = localSocket.getLocalPort();
         this.create();
         try {
             boolean await = countDownLatch.await(5000, TimeUnit.MILLISECONDS);
@@ -79,74 +78,68 @@ public abstract class AsrHandler implements RtpConnection {
 
     public abstract void create();
 
-    public void receive() {
-        try {
-            socket = new DatagramSocket(RTP_PORT);
-            // 超过10s没有收到数据包，抛出异常
-            socket.setSoTimeout(10000);
-            if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-                vadHandle = new VadHandle();
-            }
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    RingBuffer inputRingBuffer = new RingBuffer(1000000);
-                    while (true) {
-                        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                        try {
-                            socket.receive(packet); // 阻塞等待数据
-                        } catch (IOException e) {
-                            if (e.getMessage().equals("socket closed") || e instanceof SocketTimeoutException) {
-                                log.info("rtp socket {} port closed", RTP_PORT);
-                            } else {
-                                log.error(e.getMessage(), e);
-                            }
-                            return;
-                        }
-                        byte[] rtpData = packet.getData();
-                        int packetLength = packet.getLength();
-                        // 解析RTP头部（前12字节）
-                        RtpPacket parsedPacket = parseRtpHeader(rtpData, packetLength);
-                        // 提取G.711a负载
-                        byte[] g711Data = parsedPacket.getPayload();
-                        // G.711a解码为PCM
-                        byte[] pcmData = G711AUtil.decode(g711Data);
-                        if (reSample != null && reSample.equals("upsample8kTo16k")) {
-                            byte[] bytes = ReSample.resampleFrame(pcmData);
-                            inputRingBuffer.put(bytes);
+    public boolean receive() {
+        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
+            vadHandle = new VadHandle();
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                RingBuffer inputRingBuffer = new RingBuffer(1000000);
+                while (true) {
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    try {
+                        socket.receive(packet); // 阻塞等待数据
+                    } catch (IOException e) {
+                        if (e.getMessage().equals("socket closed") || e instanceof SocketTimeoutException) {
+                            log.info("rtp socket {} port closed", RTP_PORT);
                         } else {
-                            inputRingBuffer.put(pcmData);
+                            log.error(e.getMessage(), e);
                         }
+                        return;
+                    }
+                    byte[] rtpData = packet.getData();
+                    int packetLength = packet.getLength();
+                    // 解析RTP头部（前12字节）
+                    RtpPacket parsedPacket = parseRtpHeader(rtpData, packetLength);
+                    // 提取G.711a负载
+                    byte[] g711Data = parsedPacket.getPayload();
+                    // G.711a解码为PCM
+                    byte[] pcmData = G711AUtil.decode(g711Data);
+                    if (reSample != null && reSample.equals("upsample8kTo16k")) {
+                        byte[] bytes = ReSample.resampleFrame(pcmData);
+                        inputRingBuffer.put(bytes);
+                    } else {
+                        inputRingBuffer.put(pcmData);
+                    }
 //                        byte[] bytes = ReSample.resampleFrame(pcmData);
-                        if (inputRingBuffer.getAvailable() >= 2048) {
-                            byte[] take = inputRingBuffer.take(2048);
-                            if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-                                Boolean isSpeakingBefore = vadHandle.getIsSpeaking();
-                                vadHandle.receivePcm(take);
-                                if (vadHandle.getIsSpeaking()) {
-                                    if (!isSpeakingBefore) {
-                                        reCreate();
-                                    }
+                    if (inputRingBuffer.getAvailable() >= 2048) {
+                        byte[] take = inputRingBuffer.take(2048);
+                        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
+                            Boolean isSpeakingBefore = vadHandle.getIsSpeaking();
+                            vadHandle.receivePcm(take);
+                            if (vadHandle.getIsSpeaking()) {
+                                if (!isSpeakingBefore) {
+                                    reCreate();
+                                }
 //                                    try {
 //                                        fileOutputStream.write(take);
 //                                    } catch (IOException e) {
 //                                        throw new RuntimeException(e);
 //                                    }
-                                    receive(take);
-                                } else if (isSpeakingBefore) {
-                                    log.info("send eof");
-                                    sendEof();
-                                }
-                            } else {
                                 receive(take);
+                            } else if (isSpeakingBefore) {
+                                log.info("send eof");
+                                sendEof();
                             }
+                        } else {
+                            receive(take);
                         }
                     }
                 }
-            }).start();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+            }
+        }).start();
+        return true;
     }
 
     ;

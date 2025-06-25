@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.sip.PeerUnavailableException;
 import javax.sip.SipFactory;
 import javax.sip.SipProvider;
@@ -18,6 +19,7 @@ import javax.sip.message.MessageFactory;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
 @Slf4j
@@ -42,29 +44,37 @@ public class SipContext {
     public int asrStartPort;
     @Value("${rtp.asrStopPort}")
     public int asrStopPort;
-    // 当前asrRtp端口
     @Value("${rtp.asrStartPort}")
     public int asrPort;
+    // 当前asrRtp端口
+    public AtomicInteger asrPortAtomic;
     @Value("${rtp.ttsStartPort}")
     public int ttsStartPort;
     @Value("${rtp.ttsStopPort}")
     public int ttsStopPort;
-    // 当前asrRtp端口
     @Value("${rtp.ttsStartPort}")
     public int ttsPort;
+    // 当前asrRtp端口
+    public AtomicInteger ttsPortAtomic;
+
+    @PostConstruct
+    private void start() {
+        asrPortAtomic = new AtomicInteger(asrPort);
+        ttsPortAtomic = new AtomicInteger(ttsPort);
+    }
 
     public int getAsrRtpPort() {
-        if (asrPort > asrStopPort) {
-            asrPort = asrStartPort;
+        if (asrPortAtomic.get() > asrStopPort) {
+            asrPortAtomic.set(asrStartPort);
         }
-        return asrPort++;
+        return asrPortAtomic.getAndAdd(1);
     }
 
     public int getTtsRtpPort() {
-        if (ttsPort > ttsStopPort) {
-            ttsPort = ttsStartPort;
+        if (ttsPortAtomic.get() > ttsStopPort) {
+            ttsPortAtomic.set(ttsStartPort);
         }
-        return ttsPort++;
+        return ttsPortAtomic.getAndAdd(1);
     }
 
     public ContactHeader getContactHeader() {

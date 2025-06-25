@@ -1,11 +1,17 @@
 package com.cfsl.easymrcp.tts;
 
+import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.domain.TtsConfig;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.RtpConnection;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+import java.net.BindException;
+import java.net.DatagramSocket;
+
+@Slf4j
 public abstract class TtsHandler implements RtpConnection {
     @Getter
     @Setter
@@ -19,17 +25,10 @@ public abstract class TtsHandler implements RtpConnection {
     protected RealTimeAudioProcessor processor;
 
     @Override
-    public void create(String localIp, int localPort, String remoteIp, int remotePort) {
+    public void create(String localIp, DatagramSocket localSocket, String remoteIp, int remotePort) {
         //初始化rtp
-        try {
-            processor = new RealTimeAudioProcessor(localPort, reSample);
-            processor.destinationIp = remoteIp;
-            processor.destinationPort = remotePort;
-            create();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
+        processor = new RealTimeAudioProcessor(localSocket, reSample, remoteIp, remotePort);
+        create();
     }
 
     public void setConfig(TtsConfig ttsConfig) {
@@ -43,7 +42,7 @@ public abstract class TtsHandler implements RtpConnection {
         processor.startProcessing();
         processor.startRtpSender();
         speak(text);
-    };
+    }
 
     @Override
     public void close() {
@@ -59,6 +58,6 @@ public abstract class TtsHandler implements RtpConnection {
 
     public void stop() {
         stop = true;
-    };
+    }
 
 }

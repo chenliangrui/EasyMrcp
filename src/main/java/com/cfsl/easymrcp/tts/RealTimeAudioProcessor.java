@@ -10,11 +10,15 @@ import javax.sound.sampled.LineUnavailableException;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.BindException;
+import java.net.DatagramSocket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class RealTimeAudioProcessor {
+    private G711RtpSender sender;
+    @Setter
     private int localPort;
     // 网络参数
     public String destinationIp;
@@ -35,9 +39,16 @@ public class RealTimeAudioProcessor {
 //        }
 //    }
 
-    public RealTimeAudioProcessor(int localPort, String reSample) {
-        this.localPort = localPort;
+    public RealTimeAudioProcessor(DatagramSocket socket, String reSample, String remoteIp, int remotePort) {
         this.reSample = reSample;
+        this.destinationIp = remoteIp;
+        this.destinationPort = remotePort;
+
+        try {
+            sender = new G711RtpSender(socket, destinationIp, destinationPort);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     // 线程间缓冲队列
@@ -151,19 +162,14 @@ public class RealTimeAudioProcessor {
      * RTP发送线程
      */
     public void startRtpSender() {
+        G711RtpSender finalSender = sender;
         new Thread(() -> {
-            G711RtpSender sender = null;
-            try {
-                sender = new G711RtpSender(localPort, destinationIp, destinationPort);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
             while (true) {
                 try {
                     // 控制每次分包是160字节 * n
                     byte[] peek = outputQueue.peek(EMConstant.VOIP_SAMPLES_PER_FRAME * 1000);
                     if (stop) {
-                        sender.close();
+                        finalSender.close();
                         return;
                     }
                     if (peek == null) {
@@ -182,7 +188,7 @@ public class RealTimeAudioProcessor {
                     }
                     byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
                     log.debug("send {} bytes", payload.length);
-                    sender.sendFrame(payload);
+                    finalSender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         stopRtpSender();
                         callback.apply(null);
