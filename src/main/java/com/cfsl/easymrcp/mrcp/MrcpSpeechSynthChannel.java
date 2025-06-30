@@ -48,10 +48,10 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         ttsHandler.setCallback(callback);
         if (contentType.equalsIgnoreCase("text/plain")) {
             String text = unimplementedRequest.getContent();
-            String s = eslBodyStrConvert(text);
-            //TODO 过滤非法字符
-            s = s.replaceAll("[\\r\\n]", "");
-            ttsHandler.transmit(s);
+//            String s = eslBodyStrConvert(text);
+//            //TODO 过滤非法字符
+            text = text.replaceAll("[\\r\\n]", "");
+            ttsHandler.transmit(text);
         }
         short statusCode = MrcpResponse.STATUS_SUCCESS;
         MrcpResponse response = mrcpSession.createResponse(statusCode, MrcpRequestState.IN_PROGRESS);

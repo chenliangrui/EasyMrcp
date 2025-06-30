@@ -60,7 +60,6 @@ public class MrcpProtocolHandler extends ProtocolHandlerAdapter {
     @Override
     public void messageReceived(ProtocolSession session, Object message) {
         MrcpRequest request = (MrcpRequest) message;
-        log.info("Received request: {}", request);
         new EventThread(_requestProcessor, session, request).start(); // TODO: move threading down chain
     }
 
