@@ -16,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Mrcp协议中tts处理
@@ -34,14 +35,16 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         TtsCallback callback = new TtsCallback() {
             @Override
             public void apply(String msg) {
-                try {
-                    MrcpEvent eventComplete = mrcpSession.createEvent(
-                            MrcpEventName.SPEAK_COMPLETE,
-                            MrcpRequestState.COMPLETE
-                    );
-                    mrcpSession.postEvent(eventComplete);
-                } catch (Exception e) {
-                    log.error("postEvent error", e);
+                if (!ttsHandler.isStop() && !mrcpSession.isComplete()) {
+                    try {
+                        MrcpEvent eventComplete = mrcpSession.createEvent(
+                                MrcpEventName.SPEAK_COMPLETE,
+                                MrcpRequestState.COMPLETE
+                        );
+                        mrcpSession.postEvent(eventComplete);
+                    } catch (Exception e) {
+                        log.error("postEvent error", e);
+                    }
                 }
             }
         };
@@ -84,6 +87,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         MrcpRequestState requestState = MrcpRequestState.COMPLETE;
         short statusCode = -1;
         //TODO 语音识别打断,需要关闭其他资源？
+        ttsHandler.getCallback().apply("");
         ttsHandler.stop();
         statusCode = MrcpResponse.STATUS_SUCCESS;
 

@@ -151,6 +151,7 @@ public abstract class AsrHandler implements RtpConnection {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
             vadHandle.release();
         }
+        getCallback().apply("");
 //        try {
 //            fileOutputStream.close();
 //        } catch (IOException e) {

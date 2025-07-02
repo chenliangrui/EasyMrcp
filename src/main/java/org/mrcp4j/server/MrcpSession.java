@@ -42,4 +42,5 @@ public interface MrcpSession {
     public void postEvent(MrcpEvent event)
       throws TimeoutException, IllegalStateException;  //TODO: should not throw TimeoutException
 
+    boolean isComplete();
 }

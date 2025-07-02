@@ -30,6 +30,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import lombok.Getter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.mrcp4j.MrcpEventName;
@@ -238,6 +239,11 @@ public class MrcpRequestProcessorImpl implements MrcpRequestProcessor {
                 // TODO: change to more appropriate exception type.
                 throw (TimeoutException) new TimeoutException(e.getMessage()).initCause(e);
             }
+        }
+
+        @Override
+        public boolean isComplete() {
+            return _complete;
         }
 
         /**

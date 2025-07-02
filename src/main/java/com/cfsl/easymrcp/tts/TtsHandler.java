@@ -19,6 +19,7 @@ public abstract class TtsHandler implements RtpConnection {
     @Getter
     @Setter
     private TtsCallback callback;
+    @Getter
     boolean stop = false;
     protected String reSample;
 
@@ -48,6 +49,7 @@ public abstract class TtsHandler implements RtpConnection {
     public void close() {
         processor.stopRtpSender();
         ttsClose();
+        getCallback().apply("");
     }
 
     public abstract void create();
