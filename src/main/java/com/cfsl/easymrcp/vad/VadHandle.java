@@ -66,6 +66,10 @@ public class VadHandle {
     }
 
     public void release() {
-
+        try {
+            vadDetector.close();
+        } catch (OrtException e) {
+            log.error(e.getMessage(), e);
+        }
     }
 }
