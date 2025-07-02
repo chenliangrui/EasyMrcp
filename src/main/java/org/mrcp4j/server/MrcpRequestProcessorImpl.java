@@ -230,8 +230,9 @@ public class MrcpRequestProcessorImpl implements MrcpRequestProcessor {
             }
 
             try {
-                eventQueue.put(new ObjectWrapper<MrcpEvent>(event));
-                _complete = event.getRequestState().equals(MrcpRequestState.COMPLETE);
+                boolean offer = eventQueue.offer(new ObjectWrapper<MrcpEvent>(event), 300, TimeUnit.SECONDS);
+                if (offer) _complete = event.getRequestState().equals(MrcpRequestState.COMPLETE);
+                else _log.debug("Timed out waiting to offer event to queue, cancel request.");
 //                if (_complete) {
 //                    _eventQueue.put(new ObjectWrapper<MrcpEvent>(null));
 //                }
