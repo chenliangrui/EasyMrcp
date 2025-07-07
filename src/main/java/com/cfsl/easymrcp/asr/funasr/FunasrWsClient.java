@@ -143,7 +143,9 @@ public class FunasrWsClient extends WebSocketClient {
             jsonObject = (JSONObject) jsonParser.parse(message);
             String result = jsonObject.get("text").toString();
             log.info("text: " + result);
-            if (!stop && !result.isEmpty() && jsonObject.containsKey("timestamp")) callback.apply(result);
+            if (!stop && !result.isEmpty() && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
+                callback.apply(result);
+            }
             if (jsonObject.containsKey("timestamp")) {
                 log.info("timestamp: " + jsonObject.get("timestamp"));
             }

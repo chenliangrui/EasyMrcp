@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 
 import javax.sdp.MediaDescription;
 import javax.sdp.SdpException;
+import java.net.BindException;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.List;
 import java.util.Vector;
 
@@ -62,9 +65,27 @@ public class HandleReceiver {
                             Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
                             // 开启rtp通道
                             int asrRtpPort = sipContext.getAsrRtpPort();
+                            // 处理rtp端口占用问题，检测到端口占用后自动加1重试
+                            boolean startedRtp = false;
+                            int findRtpCount = 0;
+                            DatagramSocket datagramSocket = null;
+                            do {
+                                findRtpCount++;
+                                try {
+                                    datagramSocket = new DatagramSocket(asrRtpPort);
+                                } catch (Exception e) {
+                                    if (e instanceof BindException) {
+                                        log.error("asrRtpPort: " + asrRtpPort + " is already in use");
+                                        asrRtpPort = sipContext.getAsrRtpPort();
+                                        continue;
+                                    }
+                                }
+                                startedRtp = true;
+                            } while (!startedRtp && findRtpCount <= 10);
+
                             AsrHandler asrHandler = asrChose.getAsrHandler();
                             asrHandler.setChannelId(channelID);
-                            asrHandler.create(null, asrRtpPort,null, 0);
+                            asrHandler.create(null, datagramSocket,null, 0);
                             asrHandler.receive();
                             rtpSession.addChannel(channelID, asrHandler);
                             // 开启mrcp通道
@@ -82,8 +103,8 @@ public class HandleReceiver {
                     }
                 }
             }
-        } catch (SdpException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
         rtpManage.addRtpSession(dialogId, rtpSession);
         return sdpMessage;

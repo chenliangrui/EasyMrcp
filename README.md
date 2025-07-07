@@ -33,7 +33,7 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 地址：[https://www.yuque.com/u2521223237/ribhhy/ta8q9vekgd02d6zo?singleDoc#](https://www.yuque.com/u2521223237/ribhhy/ta8q9vekgd02d6zo?singleDoc#) 《EasyMrcp》
 
 # 下载程序
-下载发布的jar包，目前版本正在迭代中，如果发版不及时可以自己maven编译运行项目。
+下载发布的压缩包，目前版本正在迭代中，如果发版不及时可以自己切换至dev分支maven编译运行项目。
 
 # 运行程序
 ## 前置准备

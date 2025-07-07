@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import javax.sdp.MediaDescription;
 import javax.sdp.SdpException;
+import java.net.BindException;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -98,9 +100,26 @@ public class HandleTransmitter {
                         case BASICSYNTH:
                         case SPEECHSYNTH:
                             localPort = sipContext.getTtsRtpPort();
+                            // 处理rtp端口占用问题，检测到端口占用后自动加1重试
+                            boolean startedRtp = false;
+                            int findRtpCount = 0;
+                            DatagramSocket datagramSocket = null;
+                            do {
+                                findRtpCount++;
+                                try {
+                                    datagramSocket = new DatagramSocket(localPort);
+                                } catch (Exception e) {
+                                    if (e instanceof BindException) {
+                                        log.error("ttsRtpPort: " + localPort + " is already in use");
+                                        localPort = sipContext.getTtsRtpPort();
+                                        continue;
+                                    }
+                                }
+                                startedRtp = true;
+                            } while (!startedRtp && findRtpCount <= 10);
                             // 开启rtp
                             TtsHandler ttsHandler = processorCreator.getTtsHandler();
-                            ttsHandler.create(null, localPort, remoteHost.getHostAddress(), remotePort);
+                            ttsHandler.create(null, datagramSocket, remoteHost.getHostAddress(), remotePort);
                             ttsHandler.setChannelId(channelID);
                             channelMaps.put(channelID, ttsHandler);
                             // 开启mrcp

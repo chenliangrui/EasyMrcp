@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.WebSocket;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 讯飞云实时语音听写（一句话语音识别）
@@ -22,6 +23,7 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
     AsrCallback funasrCallback;
     XfyunDictationWsClient xfyunWsClient;
     WebSocket webSocket;
+    private OkHttpClient client;
 
     public XfyunDictationAsrProcessor(XfyunAsrConfig xfyunAsrConfig) {
         this.hostUrl = xfyunAsrConfig.getHostUrl();
@@ -39,7 +41,11 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-        OkHttpClient client = new OkHttpClient.Builder().build();
+        client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build();
         //将url中的 schema http://和https://分别替换为ws:// 和 wss://
         String url = authUrl.toString().replace("http://", "ws://").replace("https://", "wss://");
         //System.out.println(url);
@@ -62,16 +68,33 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
 
     @Override
     public void receive(byte[] pcmData) {
-        xfyunWsClient.sendBuffer(pcmData);
+        if (xfyunWsClient != null) {
+            xfyunWsClient.sendBuffer(pcmData);
+        }
     }
 
     @Override
     public void sendEof() {
-        xfyunWsClient.sendEof();
+        if (xfyunWsClient != null) {
+            xfyunWsClient.sendEof();
+        }
     }
 
     @Override
     public void asrClose() {
-
+        if (webSocket != null) {
+            webSocket.close(1000, "Normal closure");
+            log.info("Xfyun webSocket connection closed");
+            webSocket = null;
+        }
+        
+        if (client != null) {
+            client.dispatcher().executorService().shutdown();
+            client.connectionPool().evictAll();
+            log.info("Xfyun OkHttpClient resources released");
+            client = null;
+        }
+        
+        xfyunWsClient = null;
     }
 }

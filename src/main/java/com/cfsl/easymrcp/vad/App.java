@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class App {
 
-    private static final String MODEL_PATH = "D:\\code\\EasyMrcp\\src\\main\\java\\com\\example\\easymrcp\\vad\\silero_vad.onnx";
+    private static final String MODEL_PATH = "D:\\code\\EasyMrcp\\src\\main\\resources\\silero_vad.onnx";
     private static final int SAMPLE_RATE = 16000;
     private static final float START_THRESHOLD = 0.6f;
     private static final float END_THRESHOLD = 0.45f;

@@ -40,24 +40,26 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
         AsrCallback callback = new AsrCallback() {
             @Override
             public void apply(String msg) {
-                // 发送后IN_PROGRESS会打断tts，添加在此处是当完成asr识别时会打断当前正在播放的tts
-                MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
-                try {
-                    mrcpSession.postEvent(event);
-                } catch (TimeoutException e) {
-                    log.error("postEvent START_OF_INPUT error", e);
-                }
-                // 发送识别完成事件
-                try {
-                    MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
-                    CompletionCause completionCause = new CompletionCause((short) 0, "success");
-                    eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
-                    if (!msg.isEmpty()) {
-                        eventComplete.setContent("text/plain", null, msg);
-                        mrcpSession.postEvent(eventComplete);
+                if (!mrcpSession.isComplete()) {
+                    // 发送后IN_PROGRESS会打断tts，添加在此处是当完成asr识别时会打断当前正在播放的tts
+                    MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
+                    try {
+                        mrcpSession.postEvent(event);
+                    } catch (TimeoutException e) {
+                        log.error("postEvent START_OF_INPUT error", e);
                     }
-                } catch (TimeoutException e) {
-                    log.error("postEvent RECOGNITION_COMPLETE error", e);
+                    // 发送识别完成事件
+                    try {
+                        MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
+                        CompletionCause completionCause = new CompletionCause((short) 0, "success");
+                        eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
+                        if (!msg.isEmpty()) {
+                            eventComplete.setContent("text/plain", null, msg);
+                            mrcpSession.postEvent(eventComplete);
+                        }
+                    } catch (TimeoutException e) {
+                        log.error("postEvent RECOGNITION_COMPLETE error", e);
+                    }
                 }
             }
         };

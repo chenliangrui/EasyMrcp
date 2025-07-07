@@ -72,8 +72,10 @@ public class XfyunDictationWsClient extends WebSocketListener {
         XfyunDictationWsClient.ResponseData resp = json.fromJson(text, XfyunDictationWsClient.ResponseData.class);
         if (resp != null) {
             if (resp.getCode() != 0) {
-                log.info("code=>" + resp.getCode() + " error=>" + resp.getMessage() + " sid=" + resp.getSid());
+                log.info("code=>{} error=>{} sid={}", resp.getCode(), resp.getMessage(), resp.getSid());
                 log.info("错误码查询链接：https://www.xfyun.cn/document/error-code");
+                // 发生错误时，主动关闭WebSocket连接
+                webSocket.close(1000, "Error occurred");
                 return;
             }
             if (resp.getData() != null) {
@@ -99,7 +101,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     log.info("本次识别sid ==》" + resp.getSid());
                     if (!stop && !result.isEmpty()) callback.apply(result);
                     decoder.discard();
-                    webSocket.close(1000, "");
+                    webSocket.close(1000, "Normal closure after completion");
                 } else {
                     // todo 根据返回的数据处理
                 }
@@ -110,19 +112,28 @@ public class XfyunDictationWsClient extends WebSocketListener {
     @Override
     public void onFailure(WebSocket webSocket, Throwable t, Response response) {
         super.onFailure(webSocket, t, response);
+        log.error("WebSocket failure", t);
         try {
             if (null != response) {
                 int code = response.code();
                 log.info("onFailure code:" + code);
-                log.info("onFailure body:" + response.body().string());
+                try {
+                    if (response.body() != null) {
+                        log.info("onFailure body:" + response.body().string());
+                    }
+                } catch (IOException e) {
+                    log.error("Error reading response body", e);
+                } finally {
+                    response.close(); // 确保关闭Response
+                }
+                
                 if (101 != code) {
                     log.info("connection failed");
-                    System.exit(0);
+                    webSocket.close(1000, "Connection failed");
                 }
             }
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("Error in onFailure handler", e);
         }
     }
 

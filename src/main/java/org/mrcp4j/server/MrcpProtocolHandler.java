@@ -22,6 +22,7 @@
  */
 package org.mrcp4j.server;
 
+import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpRequestState;
 import org.mrcp4j.message.MrcpEvent;
 import org.mrcp4j.message.MrcpResponse;
@@ -34,6 +35,7 @@ import org.apache.mina.protocol.ProtocolSession;
  *
  * @author Niels Godfredsen {@literal <}<a href="mailto:ngodfredsen@users.sourceforge.net">ngodfredsen@users.sourceforge.net</a>{@literal >}
  */
+@Slf4j
 public class MrcpProtocolHandler extends ProtocolHandlerAdapter {
 
     private MrcpRequestProcessor _requestProcessor;
@@ -49,6 +51,7 @@ public class MrcpProtocolHandler extends ProtocolHandlerAdapter {
     public void exceptionCaught(ProtocolSession session, Throwable cause) {
         // close connection when unexpected exception is caught.
         session.close();
+        log.error(cause.getMessage(), cause);
     }
 
     /* (non-Javadoc)

@@ -30,6 +30,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import lombok.Getter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.mrcp4j.MrcpEventName;
@@ -229,8 +230,9 @@ public class MrcpRequestProcessorImpl implements MrcpRequestProcessor {
             }
 
             try {
-                eventQueue.put(new ObjectWrapper<MrcpEvent>(event));
-                _complete = event.getRequestState().equals(MrcpRequestState.COMPLETE);
+                boolean offer = eventQueue.offer(new ObjectWrapper<MrcpEvent>(event), 300, TimeUnit.SECONDS);
+                if (offer) _complete = event.getRequestState().equals(MrcpRequestState.COMPLETE);
+                else _log.debug("Timed out waiting to offer event to queue, cancel request.");
 //                if (_complete) {
 //                    _eventQueue.put(new ObjectWrapper<MrcpEvent>(null));
 //                }
@@ -238,6 +240,11 @@ public class MrcpRequestProcessorImpl implements MrcpRequestProcessor {
                 // TODO: change to more appropriate exception type.
                 throw (TimeoutException) new TimeoutException(e.getMessage()).initCause(e);
             }
+        }
+
+        @Override
+        public boolean isComplete() {
+            return _complete;
         }
 
         /**

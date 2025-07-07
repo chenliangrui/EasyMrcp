@@ -1,5 +1,6 @@
 package com.cfsl.easymrcp.mrcp;
 
+import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpEventName;
@@ -15,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Mrcp协议中tts处理
@@ -33,24 +35,26 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         TtsCallback callback = new TtsCallback() {
             @Override
             public void apply(String msg) {
-                try {
-                    MrcpEvent eventComplete = mrcpSession.createEvent(
-                            MrcpEventName.SPEAK_COMPLETE,
-                            MrcpRequestState.COMPLETE
-                    );
-                    mrcpSession.postEvent(eventComplete);
-                } catch (Exception e) {
-                    log.error("postEvent error", e);
+                if (!ttsHandler.isStop() && !mrcpSession.isComplete()) {
+                    try {
+                        MrcpEvent eventComplete = mrcpSession.createEvent(
+                                MrcpEventName.SPEAK_COMPLETE,
+                                MrcpRequestState.COMPLETE
+                        );
+                        mrcpSession.postEvent(eventComplete);
+                    } catch (Exception e) {
+                        log.error("postEvent error", e);
+                    }
                 }
             }
         };
         ttsHandler.setCallback(callback);
         if (contentType.equalsIgnoreCase("text/plain")) {
             String text = unimplementedRequest.getContent();
-            String s = eslBodyStrConvert(text);
-            //TODO 过滤非法字符
-            s = s.replaceAll("[\\r\\n]", "");
-            ttsHandler.transmit(s);
+//            String s = eslBodyStrConvert(text);
+//            //TODO 过滤非法字符
+            text = text.replaceAll("[\\r\\n]", "");
+            ttsHandler.transmit(text);
         }
         short statusCode = MrcpResponse.STATUS_SUCCESS;
         MrcpResponse response = mrcpSession.createResponse(statusCode, MrcpRequestState.IN_PROGRESS);
@@ -83,6 +87,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
         MrcpRequestState requestState = MrcpRequestState.COMPLETE;
         short statusCode = -1;
         //TODO 语音识别打断,需要关闭其他资源？
+        ttsHandler.getCallback().apply("");
         ttsHandler.stop();
         statusCode = MrcpResponse.STATUS_SUCCESS;
 

@@ -2,6 +2,8 @@ package com.cfsl.easymrcp.common;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
+import com.cfsl.easymrcp.asr.example.ExampleAsrConfig;
+import com.cfsl.easymrcp.asr.example.ExampleAsrProcessor;
 import com.cfsl.easymrcp.asr.funasr.FunAsrProcessor;
 import com.cfsl.easymrcp.asr.funasr.FunasrConfig;
 import com.cfsl.easymrcp.asr.tencentcloud.TxCloudAsrConfig;
@@ -9,7 +11,8 @@ import com.cfsl.easymrcp.asr.tencentcloud.TxCloudAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
-import com.cfsl.easymrcp.domain.TtsConfig;
+import com.cfsl.easymrcp.tts.example.ExampleTtsConfig;
+import com.cfsl.easymrcp.tts.example.ExampleTtsProcessor;
 import com.cfsl.easymrcp.tts.kokoro.KokoroConfig;
 import com.cfsl.easymrcp.tts.kokoro.KokoroProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
@@ -37,11 +40,15 @@ public class ProcessorCreator {
     @Autowired
     XfyunAsrConfig xfyunAsrConfig;
     @Autowired
+    ExampleAsrConfig exampleAsrConfig;
+    @Autowired
     XfyunTtsConfig xfyunTtsConfig;
     @Autowired
     TxCloudAsrConfig txCloudAsrConfig;
     @Autowired
     TxCloudTtsConfig txCloudTtsConfig;;
+    @Autowired
+    ExampleTtsConfig exampleTtsConfig;
 
     public AsrHandler getAsrHandler() {
         switch (asrMode) {
@@ -65,6 +72,10 @@ public class ProcessorCreator {
                     txCloudProcessor.setConfig(txCloudAsrConfig);
                     return txCloudProcessor;
                 }
+            case "example-asr":
+                ExampleAsrProcessor exampleProcessor = new ExampleAsrProcessor(exampleAsrConfig);
+                exampleProcessor.setConfig(exampleAsrConfig);
+                return exampleProcessor;
         }
         return null;
     }
@@ -82,6 +93,10 @@ public class ProcessorCreator {
                 TxCloudTtsProcessor txCloudAsrProcessor = new TxCloudTtsProcessor(txCloudTtsConfig);
                 txCloudAsrProcessor.setConfig(txCloudTtsConfig);
                 return txCloudAsrProcessor;
+            case "example-tts":
+                ExampleTtsProcessor exampleTtsProcessor = new ExampleTtsProcessor(exampleTtsConfig);
+                exampleTtsProcessor.setConfig(exampleTtsConfig);
+                return exampleTtsProcessor;
         }
         return null;
     }

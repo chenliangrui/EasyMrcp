@@ -50,12 +50,11 @@ public class KokoroProcessor extends TtsHandler {
                     if (response.statusCode() == 200) {
                         processAudioStream(response.body());
                     } else {
-                        System.err.println("HTTP错误: " + response.statusCode());
+                        log.error("HTTP错误: {}", response.statusCode());
                     }
                 })
                 .exceptionally(e -> {
-                    System.err.println("请求异常: " + e.getMessage());
-                    e.printStackTrace();
+                    log.error("请求异常: {}", e.getMessage());
                     return null;
                 });
     }
