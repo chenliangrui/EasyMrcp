@@ -91,7 +91,7 @@ public abstract class AsrHandler implements RtpConnection {
                     try {
                         socket.receive(packet); // 阻塞等待数据
                     } catch (IOException e) {
-                        if (e.getMessage().equals("socket closed") || e instanceof SocketTimeoutException) {
+                        if (e.getMessage().equalsIgnoreCase("socket closed") || e instanceof SocketTimeoutException) {
                             log.info("rtp socket {} port closed", RTP_PORT);
                         } else {
                             log.error(e.getMessage(), e);
