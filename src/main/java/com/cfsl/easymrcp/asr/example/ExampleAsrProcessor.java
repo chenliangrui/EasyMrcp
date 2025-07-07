@@ -3,6 +3,9 @@ package com.cfsl.easymrcp.asr.example;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 压测示例代码
+ */
 @Slf4j
 public class ExampleAsrProcessor extends AsrHandler {
     private boolean start;

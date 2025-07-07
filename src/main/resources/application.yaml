@@ -3,7 +3,7 @@ server:
   port: 8080
 sip:
   # EasyMrcp要监听的sip服务器地址，填写项目运行的ip地址
-  sipServer: 192.168.31.30
+  sipServer: 192.168.31.29
   # sip服务器端口
   sipPort: 8060
   # mrcp服务器端口
@@ -15,8 +15,8 @@ mrcp:
   ttsMode: xfyun
 rtp:
   # asr的rtp端口范围
-  asrStartPort: 5000
-  asrStopPort: 6000
+  asrStartPort: 20000
+  asrStopPort: 22000
   # tts的rtp端口范围
-  ttsStartPort: 15000
-  ttsStopPort: 16000
+  ttsStartPort: 23000
+  ttsStopPort: 25000

@@ -3,6 +3,9 @@ package com.cfsl.easymrcp.tts.example;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 压测示例代码
+ */
 @Slf4j
 public class ExampleTtsProcessor extends TtsHandler {
     private ExampleTtsConfig exampleTtsConfig;
