@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.asr;
 
 import com.cfsl.easymrcp.domain.AsrConfig;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
 import com.cfsl.easymrcp.rtp.G711AUtil;
 import com.cfsl.easymrcp.rtp.RtpConnection;
 import com.cfsl.easymrcp.rtp.RtpPacket;
@@ -14,7 +15,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
@@ -33,6 +33,12 @@ public abstract class AsrHandler implements RtpConnection {
     private AsrCallback callback;
     protected String identifyPatterns;
     protected String reSample;
+    
+    @Setter
+    private MrcpTimeoutManager timeoutManager;
+    
+    // 保存Speech-Complete-Timeout参数值
+    private Long speechCompleteTimeout;
 
     private DatagramSocket socket;
     private int RTP_PORT; // RTP端口
@@ -41,16 +47,6 @@ public abstract class AsrHandler implements RtpConnection {
     protected Boolean stop = false;
     protected CountDownLatch countDownLatch = new CountDownLatch(1);
     VadHandle vadHandle;
-//    录音测试
-//    FileOutputStream fileOutputStream;
-//
-//    {
-//        try {
-//            fileOutputStream = new FileOutputStream("D:\\code\\EasyMrcp\\src\\main\\resources\\test.pcm", true);
-//        } catch (FileNotFoundException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
 
     public void setConfig(AsrConfig asrConfig) {
         if (asrConfig.getIdentifyPatterns() != null && !asrConfig.getIdentifyPatterns().isEmpty()) {
@@ -77,11 +73,26 @@ public abstract class AsrHandler implements RtpConnection {
     }
 
     public abstract void create();
+    
+    /**
+     * 设置Speech-Complete-Timeout参数值
+     * @param timeout Speech-Complete-Timeout参数值（毫秒）
+     */
+    public void setSpeechCompleteTimeout(Long timeout) {
+        this.speechCompleteTimeout = timeout;
+        // 如果VAD已经初始化，则更新其Speech-Complete-Timeout参数
+        if (vadHandle != null) {
+            vadHandle.setSpeechCompleteTimeout(timeout);
+        }
+    }
 
     public boolean receive() {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-            vadHandle = new VadHandle();
+            // 使用Speech-Complete-Timeout参数初始化VAD
+            vadHandle = speechCompleteTimeout != null ? 
+                    new VadHandle(speechCompleteTimeout) : new VadHandle();
         }
+        
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -112,24 +123,29 @@ public abstract class AsrHandler implements RtpConnection {
                     } else {
                         inputRingBuffer.put(pcmData);
                     }
-//                        byte[] bytes = ReSample.resampleFrame(pcmData);
+
                     if (inputRingBuffer.getAvailable() >= 2048) {
                         byte[] take = inputRingBuffer.take(2048);
                         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-                            Boolean isSpeakingBefore = vadHandle.getIsSpeaking();
+                            // 获取前一个说话状态
+                            boolean isSpeakingBefore = vadHandle.getIsSpeaking();
+                            
+                            // VAD处理PCM数据
                             vadHandle.receivePcm(take);
-                            if (vadHandle.getIsSpeaking()) {
+                            
+                            // 获取当前说话状态
+                            boolean isSpeakingNow = vadHandle.getIsSpeaking();
+                            
+                            // 简化VAD状态处理，只关注语音开始检测
+                            handleSpeechStart(isSpeakingBefore, isSpeakingNow);
+                            
+                            if (isSpeakingNow) {
                                 if (!isSpeakingBefore) {
                                     reCreate();
                                 }
-//                                    try {
-//                                        fileOutputStream.write(take);
-//                                    } catch (IOException e) {
-//                                        throw new RuntimeException(e);
-//                                    }
                                 receive(take);
                             } else if (isSpeakingBefore) {
-                                log.info("send eof");
+                                log.info("VAD detected speech end, sending EOF");
                                 sendEof();
                             }
                         } else {
@@ -141,8 +157,23 @@ public abstract class AsrHandler implements RtpConnection {
         }).start();
         return true;
     }
-
-    ;
+    
+    /**
+     * 处理语音开始检测，通知MrcpTimeoutManager
+     * @param previousState 前一个VAD状态
+     * @param currentState 当前VAD状态
+     */
+    private void handleSpeechStart(boolean previousState, boolean currentState) {
+        if (timeoutManager == null) {
+            return;
+        }
+        
+        // 只关注语音开始检测，用于取消No-Input-Timeout
+        if (!previousState && currentState) {
+            log.debug("VAD detected speech start, notifying timeout manager");
+            timeoutManager.onSpeechStart();
+        }
+    }
 
     @Override
     public void close() {
@@ -151,12 +182,27 @@ public abstract class AsrHandler implements RtpConnection {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
             vadHandle.release();
         }
+        // 取消所有超时定时器
+        cancelTimeouts();
         getCallback().apply("");
-//        try {
-//            fileOutputStream.close();
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+    }
+    
+    /**
+     * 取消所有超时定时器
+     */
+    public void cancelTimeouts() {
+        if (timeoutManager != null) {
+            timeoutManager.cancelAllTimers();
+        }
+    }
+    
+    /**
+     * 响应START_INPUT_TIMERS请求，启动超时计时器
+     */
+    public void startInputTimers() {
+        if (timeoutManager != null) {
+            timeoutManager.startInputTimers();
+        }
     }
 
     public abstract void receive(byte[] pcmData);

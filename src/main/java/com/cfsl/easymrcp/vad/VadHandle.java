@@ -13,7 +13,8 @@ public class VadHandle {
     private static final int SAMPLE_RATE = 8000;
     private static final float START_THRESHOLD = 0.6f;
     private static final float END_THRESHOLD = 0.45f;
-    private static final int MIN_SILENCE_DURATION_MS = 600;
+    // Speech-Complete-Timeout默认使用600毫秒
+    private static int MIN_SILENCE_DURATION_MS = 600;
     private static final int SPEECH_PAD_MS = 500;
     private static final int WINDOW_SIZE_SAMPLES = 2048;
 
@@ -24,6 +25,44 @@ public class VadHandle {
     private Double lastVad = 0.0;
 
     public VadHandle() {
+        initVad();
+    }
+    
+    /**
+     * 使用指定的静音超时时长初始化VAD
+     * @param speechCompleteTimeoutMs Speech-Complete-Timeout参数值（毫秒）
+     */
+    public VadHandle(Long speechCompleteTimeoutMs) {
+        if (speechCompleteTimeoutMs != null && speechCompleteTimeoutMs > 0) {
+            MIN_SILENCE_DURATION_MS = speechCompleteTimeoutMs.intValue();
+            log.info("Using custom Speech-Complete-Timeout value for VAD: {} ms", MIN_SILENCE_DURATION_MS);
+        }
+        initVad();
+    }
+    
+    /**
+     * 设置Speech-Complete-Timeout参数并重新初始化VAD
+     * @param speechCompleteTimeoutMs 静音超时时长（毫秒）
+     */
+    public void setSpeechCompleteTimeout(Long speechCompleteTimeoutMs) {
+        if (speechCompleteTimeoutMs != null && speechCompleteTimeoutMs > 0 
+                && speechCompleteTimeoutMs.intValue() != MIN_SILENCE_DURATION_MS) {
+            MIN_SILENCE_DURATION_MS = speechCompleteTimeoutMs.intValue();
+            log.info("Updating Speech-Complete-Timeout value for VAD: {} ms", MIN_SILENCE_DURATION_MS);
+            
+            // 重新初始化VAD检测器
+            try {
+                if (vadDetector != null) {
+                    vadDetector.close();
+                }
+                initVad();
+            } catch (Exception e) {
+                log.error("Error reinitializing VAD with new timeout: {}", e.getMessage());
+            }
+        }
+    }
+    
+    private void initVad() {
         // Initialize the Voice Activity Detector
         try {
             String modePath = null;
@@ -40,8 +79,9 @@ public class VadHandle {
                 modePath = path + "\\src\\main\\resources\\" + MODEL_PATH;
             }
             vadDetector = new SlieroVadDetector(modePath, START_THRESHOLD, END_THRESHOLD, SAMPLE_RATE, MIN_SILENCE_DURATION_MS, SPEECH_PAD_MS);
+            log.info("VAD initialized with MIN_SILENCE_DURATION_MS: {} ms", MIN_SILENCE_DURATION_MS);
         } catch (OrtException e) {
-            System.err.println("Error initializing the VAD detector: " + e.getMessage());
+            log.error("Error initializing the VAD detector: {}", e.getMessage());
         }
     }
 
@@ -51,7 +91,7 @@ public class VadHandle {
         try {
             detectResult = vadDetector.apply(pcmData, true);
         } catch (Exception e) {
-            System.err.println("Error applying VAD detector: " + e.getMessage());
+            log.error("Error applying VAD detector: {}", e.getMessage());
         }
 
         if (!detectResult.isEmpty()) {
@@ -69,7 +109,7 @@ public class VadHandle {
         try {
             vadDetector.close();
         } catch (OrtException e) {
-            log.error(e.getMessage(), e);
+            log.error("Error closing VAD detector: {}", e.getMessage());
         }
     }
 }

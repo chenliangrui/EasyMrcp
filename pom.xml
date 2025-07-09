@@ -146,6 +146,13 @@
             <!--建议使用最新版本-->
             <version>1.0.53</version>
         </dependency>
+
+        <!-- 添加Netty依赖，用于HashedWheelTimer实现 -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>4.1.86.Final</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
