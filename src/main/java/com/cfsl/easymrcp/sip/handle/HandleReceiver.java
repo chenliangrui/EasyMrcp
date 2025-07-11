@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.sip.handle;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
+import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.mrcp.MrcpRecogChannel;
 import com.cfsl.easymrcp.rtp.SipRtpManage;
 import com.cfsl.easymrcp.rtp.RtpSession;
@@ -33,6 +34,8 @@ public class HandleReceiver {
     MrcpServer mrcpServer;
     @Autowired
     SipRtpManage rtpManage;
+    @Autowired
+    MrcpManage mrcpManage;
     @Autowired
     ProcessorCreator asrChose;
     @Autowired
@@ -89,7 +92,7 @@ public class HandleReceiver {
                             asrHandler.receive();
                             rtpSession.addChannel(channelID, asrHandler);
                             // 开启mrcp通道
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpRecogChannel(asrHandler));
+                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpRecogChannel(asrHandler, mrcpManage));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                             rtpmd.get(0).getMedia().setMediaPort(asrRtpPort);

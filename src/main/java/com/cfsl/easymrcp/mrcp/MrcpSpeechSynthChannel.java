@@ -1,6 +1,5 @@
 package com.cfsl.easymrcp.mrcp;
 
-import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpEventName;
@@ -16,7 +15,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Mrcp协议中tts处理
@@ -24,37 +22,44 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
     TtsHandler ttsHandler;
+    MrcpManage mrcpManage;
 
-    public MrcpSpeechSynthChannel(TtsHandler ttsHandler) {
+    public MrcpSpeechSynthChannel(TtsHandler ttsHandler, MrcpManage mrcpManage) {
         this.ttsHandler = ttsHandler;
+        this.mrcpManage = mrcpManage;
     }
 
     @Override
     public MrcpResponse speak(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
         String contentType = unimplementedRequest.getContentType();
-        TtsCallback callback = new TtsCallback() {
-            @Override
-            public void apply(String msg) {
-                if (!ttsHandler.isStop() && !mrcpSession.isComplete()) {
-                    try {
-                        MrcpEvent eventComplete = mrcpSession.createEvent(
-                                MrcpEventName.SPEAK_COMPLETE,
-                                MrcpRequestState.COMPLETE
-                        );
-                        mrcpSession.postEvent(eventComplete);
-                    } catch (Exception e) {
-                        log.error("postEvent error", e);
+        if (contentType.equalsIgnoreCase("text/plain")) {
+            String content = unimplementedRequest.getContent();
+            int splitIndex = content.indexOf("|");
+            String callId = content.substring(0, splitIndex);
+            mrcpManage.setSpeaking(callId);
+            mrcpManage.setRealTimeAudioProcessor(callId, ttsHandler.getProcessor());
+            content = content.substring(splitIndex);
+            TtsCallback callback = new TtsCallback() {
+                @Override
+                public void apply(String msg) {
+                    if (!ttsHandler.isStop() && !mrcpSession.isComplete()) {
+                        try {
+                            MrcpEvent eventComplete = mrcpSession.createEvent(
+                                    MrcpEventName.SPEAK_COMPLETE,
+                                    MrcpRequestState.COMPLETE
+                            );
+                            mrcpSession.postEvent(eventComplete);
+                        } catch (Exception e) {
+                            log.error("postEvent error", e);
+                        }
                     }
                 }
-            }
-        };
-        ttsHandler.setCallback(callback);
-        if (contentType.equalsIgnoreCase("text/plain")) {
-            String text = unimplementedRequest.getContent();
+            };
+            ttsHandler.setCallback(callback);
 //            String s = eslBodyStrConvert(text);
 //            //TODO 过滤非法字符
-            text = text.replaceAll("[\\r\\n]", "");
-            ttsHandler.transmit(text);
+            content = content.replaceAll("[\\r\\n]", "");
+            ttsHandler.transmit(content);
         }
         short statusCode = MrcpResponse.STATUS_SUCCESS;
         MrcpResponse response = mrcpSession.createResponse(statusCode, MrcpRequestState.IN_PROGRESS);

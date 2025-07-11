@@ -14,6 +14,8 @@ import org.mrcp4j.message.request.StopRequest;
 import org.mrcp4j.server.MrcpSession;
 import org.mrcp4j.server.provider.RecogOnlyRequestHandler;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -22,9 +24,11 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class MrcpRecogChannel implements RecogOnlyRequestHandler {
     private AsrHandler asrHandler;
+    private MrcpManage mrcpManage;
 
-    public MrcpRecogChannel(AsrHandler rtp) {
+    public MrcpRecogChannel(AsrHandler rtp, MrcpManage mrcpManage) {
         this.asrHandler = rtp;
+        this.mrcpManage = mrcpManage;
     }
 
     @Override
@@ -36,24 +40,45 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
 
     @Override
     public MrcpResponse recognize(MrcpRequestFactory.UnimplementedRequest unimplementedRequest, MrcpSession mrcpSession) {
-        // 解析超时参数
-        Long speechCompleteTimeout = getHeaderValueAsLong(unimplementedRequest, MrcpHeaderName.SPEECH_COMPLETE_TIMEOUT.toString());
-        // 实际应用中不太有用，已注释但仍解析参数
-        Long speechIncompleteTimeout = getHeaderValueAsLong(unimplementedRequest, MrcpHeaderName.SPEECH_INCOMPLETE_TIMEOUT.toString());
-        Long noInputTimeout = getHeaderValueAsLong(unimplementedRequest, MrcpHeaderName.NO_INPUT_TIMEOUT.toString());
-        // 实际应用中不太有用，已注释但仍解析参数
-        Long recognitionTimeout = getHeaderValueAsLong(unimplementedRequest, MrcpHeaderName.RECOGNITION_TIMEOUT.toString());
-        Boolean startInputTimers = getHeaderValueAsBoolean(unimplementedRequest, MrcpHeaderName.START_INPUT_TIMERS.toString());
-        
-        log.info("RECOGNIZE params: speech-complete-timeout={}, speech-incomplete-timeout={}, no-input-timeout={}, recognition-timeout={}, start-input-timers={}",
-                speechCompleteTimeout, speechIncompleteTimeout, noInputTimeout, recognitionTimeout, startInputTimers);
-        
+        String content = unimplementedRequest.getContent();
+        log.info("Recognize content: {}", content);
+        // 解析content中的参数
+        Map<String, String> params = parseContentParams(content);
+        String callId = params.get("call-id");
+        if (callId == null) {
+            log.error("call-id is null, cannot get call-id");
+        }
+        asrHandler.setCallId(callId);
+        // 从解析的参数中获取值，使用MrcpHeaderName枚举作为字段名称
+        Boolean startInputTimers = Boolean.parseBoolean(params.getOrDefault(MrcpHeaderName.START_INPUT_TIMERS.toString().toLowerCase(), "false"));
+        Long noInputTimeout = parseLong(params.get(MrcpHeaderName.NO_INPUT_TIMEOUT.toString().toLowerCase()));
+        // speech-timeout 映射为 speech-complete-timeout
+        Long speechCompleteTimeout = parseLong(params.get("speech-timeout"));
+        if (speechCompleteTimeout == null) {
+            // 尝试直接使用标准枚举名称
+            speechCompleteTimeout = parseLong(params.get(MrcpHeaderName.SPEECH_COMPLETE_TIMEOUT.toString().toLowerCase()));
+        }
+        Boolean autoResume = Boolean.parseBoolean(params.getOrDefault("auto-resume", "false"));
+        String killOnBargeInString = params.get(MrcpHeaderName.KILL_ON_BARGE_IN.toString().toLowerCase());
+        Boolean killOnBargeIn = null;
+        if (killOnBargeInString != null) {
+            killOnBargeIn = Boolean.parseBoolean(killOnBargeInString);
+        }
+
+        // 保留原有的其他参数解析，但默认为null
+        Long speechIncompleteTimeout = null;
+        Long recognitionTimeout = null;
+
+        log.info("RECOGNIZE params: speech-complete-timeout={}, speech-incomplete-timeout={}, no-input-timeout={}, recognition-timeout={}," +
+                        " start-input-timers={}, auto-resume={}, kill-on-barge-in={}",
+                speechCompleteTimeout, speechIncompleteTimeout, noInputTimeout, recognitionTimeout, startInputTimers, autoResume, killOnBargeIn);
+
         // 直接设置Speech-Complete-Timeout参数到AsrHandler，用于VAD初始化
         if (speechCompleteTimeout != null && speechCompleteTimeout > 0) {
             asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
             log.info("Setting Speech-Complete-Timeout ({} ms) for VAD initialization", speechCompleteTimeout);
         }
-        
+
         // 创建超时回调
         MrcpTimeoutManager.TimeoutCallback timeoutCallback = new MrcpTimeoutManager.TimeoutCallback() {
             @Override
@@ -81,7 +106,7 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                 // sendTimeoutEvent(mrcpSession, (short) 4, "recognition-timeout");
             }
         };
-        
+
         // 创建超时管理器并设置超时参数
         MrcpTimeoutManager timeoutManager = new MrcpTimeoutManager(timeoutCallback);
         timeoutManager.setSpeechCompleteTimeout(speechCompleteTimeout);
@@ -89,23 +114,23 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
         timeoutManager.setNoInputTimeout(noInputTimeout);
         timeoutManager.setRecognitionTimeout(recognitionTimeout);
         timeoutManager.setStartInputTimers(startInputTimers);
-        
+
         // 将超时管理器传递给AsrHandler
         asrHandler.setTimeoutManager(timeoutManager);
-        
+
         // 设置语音识别完成的回调，当asr完成识别后调用回调
         AsrCallback callback = new AsrCallback() {
             @Override
             public void apply(String msg) {
                 if (!mrcpSession.isComplete()) {
                     // 发送后IN_PROGRESS会打断tts，添加在此处是当完成asr识别时会打断当前正在播放的tts
-                    MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
-                    try {
-                        mrcpSession.postEvent(event);
-                    } catch (TimeoutException e) {
-                        log.error("postEvent START_OF_INPUT error", e);
-                    }
-                    // 发送识别完成事件
+//                    MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
+//                    try {
+//                        mrcpSession.postEvent(event);
+//                    } catch (TimeoutException e) {
+//                        log.error("postEvent START_OF_INPUT error", e);
+//                    }
+                    mrcpManage.interrupt(callId);
                     try {
                         MrcpEvent eventComplete = mrcpSession.createEvent(MrcpEventName.RECOGNITION_COMPLETE, MrcpRequestState.COMPLETE);
                         CompletionCause completionCause = new CompletionCause((short) 0, "success");
@@ -114,7 +139,7 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                             eventComplete.setContent("text/plain", null, msg);
                             mrcpSession.postEvent(eventComplete);
                         }
-                        
+
                         // 完成时取消所有计时器
                         asrHandler.cancelTimeouts();
                     } catch (TimeoutException e) {
@@ -124,15 +149,15 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
             }
         };
         asrHandler.setCallback(callback);
-        
+
         // 启动超时计时
         timeoutManager.startTimers();
-        
+
         log.info("MrcpRecogChannel recognize");
         MrcpResponse response = mrcpSession.createResponse(MrcpResponse.STATUS_SUCCESS, MrcpRequestState.IN_PROGRESS);
         return response;
     }
-    
+
     private void sendTimeoutEvent(MrcpSession mrcpSession, short causeCode, String causeName) {
         if (!mrcpSession.isComplete()) {
             try {
@@ -140,7 +165,7 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                 CompletionCause completionCause = new CompletionCause(causeCode, causeName);
                 eventComplete.addHeader(MrcpHeaderName.COMPLETION_CAUSE.constructHeader(completionCause));
                 mrcpSession.postEvent(eventComplete);
-                
+
                 // 取消所有计时器
                 asrHandler.cancelTimeouts();
             } catch (TimeoutException e) {
@@ -148,25 +173,63 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
             }
         }
     }
-    
-    private Long getHeaderValueAsLong(MrcpRequestFactory.UnimplementedRequest request, String headerName) {
-        String value = request.getHeader(headerName) != null ? request.getHeader(headerName).getValueString() : null;
-        if (value != null) {
-            try {
-                return Long.parseLong(value);
-            } catch (NumberFormatException e) {
-                log.warn("Failed to parse header value as Long: {}", value);
+
+    /**
+     * 解析content字符串中的参数
+     * 格式为: session:{param1=value1,param2=value2,...}
+     *
+     * @param content 内容字符串
+     * @return 解析后的参数映射
+     */
+    private Map<String, String> parseContentParams(String content) {
+        Map<String, String> params = new HashMap<>();
+        if (content == null || content.isEmpty()) {
+            return params;
+        }
+
+        try {
+            // 提取session:{...}中的内容
+            int startIndex = content.indexOf("{");
+            int endIndex = content.lastIndexOf("}");
+
+            if (startIndex >= 0 && endIndex > startIndex) {
+                String paramString = content.substring(startIndex + 1, endIndex);
+                String[] pairs = paramString.split(",");
+
+                for (String pair : pairs) {
+                    String[] keyValue = pair.split("=", 2);
+                    if (keyValue.length == 2) {
+                        String key = keyValue[0].trim().toLowerCase(); // 统一转为小写以便于匹配
+                        String value = keyValue[1].trim();
+                        params.put(key, value);
+                    }
+                }
             }
+
+            // 记录所有解析出的参数，便于调试
+            if (!params.isEmpty()) {
+                log.debug("Parsed parameters from content: {}", params);
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse content parameters: {}", content, e);
         }
-        return null;
+
+        return params;
     }
-    
-    private Boolean getHeaderValueAsBoolean(MrcpRequestFactory.UnimplementedRequest request, String headerName) {
-        String value = request.getHeader(headerName) != null ? request.getHeader(headerName).getValueString() : null;
-        if (value != null) {
-            return Boolean.parseBoolean(value);
+
+    /**
+     * 解析字符串为Long，失败返回null
+     */
+    private Long parseLong(String value) {
+        if (value == null) {
+            return null;
         }
-        return null;
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse value as Long: {}", value);
+            return null;
+        }
     }
 
     @Override

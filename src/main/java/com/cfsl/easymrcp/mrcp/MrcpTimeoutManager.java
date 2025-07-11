@@ -63,8 +63,8 @@ public class MrcpTimeoutManager {
         // 默认超时值（毫秒）
         this.speechCompleteTimeout = 1500L;
         this.speechIncompleteTimeout = 3000L;
-        this.noInputTimeout = 50000L;
-        this.recognitionTimeout = 10000L;
+        this.noInputTimeout = 500000L;
+        this.recognitionTimeout = 100000L;
         this.startInputTimers = true;
     }
     

@@ -2,11 +2,13 @@ package com.cfsl.easymrcp.sip.handle;
 
 import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
+import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.mrcp.MrcpSpeechSynthChannel;
 import com.cfsl.easymrcp.rtp.*;
 import com.cfsl.easymrcp.sdp.SdpMessage;
 import com.cfsl.easymrcp.sip.MrcpServer;
 import com.cfsl.easymrcp.sip.SipSession;
+import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.utils.SipUtils;
 import gov.nist.javax.sdp.fields.AttributeField;
@@ -34,6 +36,8 @@ public class HandleTransmitter {
     SipRtpManage rtpManage;
     @Autowired
     MrcpServer mrcpServer;
+    @Autowired
+    MrcpManage mrcpManage;
     @Autowired
     ProcessorCreator processorCreator;
     @Autowired
@@ -123,7 +127,7 @@ public class HandleTransmitter {
                             ttsHandler.setChannelId(channelID);
                             channelMaps.put(channelID, ttsHandler);
                             // 开启mrcp
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler));
+                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler, mrcpManage));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                             rtpmd.get(0).getMedia().setMediaPort(localPort);

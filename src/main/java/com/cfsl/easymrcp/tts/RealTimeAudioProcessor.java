@@ -194,7 +194,7 @@ public class RealTimeAudioProcessor {
                         callback.apply(null);
                     }
                 } catch (Exception e) {
-                    log.error(e.getMessage(), e);
+                    if (!e.getMessage().equalsIgnoreCase("Socket is closed")) log.error(e.getMessage(), e);
                 }
             }
         }).start();
@@ -207,5 +207,11 @@ public class RealTimeAudioProcessor {
 //        } catch (IOException e) {
 //            throw new RuntimeException(e);
 //        }
+    }
+
+    public void interrupt() {
+        stopRtpSender(); // 结束标记
+        sender.close();
+        callback.apply(null);
     }
 }

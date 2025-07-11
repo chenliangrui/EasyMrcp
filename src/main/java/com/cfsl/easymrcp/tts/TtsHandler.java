@@ -23,6 +23,7 @@ public abstract class TtsHandler implements RtpConnection {
     boolean stop = false;
     protected String reSample;
 
+    @Getter
     protected RealTimeAudioProcessor processor;
 
     @Override

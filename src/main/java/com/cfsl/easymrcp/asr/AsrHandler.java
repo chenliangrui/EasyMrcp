@@ -33,7 +33,9 @@ public abstract class AsrHandler implements RtpConnection {
     private AsrCallback callback;
     protected String identifyPatterns;
     protected String reSample;
-    
+    @Setter
+    @Getter
+    private String callId;
     @Setter
     private MrcpTimeoutManager timeoutManager;
     
