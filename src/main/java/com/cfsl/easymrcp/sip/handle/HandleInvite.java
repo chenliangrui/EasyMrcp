@@ -97,7 +97,7 @@ public class HandleInvite {
     }
 
     private SdpMessage invite(SdpMessage sdpMessage, SipSession session) throws SdpException {
-        boolean receiver = false;
+        boolean receiver = true;
         boolean transmitter = false;
         try {
             for (MediaDescription md : sdpMessage.getMrcpReceiverChannels()) {

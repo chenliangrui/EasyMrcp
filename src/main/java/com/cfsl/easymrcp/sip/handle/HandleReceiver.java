@@ -46,64 +46,50 @@ public class HandleReceiver {
         RtpSession rtpSession = new RtpSession(dialogId);
         log.info("description: " + sdpMessage.getSessionDescription());
         try {
-            List<MediaDescription> channels = sdpMessage.getMrcpReceiverChannels();
+            List<MediaDescription> channels = sdpMessage.getRtpChannels();
             if (channels.size() > 0) {
-                for(MediaDescription md: channels) {
-                    String channelID = md.getAttribute(SdpMessage.SDP_CHANNEL_ATTR_NAME);
-                    String rt =  md.getAttribute(SdpMessage.SDP_RESOURCE_ATTR_NAME);
-                    MrcpResourceType resourceType = null;
-                    log.debug("Resource Type: " +rt);
-                    if (rt.equalsIgnoreCase("speechrecog")) {
-                        resourceType = MrcpResourceType.SPEECHRECOG;
-                    } else if (rt.equalsIgnoreCase("speechsynth")) {
-                        resourceType = MrcpResourceType.SPEECHSYNTH;
-                    } else if (rt.equalsIgnoreCase("recorder")) {
-                        resourceType = MrcpResourceType.RECORDER;
-                    }
-                    List<MediaDescription> rtpmd = null;
-                    switch (resourceType) {
-                        case SPEECHRECOG:
-                            rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
-                            Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
-                            Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
-                            // 开启rtp通道
-                            int asrRtpPort = sipContext.getAsrRtpPort();
-                            // 处理rtp端口占用问题，检测到端口占用后自动加1重试
-                            boolean startedRtp = false;
-                            int findRtpCount = 0;
-                            DatagramSocket datagramSocket = null;
-                            do {
-                                findRtpCount++;
-                                try {
-                                    datagramSocket = new DatagramSocket(asrRtpPort);
-                                } catch (Exception e) {
-                                    if (e instanceof BindException) {
-                                        log.error("asrRtpPort: " + asrRtpPort + " is already in use");
-                                        asrRtpPort = sipContext.getAsrRtpPort();
-                                        continue;
-                                    }
-                                }
-                                startedRtp = true;
-                            } while (!startedRtp && findRtpCount <= 10);
-
-                            AsrHandler asrHandler = asrChose.getAsrHandler();
-                            asrHandler.setChannelId(channelID);
-                            asrHandler.create(null, datagramSocket,null, 0);
-                            asrHandler.receive();
-                            rtpSession.addChannel(channelID, asrHandler);
-                            // 开启mrcp通道
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpRecogChannel(asrHandler, mrcpManage));
-                            md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
-                            rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
-                            rtpmd.get(0).getMedia().setMediaPort(asrRtpPort);
-                            //修改sdp收发问题
-                            for (Object attribute : rtpmd.get(0).getAttributes(true)) {
-                                AttributeField attribute1 = (AttributeField) attribute;
-                                if (attribute1.getName().equalsIgnoreCase("sendonly")) {
-                                    attribute1.setName("recvonly");
-                                }
+                for (MediaDescription md : channels) {
+                    List<MediaDescription> rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
+                    Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
+                    Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
+                    // 开启rtp通道
+                    int asrRtpPort = sipContext.getAsrRtpPort();
+                    // 处理rtp端口占用问题，检测到端口占用后自动加1重试
+                    boolean startedRtp = false;
+                    int findRtpCount = 0;
+                    DatagramSocket datagramSocket = null;
+                    do {
+                        findRtpCount++;
+                        try {
+                            datagramSocket = new DatagramSocket(asrRtpPort);
+                        } catch (Exception e) {
+                            if (e instanceof BindException) {
+                                log.error("asrRtpPort: " + asrRtpPort + " is already in use");
+                                asrRtpPort = sipContext.getAsrRtpPort();
+                                continue;
                             }
+                        }
+                        startedRtp = true;
+                    } while (!startedRtp && findRtpCount <= 10);
+
+                    AsrHandler asrHandler = asrChose.getAsrHandler();
+                    asrHandler.setChannelId("11111");
+                    asrHandler.create(null, datagramSocket, null, 0);
+                    asrHandler.receive();
+                    rtpSession.addChannel("11111", asrHandler);
+                    // 开启mrcp通道
+//                    mrcpServer.getMrcpServerSocket().openChannel("11111", new MrcpRecogChannel(asrHandler, mrcpManage));
+                    md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
+                    rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
+                    rtpmd.get(0).getMedia().setMediaPort(asrRtpPort);
+                    //修改sdp收发问题
+                    for (Object attribute : rtpmd.get(0).getAttributes(true)) {
+                        AttributeField attribute1 = (AttributeField) attribute;
+                        if (attribute1.getName().equalsIgnoreCase("sendonly")) {
+                            attribute1.setName("recvonly");
+                        }
                     }
+
                 }
             }
         } catch (Exception e) {
@@ -112,4 +98,76 @@ public class HandleReceiver {
         rtpManage.addRtpSession(dialogId, rtpSession);
         return sdpMessage;
     }
+
+//    public SdpMessage invite(SdpMessage sdpMessage, SipSession session) {
+//        String dialogId = session.getDialog().getDialogId();
+//        RtpSession rtpSession = new RtpSession(dialogId);
+//        log.info("description: " + sdpMessage.getSessionDescription());
+//        try {
+//            List<MediaDescription> channels = sdpMessage.getMrcpReceiverChannels();
+//            if (channels.size() > 0) {
+//                for(MediaDescription md: channels) {
+//                    String channelID = md.getAttribute(SdpMessage.SDP_CHANNEL_ATTR_NAME);
+//                    String rt =  md.getAttribute(SdpMessage.SDP_RESOURCE_ATTR_NAME);
+//                    MrcpResourceType resourceType = null;
+//                    log.debug("Resource Type: " +rt);
+//                    if (rt.equalsIgnoreCase("speechrecog")) {
+//                        resourceType = MrcpResourceType.SPEECHRECOG;
+//                    } else if (rt.equalsIgnoreCase("speechsynth")) {
+//                        resourceType = MrcpResourceType.SPEECHSYNTH;
+//                    } else if (rt.equalsIgnoreCase("recorder")) {
+//                        resourceType = MrcpResourceType.RECORDER;
+//                    }
+//                    List<MediaDescription> rtpmd = null;
+//                    switch (resourceType) {
+//                        case SPEECHRECOG:
+//                            rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
+//                            Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
+//                            Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
+//                            // 开启rtp通道
+//                            int asrRtpPort = sipContext.getAsrRtpPort();
+//                            // 处理rtp端口占用问题，检测到端口占用后自动加1重试
+//                            boolean startedRtp = false;
+//                            int findRtpCount = 0;
+//                            DatagramSocket datagramSocket = null;
+//                            do {
+//                                findRtpCount++;
+//                                try {
+//                                    datagramSocket = new DatagramSocket(asrRtpPort);
+//                                } catch (Exception e) {
+//                                    if (e instanceof BindException) {
+//                                        log.error("asrRtpPort: " + asrRtpPort + " is already in use");
+//                                        asrRtpPort = sipContext.getAsrRtpPort();
+//                                        continue;
+//                                    }
+//                                }
+//                                startedRtp = true;
+//                            } while (!startedRtp && findRtpCount <= 10);
+//
+//                            AsrHandler asrHandler = asrChose.getAsrHandler();
+//                            asrHandler.setChannelId(channelID);
+//                            asrHandler.create(null, datagramSocket,null, 0);
+//                            asrHandler.receive();
+//                            rtpSession.addChannel(channelID, asrHandler);
+//                            // 开启mrcp通道
+//                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpRecogChannel(asrHandler, mrcpManage));
+//                            md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
+//                            rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
+//                            rtpmd.get(0).getMedia().setMediaPort(asrRtpPort);
+//                            //修改sdp收发问题
+//                            for (Object attribute : rtpmd.get(0).getAttributes(true)) {
+//                                AttributeField attribute1 = (AttributeField) attribute;
+//                                if (attribute1.getName().equalsIgnoreCase("sendonly")) {
+//                                    attribute1.setName("recvonly");
+//                                }
+//                            }
+//                    }
+//                }
+//            }
+//        } catch (Exception e) {
+//            log.error(e.getMessage(), e);
+//        }
+//        rtpManage.addRtpSession(dialogId, rtpSession);
+//        return sdpMessage;
+//    }
 }

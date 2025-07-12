@@ -33,9 +33,9 @@ public class SipServer {
             properties.setProperty("javax.sip.STACK_NAME", "simpleSipServer");
             properties.setProperty("javax.sip.IP_ADDRESS", sipContext.getSipServerIp());
             properties.setProperty("javax.sip.OUTBOUND_PROXY", sipContext.getSipServerIp() + ":" + sipContext.getSipPort() +"/UDP");
-            properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
-            properties.setProperty("gov.nist.javax.sip.DEBUG_LOG", "simpleSipServerDebug.txt");
-            properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "simpleSipServerLog.txt");
+//            properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
+//            properties.setProperty("gov.nist.javax.sip.DEBUG_LOG", "simpleSipServerDebug.txt");
+//            properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "simpleSipServerLog.txt");
 
             // Create SIP stack
             sipContext.sipFactory = SipFactory.getInstance();

@@ -177,7 +177,7 @@ public class SdpMessage implements Serializable {
         String protocolToMatch = null;
         String attributeNameToMatch = null;
         try {
-            if (control.getMedia().getProtocol().equals(SDP_MRCP_PROTOCOL)) {
+            if (control.getMedia().getProtocol().equals(SDP_RTP_PROTOCOL)) {
                 idToMatch = control.getAttribute(SDP_CMID_ATTR_NAME);
                 protocolToMatch = SDP_RTP_PROTOCOL;
                 attributeNameToMatch = SDP_MID_ATTR_NAME;
@@ -186,9 +186,9 @@ public class SdpMessage implements Serializable {
                 while (e.hasMoreElements()) {
                     MediaDescription md = e.nextElement();
                     if (md.getMedia().getProtocol().equals(protocolToMatch)) {
-                        if (md.getAttribute(attributeNameToMatch).equalsIgnoreCase(idToMatch)) {
+//                        if (md.getAttribute(attributeNameToMatch).equalsIgnoreCase(idToMatch)) {
                             chans.add(md);
-                        }
+//                        }
                     }
                 }            
             } else {
