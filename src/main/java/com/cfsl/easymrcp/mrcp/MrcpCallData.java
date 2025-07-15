@@ -1,6 +1,8 @@
 package com.cfsl.easymrcp.mrcp;
 
+import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
+import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,6 +24,14 @@ public class MrcpCallData {
      * 由EasyMrcp内部进行语音打断
      */
     private AtomicBoolean speaking = new AtomicBoolean(false);
+
+    @Getter
+    @Setter
+    AsrHandler asrHandler;
+
+    @Getter
+    @Setter
+    TtsHandler ttsHandler;
 
     @Getter
     @Setter

@@ -22,7 +22,7 @@ public class ExampleTtsProcessor extends TtsHandler {
     @Override
     public void speak(String text) {
         new Thread(() -> {
-            java.io.File wavFile = new java.io.File("C:\\Users\\25212\\Downloads\\send-0.wav"); // text参数为wav文件路径
+            java.io.File wavFile = new java.io.File("/home/clr/Downloads/send-0.wav"); // text参数为wav文件路径
             try (java.io.FileInputStream fis = new java.io.FileInputStream(wavFile)) {
                 // 跳过wav头部44字节
                 if (fis.skip(44) != 44) {

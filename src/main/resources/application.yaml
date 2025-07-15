@@ -37,3 +37,10 @@ fs:
     domain: 172.16.2.119
     # 注册间隔(秒)
     interval: 1800
+# TCP服务器配置
+tcp:
+  server:
+    # 是否启用TCP服务器
+    enabled: true
+    # TCP服务器监听端口
+    port: 9090

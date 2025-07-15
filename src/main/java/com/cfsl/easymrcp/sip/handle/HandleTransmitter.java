@@ -8,7 +8,6 @@ import com.cfsl.easymrcp.rtp.*;
 import com.cfsl.easymrcp.sdp.SdpMessage;
 import com.cfsl.easymrcp.sip.MrcpServer;
 import com.cfsl.easymrcp.sip.SipSession;
-import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.utils.SipUtils;
 import gov.nist.javax.sdp.fields.AttributeField;
@@ -44,7 +43,7 @@ public class HandleTransmitter {
     SipUtils sipUtils;
 
 
-    public SdpMessage invite(SdpMessage sdpMessage, SipSession session) {
+    public SdpMessage invite(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) {
         log.debug("transmitter invite for");
         log.debug(sdpMessage.getSessionDescription().toString());
         InetAddress remoteHost = null;
@@ -126,8 +125,9 @@ public class HandleTransmitter {
                             ttsHandler.create(null, datagramSocket, remoteHost.getHostAddress(), remotePort);
                             ttsHandler.setChannelId(channelID);
                             channelMaps.put(channelID, ttsHandler);
+                            mrcpManage.addNewTts(customHeaderUUID, ttsHandler);
                             // 开启mrcp
-                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler, mrcpManage));
+//                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler, mrcpManage));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                             rtpmd.get(0).getMedia().setMediaPort(localPort);

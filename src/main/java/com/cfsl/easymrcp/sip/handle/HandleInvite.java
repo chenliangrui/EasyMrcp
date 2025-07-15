@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import javax.sdp.*;
 import javax.sip.*;
+import javax.sip.header.ExtensionHeader;
+import javax.sip.header.Header;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -38,6 +40,19 @@ public class HandleInvite {
         Request request = requestEvent.getRequest();
         String guid = SipUtils.getGUID();
         SipSession sipSession = null;
+        
+        // 解析自定义头部 X-EasyMRCP
+        String customHeaderUUID = null;
+        Header customHeader = request.getHeader("X-EasyMRCP");
+        if (customHeader != null) {
+            if (customHeader instanceof ExtensionHeader) {
+                customHeaderUUID = ((ExtensionHeader) customHeader).getValue();
+            } else {
+                customHeaderUUID = customHeader.toString().substring(customHeader.toString().indexOf(":") + 1).trim();
+            }
+            log.info("Received X-EasyMRCP with value: {}", customHeaderUUID);
+        }
+        
         try {
             ServerTransaction st = requestEvent.getServerTransaction();
             if (st == null) {
@@ -78,7 +93,7 @@ public class HandleInvite {
                 String contentString = new String(rawContent);
                 SessionDescription sessionDescription = sdpFactory.createSessionDescription(contentString);
                 SdpMessage sdpSessionMessage = SdpMessage.createSdpSessionMessage(sessionDescription);
-                SdpMessage invite = invite(sdpSessionMessage, sipSession);
+                SdpMessage invite = invite(sdpSessionMessage, sipSession, customHeaderUUID);
                 try {
                     handleOk.sendResponse(sipSession, invite);
                 } catch (SipException e) {
@@ -96,7 +111,7 @@ public class HandleInvite {
 
     }
 
-    private SdpMessage invite(SdpMessage sdpMessage, SipSession session) throws SdpException {
+    private SdpMessage invite(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) throws SdpException {
         boolean receiver = true;
         boolean transmitter = false;
         try {
@@ -124,12 +139,12 @@ public class HandleInvite {
         } catch (SdpException e) {
             log.warn(e.getMessage(), e);
         }
-        if (transmitter) {
-            sdpMessage = handleTransmitter.invite(sdpMessage, session);
-        }
-        if (receiver) {
-            sdpMessage = handleReceiver.invite(sdpMessage, session);
-        }
+//        if (transmitter) {
+//            sdpMessage = handleTransmitter.invite(sdpMessage, session, customHeaderUUID);
+//        }
+//        if (receiver) {
+            sdpMessage = handleReceiver.invite(sdpMessage, session, customHeaderUUID);
+//        }
         for (MediaDescription md : sdpMessage.getMrcpChannels()) {
             md.removeAttribute("resource");
         }

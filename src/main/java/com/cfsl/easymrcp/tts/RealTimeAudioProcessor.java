@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.DatagramSocket;
+import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -151,7 +152,7 @@ public class RealTimeAudioProcessor {
             if (avg < Short.MIN_VALUE) avg = Short.MIN_VALUE;
 
             // 写入输出（小端）
-            outputBytes[i * 2]     = (byte) (avg & 0xFF);
+            outputBytes[i * 2] = (byte) (avg & 0xFF);
             outputBytes[i * 2 + 1] = (byte) ((avg >> 8) & 0xFF);
         }
 
@@ -164,6 +165,9 @@ public class RealTimeAudioProcessor {
     public void startRtpSender() {
         G711RtpSender finalSender = sender;
         new Thread(() -> {
+            boolean sendSilence = true;
+            byte[] silenceData = new byte[160];
+            Arrays.fill(silenceData, (byte) 0xd5);
             while (true) {
                 try {
                     // 控制每次分包是160字节 * n
@@ -172,7 +176,9 @@ public class RealTimeAudioProcessor {
                         finalSender.close();
                         return;
                     }
-                    if (peek == null) {
+                    if (peek != null) sendSilence = false;
+                    if (peek == null && sendSilence) {
+                        finalSender.sendFrame(silenceData);
                         continue;
                     }
                     int packageCount = peek.length / EMConstant.VOIP_SAMPLES_PER_FRAME;
@@ -190,8 +196,9 @@ public class RealTimeAudioProcessor {
                     log.debug("send {} bytes", payload.length);
                     finalSender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
-                        stopRtpSender();
-                        callback.apply(null);
+                        sendSilence = true;
+//                        stopRtpSender();
+//                        callback.apply(null);
                     }
                 } catch (Exception e) {
                     if (!e.getMessage().equalsIgnoreCase("Socket is closed")) log.error(e.getMessage(), e);
@@ -210,8 +217,13 @@ public class RealTimeAudioProcessor {
     }
 
     public void interrupt() {
-        stopRtpSender(); // 结束标记
-        sender.close();
-        callback.apply(null);
+        inputRingBuffer.clear();
+        outputQueue.clear();
+        sender.interrupt();
+        outputQueue.put(TTSConstant.TTS_END_FLAG); // 结束标记
+        log.info("已经打断！！！！！！！！！！！");
+//        stopRtpSender(); // 结束标记
+//        sender.close();
+//        callback.apply(null);
     }
 }

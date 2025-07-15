@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.tts;
 
 import lombok.Getter;
+import java.util.Arrays;
 
 /**
  * TODO 解决RingBuffer覆盖问题
@@ -72,5 +73,14 @@ public class RingBuffer {
         }
 
         return result;
+    }
+    
+    /**
+     * 重置RingBuffer，恢复至初始状态
+     */
+    public synchronized void clear() {
+        writePos = 0;
+        readPos = 0;
+        available = 0;
     }
 }

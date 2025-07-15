@@ -31,6 +31,8 @@ public abstract class TtsHandler implements RtpConnection {
         //初始化rtp
         processor = new RealTimeAudioProcessor(localSocket, reSample, remoteIp, remotePort);
         create();
+        processor.startProcessing();
+        processor.startRtpSender();
     }
 
     public void setConfig(TtsConfig ttsConfig) {
@@ -41,8 +43,6 @@ public abstract class TtsHandler implements RtpConnection {
 
     public void transmit(String text) {
         processor.setCallback(getCallback());
-        processor.startProcessing();
-        processor.startRtpSender();
         speak(text);
     }
 

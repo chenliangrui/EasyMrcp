@@ -27,6 +27,8 @@ public class G711RtpSender {
     private final InetAddress destAddress;
     private final int destPort;
 
+    private boolean interrupt = false;
+
     public G711RtpSender(DatagramSocket socket, String destIp, int port) throws UnknownHostException {
         this.destAddress = InetAddress.getByName(destIp);
         this.destPort = port;
@@ -36,7 +38,7 @@ public class G711RtpSender {
     // 发送G.711u音频帧（每帧160字节，对应20ms音频）
     public void sendFrame(byte[] g711Data) throws Exception {
         int offset = 0;
-        while (offset < g711Data.length) {
+        while (offset < g711Data.length && !interrupt) {
             int frameSize = Math.min(EMConstant.VOIP_SAMPLES_PER_FRAME, g711Data.length - offset);
             byte[] rtpPacket = buildRtpPacket(g711Data, offset, frameSize);
             DatagramPacket packet = new DatagramPacket(rtpPacket, rtpPacket.length, destAddress, destPort);
@@ -58,6 +60,7 @@ public class G711RtpSender {
             updateHeader(); // 更新序列号和时间戳
             nextSendTime += EMConstant.VOIP_FRAME_DURATION * 1000000;
         }
+        interrupt = false;
     }
 
     private byte[] buildRtpPacket(byte[] payload, int offset, int length) {
@@ -79,6 +82,10 @@ public class G711RtpSender {
     private void updateHeader() {
         sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
         timestamp += EMConstant.VOIP_SAMPLES_PER_FRAME; // 时间戳增量=8000*0.02=160
+    }
+
+    public void interrupt() {
+        interrupt = true;
     }
 
     public void close() {
