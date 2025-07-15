@@ -44,12 +44,12 @@ public class HandleTransmitter {
 
 
     public SdpMessage invite(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) {
-        log.debug("transmitter invite for");
+        log.debug("transmitter initAsrAndTts for");
         log.debug(sdpMessage.getSessionDescription().toString());
         InetAddress remoteHost = null;
 
         // Create a resource session object
-        // TODO: Check if there is already a session (ie. This is a re-invite)        
+        // TODO: Check if there is already a session (ie. This is a re-initAsrAndTts)
         RtpSession rtpSession = new RtpSession(session.getDialog().getDialogId());
 
         // get the map that holds list of the channels and the resources used for each channel
@@ -95,7 +95,7 @@ public class HandleTransmitter {
                             mediaHost = InetAddress.getByName(rtpmd.get(0).getConnection().getAddress());
 
                     } else {
-                        log.warn("No Media channel specified in the invite request");
+                        log.warn("No Media channel specified in the initAsrAndTts request");
                         // TODO: handle no media channel in the request corresponding to the mrcp channel (sip error)
                     }
 

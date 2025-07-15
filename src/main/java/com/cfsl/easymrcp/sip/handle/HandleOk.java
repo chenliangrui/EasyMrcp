@@ -55,7 +55,7 @@ public class HandleOk {
 
         okResponse.addHeader(sipContext.getContactHeader());
 
-        // Now if there were no exceptions, we were able to process the invite
+        // Now if there were no exceptions, we were able to process the initAsrAndTts
         // request and we have a valid response to send back
         // if there is an exception here, not much that can be done.
         try {
