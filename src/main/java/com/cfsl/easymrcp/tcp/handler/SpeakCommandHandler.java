@@ -24,12 +24,16 @@ public class SpeakCommandHandler implements TcpCommandHandler {
         AsrHandler asrHandler = mrcpManage.getAsrHandler(id);
         asrHandler.cancelTimeouts();
         TtsHandler ttsHandler = mrcpManage.getTtsHandler(command.getId());
+        log.info("tts开始，设置true");
+        mrcpManage.setSpeaking(id,true);
         ttsHandler.setCallback(new TtsCallback() {
             @Override
             public void apply(String msg) {
                 if (msg.equals("completed")) {
                     tcpClientNotifier.sendAsrResultNotify(id, "SpeakComplete", msg);
                     asrHandler.startInputTimers();
+                    mrcpManage.setSpeaking(id,false);
+                    log.info("tts结束，设置false");
                 } else {
                     tcpClientNotifier.sendAsrResultNotify(id, "interrupt", msg);
                 }

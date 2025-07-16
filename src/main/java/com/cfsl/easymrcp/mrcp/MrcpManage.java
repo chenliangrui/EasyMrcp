@@ -76,13 +76,11 @@ public class MrcpManage {
         }
     }
 
-    public void setSpeaking(String callId) {
+    public void setSpeaking(String callId, boolean isSpeaking) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-            MrcpCallData mrcpCallData = new MrcpCallData();
-            mrcpCallData.setCallId(callId);
-            mrcpCallDataConcurrentHashMap.put(callId, mrcpCallData);
+            log.error("setSpeaking error, callId:{} not exist", callId);
         }
-        mrcpCallDataConcurrentHashMap.get(callId).setSpeaking(true);
+        mrcpCallDataConcurrentHashMap.get(callId).setSpeaking(isSpeaking);
     }
 
     public void setRealTimeAudioProcessor(String callId, RealTimeAudioProcessor realTimeAudioProcessor) {
@@ -97,9 +95,13 @@ public class MrcpManage {
             log.error("interrupt error, callId:{} not exist", callId);
             return;
         }
-        // 1. 停止tts
-        mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().ttsClose();
-        // 2. 停止rtp数据发送
-        mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().getProcessor().interrupt();
+        MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+        if (mrcpCallData.isSpeaking()) {
+            // 1. 停止tts
+            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().ttsClose();
+            // 2. 停止rtp数据发送
+            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().getProcessor().interrupt();
+            setSpeaking(callId, false);
+        }
     }
 }

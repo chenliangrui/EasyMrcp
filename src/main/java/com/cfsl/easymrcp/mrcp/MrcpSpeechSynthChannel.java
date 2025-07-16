@@ -36,7 +36,7 @@ public class MrcpSpeechSynthChannel implements SpeechSynthRequestHandler {
             String content = unimplementedRequest.getContent();
             int splitIndex = content.indexOf("|");
             String callId = content.substring(0, splitIndex);
-            mrcpManage.setSpeaking(callId);
+            mrcpManage.setSpeaking(callId, true);
             mrcpManage.setRealTimeAudioProcessor(callId, ttsHandler.getProcessor());
             content = content.substring(splitIndex);
             TtsCallback callback = new TtsCallback() {

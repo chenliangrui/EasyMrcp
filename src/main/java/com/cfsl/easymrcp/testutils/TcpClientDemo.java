@@ -39,7 +39,7 @@ public class TcpClientDemo {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         // 默认生成一个客户端ID
-        this.clientId = "61d67613-b376-4cee-876f-e35beab96129";
+        this.clientId = "f659db22-5c82-4f6c-aebb-3bba6f183411";
     }
 
     /**

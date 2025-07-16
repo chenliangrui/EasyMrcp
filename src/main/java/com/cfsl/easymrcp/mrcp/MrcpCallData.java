@@ -40,4 +40,8 @@ public class MrcpCallData {
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);
     }
+
+    public boolean isSpeaking() {
+        return speaking.get();
+    }
 }

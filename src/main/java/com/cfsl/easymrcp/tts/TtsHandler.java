@@ -50,7 +50,7 @@ public abstract class TtsHandler implements RtpConnection {
     public void close() {
         processor.stopRtpSender();
         ttsClose();
-        getCallback().apply("");
+//        getCallback().apply("");
     }
 
     public abstract void create();

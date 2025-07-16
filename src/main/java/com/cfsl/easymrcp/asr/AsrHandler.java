@@ -187,7 +187,7 @@ public abstract class AsrHandler implements RtpConnection {
         }
         // 取消所有超时定时器
         cancelTimeouts();
-        getCallback().apply("");
+//        getCallback().apply("");
     }
     
     /**

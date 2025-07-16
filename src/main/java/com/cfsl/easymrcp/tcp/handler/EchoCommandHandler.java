@@ -22,16 +22,12 @@ public class EchoCommandHandler implements TcpCommandHandler {
     public EchoCommandHandler(MrcpManage mrcpManage) {
         this.mrcpManage = mrcpManage;
     }
-    
-    // 无参构造函数，用于Spring注入
-    public EchoCommandHandler() {
-    }
-    
+
     @Override
     public TcpResponse handleCommand(TcpCommand command, TcpClientNotifier tcpClientNotifier) {
         LOGGER.info("处理Echo命令: {}", command);
         if (mrcpManage != null) {
-            mrcpManage.setSpeaking(command.getId());
+            mrcpManage.setSpeaking(command.getId(), true);
         }
         return TcpResponse.success(command.getId(), command.getData());
     }
