@@ -39,7 +39,7 @@ public class TcpClientDemo {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         // 默认生成一个客户端ID
-        this.clientId = "b09dc015-d78c-42ee-884f-00240ea28c69";
+        this.clientId = "61d67613-b376-4cee-876f-e35beab96129";
     }
 
     /**
@@ -59,7 +59,7 @@ public class TcpClientDemo {
             new Thread(this::receiveMessages).start();
             
             // 发送注册命令
-            sendCommand("register", null);
+            sendCommand("asr", null);
             
             return true;
         } catch (IOException e) {
@@ -130,8 +130,11 @@ public class TcpClientDemo {
                         JSONObject jsonObject = JSONObject.parseObject(message);
                         String text = jsonObject.getString("data");
                         System.out.println("收到响应: " + message);
-                        System.out.println("开始tts");
-                        sendCommand("speak", text);
+                        if (jsonObject.getString("message").equals("AsrResult")) {
+                            System.out.println("开始tts");
+                            sendCommand("speak", "清晨晾衣时，发现窗台缝隙里钻出一株紫茉莉，单瓣花朵像被露水揉皱的绢纸。想起昨夜暴雨敲打空调外机的声响，恍惚间竟觉得是某种倔强的生长韵律。" +
+                                    "午后路过旧书摊，牛皮纸箱里斜插着一本泛黄的《城南旧事》。翻开扉页看见铅笔写的“1979年春，赠小芳”，墨迹被岁月蛀出细小的虫洞。摊主趴在藤椅上打盹，蝉声与鼾声在樟树影子里此起彼伏，硬币搁在玻璃柜上的脆响惊飞了栖在招牌上的白腰雨燕。");
+                        }
                     } catch (Exception e) {
                         System.out.println("收到响应: " + message);
                     }

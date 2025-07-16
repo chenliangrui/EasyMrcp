@@ -5,6 +5,7 @@ import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
+import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
 import com.cfsl.easymrcp.rtp.RtpConnection;
 import com.cfsl.easymrcp.rtp.SipRtpManage;
 import com.cfsl.easymrcp.rtp.RtpSession;
@@ -15,6 +16,12 @@ import com.cfsl.easymrcp.tcp.TcpClientNotifier;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.utils.SipUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.mrcp4j.MrcpEventName;
+import org.mrcp4j.MrcpRequestState;
+import org.mrcp4j.message.MrcpEvent;
+import org.mrcp4j.message.header.CompletionCause;
+import org.mrcp4j.message.header.MrcpHeaderName;
+import org.mrcp4j.server.MrcpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -100,18 +107,11 @@ public class HandleSipInit {
             rtpSession.addChannel("11111", asrHandler);
             // 向mrcp业务中写入asrHandler，此时已经明确callId，等待tcp连接发送uuid
             mrcpManage.addNewAsr(customHeaderUUID, asrHandler);
-            asrHandler.setCallback(new AsrCallback() {
-                @Override
-                public void apply(String msg) {
-                    mrcpManage.interrupt(customHeaderUUID);
-                    tcpClientNotifier.sendAsrResultNotify(customHeaderUUID, msg);
-                }
-            });
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
     }
-    
+
     private void initTts(InetAddress remoteHost, int remotePort, String customHeaderUUID, RtpSession rtpSession, DatagramSocket datagramSocket) {
         try {
             Map<String, RtpConnection> channelMaps = rtpSession.getChannelMaps();

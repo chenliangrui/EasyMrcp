@@ -198,7 +198,12 @@ public class RealTimeAudioProcessor {
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         sendSilence = true;
 //                        stopRtpSender();
-//                        callback.apply(null);
+                        callback.apply("completed");
+                    }
+                    if (payload[0] == TTSConstant.TTS_INTERRUPT_BYTE && payload[1] == TTSConstant.TTS_INTERRUPT_BYTE) {
+                        sendSilence = true;
+//                        stopRtpSender();
+                        callback.apply("interrupt");
                     }
                 } catch (Exception e) {
                     if (!e.getMessage().equalsIgnoreCase("Socket is closed")) log.error(e.getMessage(), e);
@@ -220,7 +225,7 @@ public class RealTimeAudioProcessor {
         inputRingBuffer.clear();
         outputQueue.clear();
         sender.interrupt();
-        outputQueue.put(TTSConstant.TTS_END_FLAG); // 结束标记
+        outputQueue.put(TTSConstant.TTS_INTERRUPT_FLAG); // 结束标记
         log.info("已经打断！！！！！！！！！！！");
 //        stopRtpSender(); // 结束标记
 //        sender.close();

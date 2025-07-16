@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.tcp;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.tcp.handler.EchoCommandHandler;
 import com.cfsl.easymrcp.tcp.handler.InterruptAndSpeakCommandHandler;
+import com.cfsl.easymrcp.tcp.handler.AsrCommandHandler;
 import com.cfsl.easymrcp.tcp.handler.SpeakCommandHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -23,13 +24,15 @@ public class TcpServerHandler implements Runnable {
     private final ObjectMapper objectMapper;
     private final TcpConnectionManager connectionManager;
     private final MrcpManage mrcpManage;
+    private final TcpClientNotifier tcpClientNotifier;
     
     public TcpServerHandler(Socket clientSocket, ObjectMapper objectMapper,
-                           TcpConnectionManager connectionManager, MrcpManage mrcpManage) {
+                            TcpConnectionManager connectionManager, MrcpManage mrcpManage, TcpClientNotifier tcpClientNotifier) {
         this.clientSocket = clientSocket;
         this.objectMapper = objectMapper;
         this.connectionManager = connectionManager;
         this.mrcpManage = mrcpManage;
+        this.tcpClientNotifier = tcpClientNotifier;
     }
     
     @Override
@@ -44,7 +47,7 @@ public class TcpServerHandler implements Runnable {
             
             LOGGER.info("客户端已连接: {}", clientSocket.getInetAddress().getHostAddress());
             
-            // 创建一个PrintWriter用于向客户端发送文本响应
+            // 创建一个PrintWriter用于向客户端发送文本响应（兼容旧版本）
             PrintWriter textWriter = new PrintWriter(outputStream, true);
             
             // 循环处理客户端消息
@@ -55,6 +58,8 @@ public class TcpServerHandler implements Runnable {
                 // 处理每个消息
                 for (String message : messages) {
                     try {
+                        LOGGER.info("收到完整客户端消息: {}", message);
+                        
                         // 解析客户端命令
                         TcpCommand command = objectMapper.readValue(message, TcpCommand.class);
                         
@@ -87,7 +92,7 @@ public class TcpServerHandler implements Runnable {
      *
      * @param command 客户端命令
      * @param outputStream 输出流
-     * @param textWriter 文本输出流，用于兼容旧版PrintWriter方式
+     * @param textWriter 文本输出流（兼容旧版本）
      * @throws IOException IO异常
      */
     private void processCommand(TcpCommand command, OutputStream outputStream, PrintWriter textWriter) throws IOException {
@@ -109,7 +114,7 @@ public class TcpServerHandler implements Runnable {
             // 创建对应的命令处理器
             TcpCommandHandler handler = createCommandHandler(command.getCommand());
             // 执行命令处理
-            response = handler.handleCommand(command);
+            response = handler.handleCommand(command, tcpClientNotifier);
         } else {
             // 简单响应
             response = TcpResponse.success(clientId, isExistingClient ? 
@@ -162,6 +167,8 @@ public class TcpServerHandler implements Runnable {
                 return new SpeakCommandHandler(mrcpManage);
             case "interruptandspeak":
                 return new InterruptAndSpeakCommandHandler(mrcpManage);
+            case "asr":
+                return new AsrCommandHandler(mrcpManage);
             // 可以在这里添加更多命令类型的处理器
             default:
                 return new DefaultTcpCommandHandler();

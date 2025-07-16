@@ -58,6 +58,15 @@ public class MrcpManage {
         }
     }
 
+    public AsrHandler getAsrHandler(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getTts error, callId:{} not exist", callId);
+            return null;
+        } else {
+            return mrcpCallDataConcurrentHashMap.get(callId).getAsrHandler();
+        }
+    }
+
     public TtsHandler getTtsHandler(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("getTts error, callId:{} not exist", callId);

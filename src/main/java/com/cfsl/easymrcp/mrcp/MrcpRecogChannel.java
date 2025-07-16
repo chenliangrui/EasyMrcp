@@ -93,24 +93,12 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
                 // 此处主要负责发送RECOGNITION_COMPLETE事件
                 log.info("Speech Complete Timeout triggered, VAD has detected end of speech");
             }
-
-            @Override
-            public void onSpeechIncompleteTimeout() {
-                // 实际应用中不太有用，已注释
-                // sendTimeoutEvent(mrcpSession, (short) 7, "speech-incomplete-timeout");
-            }
-
-            @Override
-            public void onRecognitionTimeout() {
-                // 实际应用中不太有用，已注释
-                // sendTimeoutEvent(mrcpSession, (short) 4, "recognition-timeout");
-            }
         };
 
         // 创建超时管理器并设置超时参数
         MrcpTimeoutManager timeoutManager = new MrcpTimeoutManager(timeoutCallback);
-        timeoutManager.setSpeechCompleteTimeout(speechCompleteTimeout);
-        timeoutManager.setSpeechIncompleteTimeout(speechIncompleteTimeout);
+//        timeoutManager.setSpeechCompleteTimeout(speechCompleteTimeout);
+//        timeoutManager.setSpeechIncompleteTimeout(speechIncompleteTimeout);
         timeoutManager.setNoInputTimeout(noInputTimeout);
         timeoutManager.setRecognitionTimeout(recognitionTimeout);
         timeoutManager.setStartInputTimers(startInputTimers);

@@ -16,14 +16,16 @@ public class TcpServerHandlerFactory {
     private final ObjectMapper objectMapper;
     private final TcpConnectionManager connectionManager;
     private final MrcpManage mrcpManage;
+    private final TcpClientNotifier tcpClientNotifier;
 
     @Autowired
     public TcpServerHandlerFactory(ObjectMapper objectMapper, 
                                   TcpConnectionManager connectionManager, 
-                                  MrcpManage mrcpManage) {
+                                  MrcpManage mrcpManage, TcpClientNotifier tcpClientNotifier) {
         this.objectMapper = objectMapper;
         this.connectionManager = connectionManager;
         this.mrcpManage = mrcpManage;
+        this.tcpClientNotifier = tcpClientNotifier;
     }
     
     /**
@@ -33,6 +35,6 @@ public class TcpServerHandlerFactory {
      * @return 处理器实例
      */
     public Runnable createHandler(Socket clientSocket) {
-        return new TcpServerHandler(clientSocket, objectMapper, connectionManager, mrcpManage);
+        return new TcpServerHandler(clientSocket, objectMapper, connectionManager, mrcpManage, tcpClientNotifier);
     }
 } 

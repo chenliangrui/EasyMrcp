@@ -13,7 +13,7 @@ public class DefaultTcpCommandHandler implements TcpCommandHandler {
     private static final String COMMAND_TYPE = "default";
     
     @Override
-    public TcpResponse handleCommand(TcpCommand command) {
+    public TcpResponse handleCommand(TcpCommand command, TcpClientNotifier tcpClientNotifier) {
         LOGGER.info("处理默认命令: {}", command);
         return TcpResponse.success(command.getId(), "Echo from server: " + command.toString());
     }

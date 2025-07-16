@@ -1,13 +1,12 @@
 package com.cfsl.easymrcp.tcp.handler;
 
 import com.cfsl.easymrcp.mrcp.MrcpManage;
+import com.cfsl.easymrcp.tcp.TcpClientNotifier;
 import com.cfsl.easymrcp.tcp.TcpCommand;
 import com.cfsl.easymrcp.tcp.TcpCommandHandler;
 import com.cfsl.easymrcp.tcp.TcpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * Echo命令处理器
@@ -29,7 +28,7 @@ public class EchoCommandHandler implements TcpCommandHandler {
     }
     
     @Override
-    public TcpResponse handleCommand(TcpCommand command) {
+    public TcpResponse handleCommand(TcpCommand command, TcpClientNotifier tcpClientNotifier) {
         LOGGER.info("处理Echo命令: {}", command);
         if (mrcpManage != null) {
             mrcpManage.setSpeaking(command.getId());

@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.tcp.handler;
 
 import com.cfsl.easymrcp.mrcp.MrcpManage;
+import com.cfsl.easymrcp.tcp.TcpClientNotifier;
 import com.cfsl.easymrcp.tcp.TcpCommand;
 import com.cfsl.easymrcp.tcp.TcpCommandHandler;
 import com.cfsl.easymrcp.tcp.TcpResponse;
@@ -16,7 +17,7 @@ public class InterruptAndSpeakCommandHandler implements TcpCommandHandler {
     }
 
     @Override
-    public TcpResponse handleCommand(TcpCommand command) {
+    public TcpResponse handleCommand(TcpCommand command, TcpClientNotifier tcpClientNotifier) {
         TtsHandler ttsHandler = mrcpManage.getTtsHandler(command.getId());
         mrcpManage.interrupt(command.getId());
         ttsHandler.transmit(command.getData().toString());

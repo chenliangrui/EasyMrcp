@@ -77,6 +77,7 @@ public abstract class AsrHandler implements RtpConnection {
     public abstract void create();
     
     /**
+     * TODO vad检测时间需要重新设计，目前新参数会导致重新加载vad
      * 设置Speech-Complete-Timeout参数值
      * @param timeout Speech-Complete-Timeout参数值（毫秒）
      */

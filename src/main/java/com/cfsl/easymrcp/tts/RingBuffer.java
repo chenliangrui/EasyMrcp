@@ -76,7 +76,7 @@ public class RingBuffer {
     }
     
     /**
-     * 重置RingBuffer，恢复至初始状态
+     * 清空RingBuffer，恢复至初始状态
      */
     public synchronized void clear() {
         writePos = 0;

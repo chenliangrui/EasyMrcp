@@ -27,7 +27,7 @@ public class TcpClientNotifier {
      * @param text 识别文本
      * @return 是否发送成功
      */
-    public boolean sendAsrResultNotify(String clientId, String text) {
+    public boolean sendAsrResultNotify(String clientId, String message, String text) {
         if (clientId == null || clientId.isEmpty()) {
             LOGGER.warn("客户端ID为空，无法发送ASR结果通知");
             return false;
@@ -43,7 +43,7 @@ public class TcpClientNotifier {
             TcpResponse response = new TcpResponse();
             response.setId(clientId);
             response.setCode(200);
-            response.setMessage("ASR结果");
+            response.setMessage(message);
             response.setData(text);
             
             return connectionManager.sendToClient(clientId, response);
