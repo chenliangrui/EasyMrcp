@@ -6,11 +6,11 @@ package com.cfsl.easymrcp.tcp;
 public interface TcpCommandHandler {
     
     /**
-     * 处理TCP命令
+     * 处理TCP事件
      *
-     * @param command           客户端发送的命令
-     * @param tcpClientNotifier
-     * @return 服务器响应
+     * @param event TCP事件
+     * @param tcpClientNotifier TCP客户端通知器
+     * @return 响应消息
      */
-    TcpResponse handleCommand(TcpCommand command, TcpClientNotifier tcpClientNotifier);
+    TcpResponse handleEvent(TcpEvent event, TcpClientNotifier tcpClientNotifier);
 } 

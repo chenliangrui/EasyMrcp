@@ -5,8 +5,9 @@ import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
 import com.cfsl.easymrcp.tcp.TcpClientNotifier;
-import com.cfsl.easymrcp.tcp.TcpCommand;
 import com.cfsl.easymrcp.tcp.TcpCommandHandler;
+import com.cfsl.easymrcp.tcp.TcpEvent;
+import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tcp.TcpResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.mrcp4j.MrcpEventName;
@@ -27,8 +28,8 @@ public class AsrCommandHandler implements TcpCommandHandler {
     }
 
     @Override
-    public TcpResponse handleCommand(TcpCommand command, TcpClientNotifier tcpClientNotifier) {
-        String id = command.getId();
+    public TcpResponse handleEvent(TcpEvent event, TcpClientNotifier tcpClientNotifier) {
+        String id = event.getId();
         AsrHandler asrHandler = mrcpManage.getAsrHandler(id);
         Long speechCompleteTimeout = 800l;
 
@@ -42,8 +43,7 @@ public class AsrCommandHandler implements TcpCommandHandler {
         MrcpTimeoutManager.TimeoutCallback timeoutCallback = new MrcpTimeoutManager.TimeoutCallback() {
             @Override
             public void onNoInputTimeout() {
-//                sendTimeoutEvent(mrcpSession, (short) 3, "no-input-timeout");
-                tcpClientNotifier.sendAsrResultNotify(id, "NoInputTimeout","no-input-timeout");
+                tcpClientNotifier.sendEvent(id, TcpEventType.NoInputTimeout, "no-input-timeout");
                 // 取消所有计时器
                 asrHandler.cancelTimeouts();
                 asrHandler.startInputTimers();
@@ -60,10 +60,7 @@ public class AsrCommandHandler implements TcpCommandHandler {
 
         // 创建超时管理器并设置超时参数
         MrcpTimeoutManager timeoutManager = new MrcpTimeoutManager(timeoutCallback);
-//        timeoutManager.setSpeechCompleteTimeout(speechCompleteTimeout);
-//        timeoutManager.setSpeechIncompleteTimeout(speechIncompleteTimeout);
         timeoutManager.setNoInputTimeout(5000L);
-//        timeoutManager.setRecognitionTimeout(recognitionTimeout);
         timeoutManager.setStartInputTimers(true);
 
         // 将超时管理器传递给AsrHandler
@@ -72,9 +69,9 @@ public class AsrCommandHandler implements TcpCommandHandler {
         asrHandler.setCallback(new AsrCallback() {
             @Override
             public void apply(String msg) {
-                // TODO 放到vad和实时语音识别中进行处理
+                // TODO 放到vad和实时语音识别中进行处理，并且重置定时器
                 mrcpManage.interrupt(id);
-                tcpClientNotifier.sendAsrResultNotify(id, "AsrResult",msg);
+                tcpClientNotifier.sendEvent(id, TcpEventType.RecognitionComplete, msg);
             }
         });
 

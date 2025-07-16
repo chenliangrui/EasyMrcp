@@ -1,6 +1,8 @@
 package com.cfsl.easymrcp.testutils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.cfsl.easymrcp.tcp.TcpEvent;
+import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tcp.TcpMessagePacket;
 import com.cfsl.easymrcp.tcp.TcpMessageReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,9 +12,7 @@ import lombok.Setter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -39,7 +39,7 @@ public class TcpClientDemo {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         // 默认生成一个客户端ID
-        this.clientId = "f659db22-5c82-4f6c-aebb-3bba6f183411";
+        this.clientId = "55909e3c-1cae-4113-afd5-7c3587b26636";
     }
 
     /**
@@ -59,7 +59,7 @@ public class TcpClientDemo {
             new Thread(this::receiveMessages).start();
             
             // 发送注册命令
-            sendCommand("asr", null);
+            sendMessage("asr", null);
             
             return true;
         } catch (IOException e) {
@@ -83,34 +83,34 @@ public class TcpClientDemo {
     }
     
     /**
-     * 发送命令
+     * 发送消息
      * 
-     * @param command 命令类型
-     * @param data 命令数据
+     * @param event 事件类型
+     * @param data 消息数据
      */
-    public void sendCommand(String command, Object data) {
+    public void sendMessage(String event, String data) {
         if (!connected) {
             System.err.println("未连接到服务器");
             return;
         }
         
         try {
-            Map<String, Object> commandMap = new HashMap<>();
-            commandMap.put("id", clientId);
-            commandMap.put("command", command);
-            commandMap.put("data", data);
+            TcpEvent message = new TcpEvent(clientId, event, data);
             
-            String jsonCommand = objectMapper.writeValueAsString(commandMap);
+            String jsonMessage = objectMapper.writeValueAsString(message);
             
             // 打包消息并发送
-            TcpMessagePacket packet = new TcpMessagePacket(jsonCommand);
+            TcpMessagePacket packet = new TcpMessagePacket(jsonMessage);
             byte[] packedData = packet.pack();
             outputStream.write(packedData);
             outputStream.flush();
             
-            System.out.println("发送命令: " + objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(commandMap));
+            System.out.println("发送事件: " + event);
+            if (data != null) {
+                System.out.println("数据: " + data);
+            }
         } catch (Exception e) {
-            System.err.println("发送命令异常: " + e.getMessage());
+            System.err.println("发送消息异常: " + e.getMessage());
         }
     }
     
@@ -126,17 +126,27 @@ public class TcpClientDemo {
                 // 处理每个消息
                 for (String message : messages) {
                     try {
-                        // 格式化JSON输出
+                        // 解析JSON消息
                         JSONObject jsonObject = JSONObject.parseObject(message);
-                        String text = jsonObject.getString("data");
-                        System.out.println("收到响应: " + message);
-                        if (jsonObject.getString("message").equals("AsrResult")) {
-                            System.out.println("开始tts");
-                            sendCommand("speak", "清晨晾衣时，发现窗台缝隙里钻出一株紫茉莉，单瓣花朵像被露水揉皱的绢纸。想起昨夜暴雨敲打空调外机的声响，恍惚间竟觉得是某种倔强的生长韵律。" +
-                                    "午后路过旧书摊，牛皮纸箱里斜插着一本泛黄的《城南旧事》。翻开扉页看见铅笔写的“1979年春，赠小芳”，墨迹被岁月蛀出细小的虫洞。摊主趴在藤椅上打盹，蝉声与鼾声在樟树影子里此起彼伏，硬币搁在玻璃柜上的脆响惊飞了栖在招牌上的白腰雨燕。");
+                        String event = jsonObject.getString("event");
+                        String data = jsonObject.getString("data");
+                        
+                        System.out.println("收到事件: " + event);
+                        System.out.println("事件数据: " + data);
+                        
+                        // 根据事件类型处理
+                        if (TcpEventType.RecognitionComplete.name().equals(event)) {
+                            System.out.println("收到ASR识别结果，开始TTS");
+                            sendMessage("speak", "清晨晾衣时，发现窗台缝隙里钻出一株紫茉莉，单瓣花朵像被露水揉皱的绢纸。");
+                        } else if (TcpEventType.SpeakComplete.name().equals(event)) {
+                            System.out.println("TTS播放完成");
+                        } else if (TcpEventType.SpeakInterrupted.name().equals(event)) {
+                            System.out.println("TTS被打断");
+                        } else if (TcpEventType.InterruptAndSpeak.name().equals(event)) {
+                            System.out.println("打断并开始新的TTS");
                         }
                     } catch (Exception e) {
-                        System.out.println("收到响应: " + message);
+                        System.out.println("收到消息: " + message);
                     }
                 }
                 
@@ -157,10 +167,10 @@ public class TcpClientDemo {
         Scanner scanner = new Scanner(System.in);
         
         System.out.println("TCP客户端已启动，可用命令: ");
-        System.out.println("1. echo <message> - 发送Echo命令");
-        System.out.println("2. status - 获取服务器状态");
-        System.out.println("3. id [newid] - 获取或设置客户端ID");
-        System.out.println("4. speak <message> - 发送speak命令");
+        System.out.println("1. speak <message> - 发送文本合成语音");
+        System.out.println("2. interrupt <message> - 打断当前TTS并合成新语音");
+        System.out.println("3. asr - 启动语音识别");
+        System.out.println("4. id [newid] - 获取或设置客户端ID");
         System.out.println("5. exit - 退出");
         
         while (true) {
@@ -169,24 +179,21 @@ public class TcpClientDemo {
             
             if ("exit".equalsIgnoreCase(input)) {
                 break;
-            } else if (input.startsWith("echo ")) {
-                String message = input.substring(5);
-                sendCommand("echo", message);
-            } else if ("status".equalsIgnoreCase(input)) {
-                sendCommand("status", null);
-            }else if ("test".equalsIgnoreCase(input)) {
-                String message = input.substring(4);
-                sendCommand("test", message);
-            }else if (input.startsWith("speak ")) {
+            } else if (input.startsWith("speak ")) {
                 String message = input.substring(6);
-                sendCommand("speak", message);
+                sendMessage("speak", message);
+            } else if (input.startsWith("interrupt ")) {
+                String message = input.substring(10);
+                sendMessage("interruptandspeak", message);
+            } else if ("asr".equalsIgnoreCase(input)) {
+                sendMessage("asr", null);
             } else if (input.startsWith("id")) {
                 String[] parts = input.split("\\s+", 2);
                 if (parts.length > 1) {
                     setClientId(parts[1]);
                     System.out.println("已设置客户端ID: " + clientId);
                     // 发送注册命令更新ID
-                    sendCommand("register", null);
+                    sendMessage("register", null);
                 } else {
                     System.out.println("当前客户端ID: " + clientId);
                 }

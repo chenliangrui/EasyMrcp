@@ -21,34 +21,30 @@ public class TcpClientNotifier {
     }
     
     /**
-     * 向客户端发送ASR结果通知
+     * 向客户端发送事件通知
      * 
      * @param clientId 客户端ID
-     * @param text 识别文本
+     * @param eventType 事件类型
+     * @param data 事件数据
      * @return 是否发送成功
      */
-    public boolean sendAsrResultNotify(String clientId, String message, String text) {
+    public boolean sendEvent(String clientId, TcpEventType eventType, String data) {
         if (clientId == null || clientId.isEmpty()) {
-            LOGGER.warn("客户端ID为空，无法发送ASR结果通知");
+            LOGGER.warn("客户端ID为空，无法发送事件通知");
             return false;
         }
         
         // 检查客户端是否存在
         if (!connectionManager.hasClient(clientId)) {
-            LOGGER.warn("客户端不存在，无法发送ASR结果通知: {}", clientId);
+            LOGGER.warn("客户端不存在，无法发送事件通知: {}", clientId);
             return false;
         }
         
         try {
-            TcpResponse response = new TcpResponse();
-            response.setId(clientId);
-            response.setCode(200);
-            response.setMessage(message);
-            response.setData(text);
-            
-            return connectionManager.sendToClient(clientId, response);
+            TcpEvent event = new TcpEvent(clientId, eventType, data);
+            return connectionManager.sendToClient(clientId, event);
         } catch (Exception e) {
-            LOGGER.error("发送ASR结果通知异常", e);
+            LOGGER.error("发送事件通知异常: " + eventType, e);
             return false;
         }
     }

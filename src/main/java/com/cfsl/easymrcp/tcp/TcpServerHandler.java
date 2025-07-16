@@ -1,10 +1,7 @@
 package com.cfsl.easymrcp.tcp;
 
 import com.cfsl.easymrcp.mrcp.MrcpManage;
-import com.cfsl.easymrcp.tcp.handler.EchoCommandHandler;
-import com.cfsl.easymrcp.tcp.handler.InterruptAndSpeakCommandHandler;
-import com.cfsl.easymrcp.tcp.handler.AsrCommandHandler;
-import com.cfsl.easymrcp.tcp.handler.SpeakCommandHandler;
+import com.cfsl.easymrcp.tcp.handler.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,16 +57,16 @@ public class TcpServerHandler implements Runnable {
                     try {
                         LOGGER.info("收到完整客户端消息: {}", message);
                         
-                        // 解析客户端命令
-                        TcpCommand command = objectMapper.readValue(message, TcpCommand.class);
+                        // 解析客户端事件
+                        TcpEvent event = objectMapper.readValue(message, TcpEvent.class);
                         
                         // 检查客户端ID
-                        if (command.getId() == null || command.getId().isEmpty()) {
+                        if (event.getId() == null || event.getId().isEmpty()) {
                             // ID不能为空
                             sendResponse(outputStream, TcpResponse.error("unknown", "客户端ID不能为空"));
                         } else {
-                            // 处理命令
-                            processCommand(command, outputStream, textWriter);
+                            // 处理事件
+                            processEvent(event, outputStream, textWriter);
                         }
                     } catch (Exception e) {
                         LOGGER.error("处理客户端消息错误", e);
@@ -88,15 +85,15 @@ public class TcpServerHandler implements Runnable {
     }
     
     /**
-     * 处理客户端命令
+     * 处理客户端事件
      *
-     * @param command 客户端命令
+     * @param event 客户端事件
      * @param outputStream 输出流
      * @param textWriter 文本输出流（兼容旧版本）
      * @throws IOException IO异常
      */
-    private void processCommand(TcpCommand command, OutputStream outputStream, PrintWriter textWriter) throws IOException {
-        String clientId = command.getId();
+    private void processEvent(TcpEvent event, OutputStream outputStream, PrintWriter textWriter) throws IOException {
+        String clientId = event.getId();
         
         // 检查连接是否已注册
         boolean isExistingClient = connectionManager.hasClient(clientId);
@@ -108,17 +105,17 @@ public class TcpServerHandler implements Runnable {
             LOGGER.info("注册新客户端连接: {}", clientId);
         }
         
-        // 根据命令类型处理请求
+        // 根据事件类型处理请求
         TcpResponse response;
-        if (command.getCommand() != null && !command.getCommand().isEmpty()) {
+        if (event.getEvent() != null && !event.getEvent().isEmpty()) {
             // 创建对应的命令处理器
-            TcpCommandHandler handler = createCommandHandler(command.getCommand());
-            // 执行命令处理
-            response = handler.handleCommand(command, tcpClientNotifier);
+            TcpCommandHandler handler = createEventHandler(event.getEvent());
+            // 执行事件处理
+            response = handler.handleEvent(event, tcpClientNotifier);
         } else {
             // 简单响应
             response = TcpResponse.success(clientId, isExistingClient ? 
-                "命令已处理" : "连接已注册");
+                "事件已处理" : "连接已注册");
         }
         
         // 发送响应
@@ -153,23 +150,23 @@ public class TcpServerHandler implements Runnable {
     }
     
     /**
-     * 根据命令类型创建对应的处理器
+     * 根据事件类型创建对应的处理器
      *
-     * @param commandType 命令类型
+     * @param eventType 事件类型
      * @return 命令处理器
      */
-    private TcpCommandHandler createCommandHandler(String commandType) {
-        // 根据命令类型创建相应的处理器
-        switch (commandType.toLowerCase()) {
+    private TcpCommandHandler createEventHandler(String eventType) {
+        // 根据事件类型创建相应的处理器
+        switch (eventType.toLowerCase()) {
             case "echo":
-                return new EchoCommandHandler(mrcpManage);
+                return new EchoCommandHandler();
             case "speak":
                 return new SpeakCommandHandler(mrcpManage);
             case "interruptandspeak":
                 return new InterruptAndSpeakCommandHandler(mrcpManage);
             case "asr":
                 return new AsrCommandHandler(mrcpManage);
-            // 可以在这里添加更多命令类型的处理器
+            // 可以在这里添加更多事件类型的处理器
             default:
                 return new DefaultTcpCommandHandler();
         }
