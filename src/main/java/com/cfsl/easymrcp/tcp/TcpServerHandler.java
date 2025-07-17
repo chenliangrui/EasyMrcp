@@ -14,15 +14,15 @@ import java.util.List;
  * TCP服务器客户端连接处理器
  */
 public class TcpServerHandler implements Runnable {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(TcpServerHandler.class);
-    
+
     private final Socket clientSocket;
     private final ObjectMapper objectMapper;
     private final TcpConnectionManager connectionManager;
     private final MrcpManage mrcpManage;
     private final TcpClientNotifier tcpClientNotifier;
-    
+
     public TcpServerHandler(Socket clientSocket, ObjectMapper objectMapper,
                             TcpConnectionManager connectionManager, MrcpManage mrcpManage, TcpClientNotifier tcpClientNotifier) {
         this.clientSocket = clientSocket;
@@ -31,35 +31,35 @@ public class TcpServerHandler implements Runnable {
         this.mrcpManage = mrcpManage;
         this.tcpClientNotifier = tcpClientNotifier;
     }
-    
+
     @Override
     public void run() {
         try {
             // 获取输入流和输出流
             InputStream inputStream = clientSocket.getInputStream();
             OutputStream outputStream = clientSocket.getOutputStream();
-            
+
             // 创建消息读取器
             TcpMessageReader messageReader = new TcpMessageReader(inputStream);
-            
+
             LOGGER.info("客户端已连接: {}", clientSocket.getInetAddress().getHostAddress());
-            
+
             // 创建一个PrintWriter用于向客户端发送文本响应（兼容旧版本）
             PrintWriter textWriter = new PrintWriter(outputStream, true);
-            
+
             // 循环处理客户端消息
             while (!clientSocket.isClosed()) {
                 // 读取完整的消息
                 List<String> messages = messageReader.readMessages();
-                
+
                 // 处理每个消息
                 for (String message : messages) {
                     try {
                         LOGGER.info("收到完整客户端消息: {}", message);
-                        
+
                         // 解析客户端事件
                         TcpEvent event = objectMapper.readValue(message, TcpEvent.class);
-                        
+
                         // 检查客户端ID
                         if (event.getId() == null || event.getId().isEmpty()) {
                             // ID不能为空
@@ -73,17 +73,17 @@ public class TcpServerHandler implements Runnable {
                         sendResponse(outputStream, TcpResponse.error("unknown", "处理请求错误: " + e.getMessage()));
                     }
                 }
-                
+
                 // 短暂休眠，避免CPU占用过高
                 Thread.sleep(10);
             }
-            
+
             LOGGER.info("客户端断开连接: {}", clientSocket.getInetAddress().getHostAddress());
         } catch (IOException | InterruptedException e) {
             LOGGER.error("客户端连接处理异常", e);
         }
     }
-    
+
     /**
      * 处理客户端事件
      *
@@ -94,17 +94,17 @@ public class TcpServerHandler implements Runnable {
      */
     private void processEvent(TcpEvent event, OutputStream outputStream, PrintWriter textWriter) throws IOException {
         String clientId = event.getId();
-        
+
         // 检查连接是否已注册
         boolean isExistingClient = connectionManager.hasClient(clientId);
-        
+
         // 如果客户端不存在，则注册新连接
         if (!isExistingClient) {
             connectionManager.registerClient(clientId, clientSocket, textWriter);
             mrcpManage.updateConnection(clientId);
             LOGGER.info("注册新客户端连接: {}", clientId);
         }
-        
+
         // 根据事件类型处理请求
         TcpResponse response;
         if (event.getEvent() != null && !event.getEvent().isEmpty()) {
@@ -114,17 +114,17 @@ public class TcpServerHandler implements Runnable {
             response = handler.handleEvent(event, tcpClientNotifier);
         } else {
             // 简单响应
-            response = TcpResponse.success(clientId, isExistingClient ? 
-                "事件已处理" : "连接已注册");
+            response = TcpResponse.success(clientId, isExistingClient ?
+                    "事件已处理" : "连接已注册");
         }
-        
+
         // 发送响应
         sendResponse(outputStream, response);
     }
-    
+
     /**
      * 发送响应到客户端
-     * 
+     *
      * @param outputStream 输出流
      * @param response 响应对象
      * @throws IOException IO异常
@@ -133,22 +133,22 @@ public class TcpServerHandler implements Runnable {
         try {
             // 将响应对象转换为JSON字符串
             String jsonResponse = objectMapper.writeValueAsString(response);
-            
+
             // 创建消息包
             TcpMessagePacket packet = new TcpMessagePacket(jsonResponse);
-            
+
             // 打包并发送
             byte[] data = packet.pack();
             outputStream.write(data);
             outputStream.flush();
-            
+
             LOGGER.info("已发送响应: {}", jsonResponse);
         } catch (IOException e) {
             LOGGER.error("发送响应失败", e);
             throw e;
         }
     }
-    
+
     /**
      * 根据事件类型创建对应的处理器
      *
@@ -156,19 +156,31 @@ public class TcpServerHandler implements Runnable {
      * @return 命令处理器
      */
     private TcpCommandHandler createEventHandler(String eventType) {
-        // 根据事件类型创建相应的处理器
-        switch (eventType.toLowerCase()) {
-            case "echo":
-                return new EchoCommandHandler();
-            case "speak":
-                return new SpeakCommandHandler(mrcpManage);
-            case "interruptandspeak":
-                return new InterruptAndSpeakCommandHandler(mrcpManage);
-            case "asr":
-                return new AsrCommandHandler(mrcpManage);
-            // 可以在这里添加更多事件类型的处理器
-            default:
-                return new DefaultTcpCommandHandler();
+        try {
+            // 尝试将字符串转换为枚举值（不区分大小写）
+            TcpEventType enumEventType = TcpEventType.valueOf(eventType);
+            
+            // 使用枚举值进行比较
+            switch (enumEventType) {
+                case DetectSpeech:
+                    return new AsrCommandHandler(mrcpManage);
+                case Speak:
+                    return new SpeakCommandHandler(mrcpManage);
+                case InterruptAndSpeak:
+                    return new InterruptAndSpeakCommandHandler(mrcpManage);
+                // 可以在这里添加更多枚举类型的处理器
+                default:
+                    // 对于未明确处理的枚举类型，返回默认处理器
+                    return new DefaultTcpCommandHandler();
+            }
+        } catch (IllegalArgumentException e) {
+            // 对于不是枚举值的字符串，使用传统方式处理
+            switch (eventType.toLowerCase()) {
+                case "echo":
+                    return new EchoCommandHandler(mrcpManage);
+                default:
+                    return new DefaultTcpCommandHandler();
+            }
         }
     }
 } 

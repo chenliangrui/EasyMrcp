@@ -17,6 +17,7 @@ import java.util.Scanner;
 
 /**
  * TCP客户端Demo
+ * 用于演示与服务器进行基于TcpEvent的通信
  */
 public class TcpClientDemo {
 
@@ -39,7 +40,7 @@ public class TcpClientDemo {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         // 默认生成一个客户端ID
-        this.clientId = "55909e3c-1cae-4113-afd5-7c3587b26636";
+        this.clientId = "7bf09de9-0428-411c-b6ef-af0329c0b576";
     }
 
     /**
@@ -58,8 +59,8 @@ public class TcpClientDemo {
             // 启动接收线程
             new Thread(this::receiveMessages).start();
             
-            // 发送注册命令
-            sendMessage("asr", null);
+            // 发送注册事件
+            sendEvent("register", null);
             
             return true;
         } catch (IOException e) {
@@ -83,34 +84,67 @@ public class TcpClientDemo {
     }
     
     /**
-     * 发送消息
+     * 发送自定义事件
      * 
-     * @param event 事件类型
-     * @param data 消息数据
+     * @param eventType 事件类型
+     * @param data 事件数据
      */
-    public void sendMessage(String event, String data) {
+    public void sendEvent(String eventType, Object data) {
         if (!connected) {
             System.err.println("未连接到服务器");
             return;
         }
         
         try {
-            TcpEvent message = new TcpEvent(clientId, event, data);
+            // 创建TcpEvent对象
+            TcpEvent event = new TcpEvent();
+            event.setId(clientId);
+            event.setEvent(eventType);
+            event.setData(data != null ? data.toString() : null);
             
-            String jsonMessage = objectMapper.writeValueAsString(message);
+            // 转换为JSON
+            String jsonEvent = objectMapper.writeValueAsString(event);
             
             // 打包消息并发送
-            TcpMessagePacket packet = new TcpMessagePacket(jsonMessage);
+            TcpMessagePacket packet = new TcpMessagePacket(jsonEvent);
             byte[] packedData = packet.pack();
             outputStream.write(packedData);
             outputStream.flush();
             
-            System.out.println("发送事件: " + event);
-            if (data != null) {
-                System.out.println("数据: " + data);
-            }
+            System.out.println("发送事件: " + jsonEvent);
         } catch (Exception e) {
-            System.err.println("发送消息异常: " + e.getMessage());
+            System.err.println("发送事件异常: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 发送标准事件
+     * 
+     * @param eventType 标准事件类型
+     * @param data 事件数据
+     */
+    public void sendEvent(TcpEventType eventType, String data) {
+        if (!connected) {
+            System.err.println("未连接到服务器");
+            return;
+        }
+        
+        try {
+            // 创建TcpEvent对象
+            TcpEvent event = new TcpEvent(clientId, eventType, data);
+            
+            // 转换为JSON
+            String jsonEvent = objectMapper.writeValueAsString(event);
+            
+            // 打包消息并发送
+            TcpMessagePacket packet = new TcpMessagePacket(jsonEvent);
+            byte[] packedData = packet.pack();
+            outputStream.write(packedData);
+            outputStream.flush();
+            
+            System.out.println("发送事件: " + jsonEvent);
+        } catch (Exception e) {
+            System.err.println("发送事件异常: " + e.getMessage());
         }
     }
     
@@ -126,27 +160,18 @@ public class TcpClientDemo {
                 // 处理每个消息
                 for (String message : messages) {
                     try {
-                        // 解析JSON消息
+                        System.out.println("收到响应: " + message);
+                        
+                        // 解析JSON
                         JSONObject jsonObject = JSONObject.parseObject(message);
-                        String event = jsonObject.getString("event");
+                        String eventName = jsonObject.getString("event");
                         String data = jsonObject.getString("data");
                         
-                        System.out.println("收到事件: " + event);
-                        System.out.println("事件数据: " + data);
+                        // 处理标准事件类型
+                        handleStandardEvent(eventName, data);
                         
-                        // 根据事件类型处理
-                        if (TcpEventType.RecognitionComplete.name().equals(event)) {
-                            System.out.println("收到ASR识别结果，开始TTS");
-                            sendMessage("speak", "清晨晾衣时，发现窗台缝隙里钻出一株紫茉莉，单瓣花朵像被露水揉皱的绢纸。");
-                        } else if (TcpEventType.SpeakComplete.name().equals(event)) {
-                            System.out.println("TTS播放完成");
-                        } else if (TcpEventType.SpeakInterrupted.name().equals(event)) {
-                            System.out.println("TTS被打断");
-                        } else if (TcpEventType.InterruptAndSpeak.name().equals(event)) {
-                            System.out.println("打断并开始新的TTS");
-                        }
                     } catch (Exception e) {
-                        System.out.println("收到消息: " + message);
+                        System.out.println("处理响应异常: " + e.getMessage());
                     }
                 }
                 
@@ -161,17 +186,80 @@ public class TcpClientDemo {
     }
     
     /**
+     * 处理标准事件类型
+     * 
+     * @param eventName 事件名称
+     * @param data 事件数据
+     */
+    private void handleStandardEvent(String eventName, String data) {
+        // 尝试将事件名称转换为标准事件类型
+        try {
+            TcpEventType eventType = TcpEventType.valueOf(eventName);
+            
+            // 根据标准事件类型处理
+            switch (eventType) {
+                case RecognitionComplete:
+                    System.out.println("语音识别完成: " + data);
+                    sendEvent(TcpEventType.Speak, data);
+                    break;
+                    
+                case NoInputTimeout:
+                    System.out.println("语音识别超时: 未检测到输入");
+                    sendEvent(TcpEventType.Speak, "您好，您还在线吗?");
+                    break;
+                    
+                case SpeakComplete:
+                    System.out.println("语音合成播放完成");
+                    break;
+                    
+                case SpeakInterrupted:
+                    System.out.println("语音合成被打断");
+                    break;
+                    
+                case InterruptAndSpeak:
+                    System.out.println("打断当前TTS并开始新的TTS: " + data);
+                    break;
+                    
+                default:
+                    System.out.println("收到标准事件: " + eventType + ", 数据: " + data);
+            }
+        } catch (IllegalArgumentException e) {
+            // 非标准事件类型，按自定义事件处理
+            handleCustomEvent(eventName, data);
+        }
+    }
+    
+    /**
+     * 处理自定义事件
+     * 
+     * @param eventName 事件名称
+     * @param data 事件数据
+     */
+    private void handleCustomEvent(String eventName, String data) {
+        if ("AsrResult".equals(eventName)) {
+            System.out.println("收到语音识别结果: " + data);
+            // 示例：在识别到结果后自动发送TTS请求
+            sendEvent("speak", "您好，已收到您的语音识别结果");
+        } else {
+            System.out.println("收到自定义事件: " + eventName + ", 数据: " + data);
+        }
+    }
+    
+    /**
      * 交互式命令行
      */
     private void startCommandLine() {
         Scanner scanner = new Scanner(System.in);
         
-        System.out.println("TCP客户端已启动，可用命令: ");
-        System.out.println("1. speak <message> - 发送文本合成语音");
-        System.out.println("2. interrupt <message> - 打断当前TTS并合成新语音");
-        System.out.println("3. asr - 启动语音识别");
-        System.out.println("4. id [newid] - 获取或设置客户端ID");
-        System.out.println("5. exit - 退出");
+        System.out.println("TCP客户端已启动，可用事件: ");
+        System.out.println("1. echo <message> - 发送Echo事件");
+        System.out.println("2. status - 获取服务器状态");
+        System.out.println("3. id [newid] - 获取或设置客户端ID");
+        System.out.println("4. speak <message> - 发送语音合成事件");
+        System.out.println("5. detect-speech - 开始语音识别");
+        System.out.println("6. interrupt - 打断当前TTS");
+        System.out.println("7. interrupt_speak <message> - 打断当前TTS并播放新内容");
+        System.out.println("8. exit - 退出");
         
         while (true) {
             System.out.print("> ");
@@ -179,26 +267,33 @@ public class TcpClientDemo {
             
             if ("exit".equalsIgnoreCase(input)) {
                 break;
+            } else if (input.startsWith("echo ")) {
+                String message = input.substring(5);
+                sendEvent("echo", message);
+            } else if ("status".equalsIgnoreCase(input)) {
+                sendEvent("status", null);
             } else if (input.startsWith("speak ")) {
                 String message = input.substring(6);
-                sendMessage("speak", message);
-            } else if (input.startsWith("interrupt ")) {
-                String message = input.substring(10);
-                sendMessage("interruptandspeak", message);
-            } else if ("asr".equalsIgnoreCase(input)) {
-                sendMessage("asr", null);
+                sendEvent(TcpEventType.Speak, message);
+            } else if ("detect-speech".equalsIgnoreCase(input)) {
+                sendEvent(TcpEventType.DetectSpeech, null);
+            } else if ("interrupt".equalsIgnoreCase(input)) {
+                sendEvent(TcpEventType.SpeakInterrupted, null);
+            } else if (input.startsWith("interrupt_speak ")) {
+                String message = input.substring(15);
+                sendEvent(TcpEventType.InterruptAndSpeak, message);
             } else if (input.startsWith("id")) {
                 String[] parts = input.split("\\s+", 2);
                 if (parts.length > 1) {
                     setClientId(parts[1]);
                     System.out.println("已设置客户端ID: " + clientId);
-                    // 发送注册命令更新ID
-                    sendMessage("register", null);
+                    // 发送注册事件更新ID
+                    sendEvent("register", null);
                 } else {
                     System.out.println("当前客户端ID: " + clientId);
                 }
             } else {
-                System.out.println("未知命令: " + input);
+                System.out.println("未知事件: " + input);
             }
         }
         

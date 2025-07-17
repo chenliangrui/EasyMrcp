@@ -60,7 +60,7 @@ public class AsrCommandHandler implements TcpCommandHandler {
 
         // 创建超时管理器并设置超时参数
         MrcpTimeoutManager timeoutManager = new MrcpTimeoutManager(timeoutCallback);
-        timeoutManager.setNoInputTimeout(5000L);
+        timeoutManager.setNoInputTimeout(15000L);
         timeoutManager.setStartInputTimers(true);
 
         // 将超时管理器传递给AsrHandler
