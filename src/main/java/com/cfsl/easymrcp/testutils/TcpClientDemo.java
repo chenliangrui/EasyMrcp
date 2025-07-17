@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.testutils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.tcp.TcpEvent;
 import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tcp.TcpMessagePacket;
@@ -40,7 +41,7 @@ public class TcpClientDemo {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         // 默认生成一个客户端ID
-        this.clientId = "7bf09de9-0428-411c-b6ef-af0329c0b576";
+        this.clientId = "0b4099c2-0db6-4087-b1e2-9f43cbb21a1b";
     }
 
     /**
@@ -60,7 +61,7 @@ public class TcpClientDemo {
             new Thread(this::receiveMessages).start();
             
             // 发送注册事件
-            sendEvent("register", null);
+            sendEvent(TcpEventType.ClientConnect, null);
             
             return true;
         } catch (IOException e) {
@@ -276,7 +277,11 @@ public class TcpClientDemo {
                 String message = input.substring(6);
                 sendEvent(TcpEventType.Speak, message);
             } else if ("detect-speech".equalsIgnoreCase(input)) {
-                sendEvent(TcpEventType.DetectSpeech, null);
+                JSONObject detectSpeechParams = new JSONObject();
+                detectSpeechParams.put(ASRConstant.StartInputTimers, false);
+                detectSpeechParams.put(ASRConstant.NoInputTimeout, 15000);
+                detectSpeechParams.put(ASRConstant.SpeechCompleteTimeout, 800);
+                sendEvent(TcpEventType.DetectSpeech, detectSpeechParams.toJSONString());
             } else if ("interrupt".equalsIgnoreCase(input)) {
                 sendEvent(TcpEventType.SpeakInterrupted, null);
             } else if (input.startsWith("interrupt_speak ")) {

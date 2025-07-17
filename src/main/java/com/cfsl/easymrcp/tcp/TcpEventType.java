@@ -4,6 +4,10 @@ package com.cfsl.easymrcp.tcp;
  * TCP事件类型枚举
  */
 public enum TcpEventType {
+    /**
+     * 客户端tcp建立连接事件
+     */
+    ClientConnect,
 
     /**
      * 开始ASR事件

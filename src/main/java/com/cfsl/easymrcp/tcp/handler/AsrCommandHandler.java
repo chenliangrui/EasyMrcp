@@ -1,5 +1,8 @@
 package com.cfsl.easymrcp.tcp.handler;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
@@ -10,14 +13,6 @@ import com.cfsl.easymrcp.tcp.TcpEvent;
 import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tcp.TcpResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.mrcp4j.MrcpEventName;
-import org.mrcp4j.MrcpRequestState;
-import org.mrcp4j.message.MrcpEvent;
-import org.mrcp4j.message.header.CompletionCause;
-import org.mrcp4j.message.header.MrcpHeaderName;
-import org.mrcp4j.server.MrcpSession;
-
-import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class AsrCommandHandler implements TcpCommandHandler {
@@ -31,14 +26,6 @@ public class AsrCommandHandler implements TcpCommandHandler {
     public TcpResponse handleEvent(TcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
         AsrHandler asrHandler = mrcpManage.getAsrHandler(id);
-        Long speechCompleteTimeout = 800l;
-
-        // 直接设置Speech-Complete-Timeout参数到AsrHandler，用于VAD初始化
-        if (speechCompleteTimeout != null && speechCompleteTimeout > 0) {
-            asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
-            log.info("Setting Speech-Complete-Timeout ({} ms) for VAD initialization", speechCompleteTimeout);
-        }
-
         // 创建超时回调
         MrcpTimeoutManager.TimeoutCallback timeoutCallback = new MrcpTimeoutManager.TimeoutCallback() {
             @Override
@@ -60,8 +47,24 @@ public class AsrCommandHandler implements TcpCommandHandler {
 
         // 创建超时管理器并设置超时参数
         MrcpTimeoutManager timeoutManager = new MrcpTimeoutManager(timeoutCallback);
-        timeoutManager.setNoInputTimeout(15000L);
-        timeoutManager.setStartInputTimers(true);
+        JSONObject asrParams = JSON.parseObject(event.getData());
+        if (asrParams != null) {
+            if (asrParams.getBoolean(ASRConstant.StartInputTimers)) {
+                timeoutManager.setStartInputTimers(true);
+                Long noInputTimeout = asrParams.getLong(ASRConstant.NoInputTimeout);
+                if (noInputTimeout != null && noInputTimeout > 0) {
+                    timeoutManager.setNoInputTimeout(noInputTimeout);
+                }
+                Long speechCompleteTimeout = asrParams.getLong(ASRConstant.SpeechCompleteTimeout);
+                if (speechCompleteTimeout != null && speechCompleteTimeout > 0) {
+                    asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
+                    log.info("Setting Speech-Complete-Timeout ({} ms) for VAD initialization", speechCompleteTimeout);
+                }
+            } else {
+                // 关闭超时计时器
+                timeoutManager.setStartInputTimers(false);
+            }
+        }
 
         // 将超时管理器传递给AsrHandler
         asrHandler.setTimeoutManager(timeoutManager);
