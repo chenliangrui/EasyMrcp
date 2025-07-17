@@ -8,22 +8,22 @@ import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
 import com.cfsl.easymrcp.tcp.TcpClientNotifier;
-import com.cfsl.easymrcp.tcp.TcpCommandHandler;
-import com.cfsl.easymrcp.tcp.TcpEvent;
+import com.cfsl.easymrcp.tcp.MrcpEventHandler;
+import com.cfsl.easymrcp.tcp.MrcpEvent;
 import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tcp.TcpResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AsrCommandHandler implements TcpCommandHandler {
+public class DetectSpeechEventHandler implements MrcpEventHandler {
     MrcpManage mrcpManage;
 
-    public AsrCommandHandler(MrcpManage mrcpManage) {
+    public DetectSpeechEventHandler(MrcpManage mrcpManage) {
         this.mrcpManage = mrcpManage;
     }
 
     @Override
-    public TcpResponse handleEvent(TcpEvent event, TcpClientNotifier tcpClientNotifier) {
+    public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
         AsrHandler asrHandler = mrcpManage.getAsrHandler(id);
         // 创建超时回调

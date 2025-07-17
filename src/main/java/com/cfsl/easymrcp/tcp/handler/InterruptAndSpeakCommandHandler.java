@@ -2,14 +2,14 @@ package com.cfsl.easymrcp.tcp.handler;
 
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.tcp.TcpClientNotifier;
-import com.cfsl.easymrcp.tcp.TcpEvent;
-import com.cfsl.easymrcp.tcp.TcpCommandHandler;
+import com.cfsl.easymrcp.tcp.MrcpEvent;
+import com.cfsl.easymrcp.tcp.MrcpEventHandler;
 import com.cfsl.easymrcp.tcp.TcpResponse;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class InterruptAndSpeakCommandHandler implements TcpCommandHandler {
+public class InterruptAndSpeakCommandHandler implements MrcpEventHandler {
     MrcpManage mrcpManage;
 
     public InterruptAndSpeakCommandHandler(MrcpManage mrcpManage) {
@@ -17,7 +17,7 @@ public class InterruptAndSpeakCommandHandler implements TcpCommandHandler {
     }
 
     @Override
-    public TcpResponse handleEvent(TcpEvent event, TcpClientNotifier tcpClientNotifier) {
+    public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
         TtsHandler ttsHandler = mrcpManage.getTtsHandler(id);
         

@@ -2,8 +2,8 @@ package com.cfsl.easymrcp.tcp.handler;
 
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.tcp.TcpClientNotifier;
-import com.cfsl.easymrcp.tcp.TcpCommandHandler;
-import com.cfsl.easymrcp.tcp.TcpEvent;
+import com.cfsl.easymrcp.tcp.MrcpEventHandler;
+import com.cfsl.easymrcp.tcp.MrcpEvent;
 import com.cfsl.easymrcp.tcp.TcpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Echo命令处理器
  */
-public class EchoCommandHandler implements TcpCommandHandler {
+public class EchoCommandHandler implements MrcpEventHandler {
 
     private MrcpManage mrcpManage;
     
@@ -24,7 +24,7 @@ public class EchoCommandHandler implements TcpCommandHandler {
     }
 
     @Override
-    public TcpResponse handleEvent(TcpEvent event, TcpClientNotifier tcpClientNotifier) {
+    public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         LOGGER.info("处理Echo命令: {}", event);
         if (mrcpManage != null) {
             mrcpManage.setSpeaking(event.getId(), true);

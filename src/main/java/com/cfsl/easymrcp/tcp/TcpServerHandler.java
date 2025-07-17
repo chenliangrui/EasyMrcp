@@ -58,7 +58,7 @@ public class TcpServerHandler implements Runnable {
                         LOGGER.info("收到完整客户端消息: {}", message);
 
                         // 解析客户端事件
-                        TcpEvent event = objectMapper.readValue(message, TcpEvent.class);
+                        MrcpEvent event = objectMapper.readValue(message, MrcpEvent.class);
 
                         // 检查客户端ID
                         if (event.getId() == null || event.getId().isEmpty()) {
@@ -92,7 +92,7 @@ public class TcpServerHandler implements Runnable {
      * @param textWriter 文本输出流（兼容旧版本）
      * @throws IOException IO异常
      */
-    private void processEvent(TcpEvent event, OutputStream outputStream, PrintWriter textWriter) throws IOException {
+    private void processEvent(MrcpEvent event, OutputStream outputStream, PrintWriter textWriter) throws IOException {
         String clientId = event.getId();
 
         // 检查连接是否已注册
@@ -109,7 +109,7 @@ public class TcpServerHandler implements Runnable {
         TcpResponse response;
         if (event.getEvent() != null && !event.getEvent().isEmpty()) {
             // 创建对应的命令处理器
-            TcpCommandHandler handler = createEventHandler(event.getEvent());
+            MrcpEventHandler handler = createEventHandler(event.getEvent());
             // 执行事件处理
             response = handler.handleEvent(event, tcpClientNotifier);
         } else {
@@ -155,7 +155,7 @@ public class TcpServerHandler implements Runnable {
      * @param eventType 事件类型
      * @return 命令处理器
      */
-    private TcpCommandHandler createEventHandler(String eventType) {
+    private MrcpEventHandler createEventHandler(String eventType) {
         try {
             // 尝试将字符串转换为枚举值（不区分大小写）
             TcpEventType enumEventType = TcpEventType.valueOf(eventType);
@@ -163,15 +163,15 @@ public class TcpServerHandler implements Runnable {
             // 使用枚举值进行比较
             switch (enumEventType) {
                 case DetectSpeech:
-                    return new AsrCommandHandler(mrcpManage);
+                    return new DetectSpeechEventHandler(mrcpManage);
                 case Speak:
-                    return new SpeakCommandHandler(mrcpManage);
+                    return new SpeakEventHandler(mrcpManage);
                 case InterruptAndSpeak:
                     return new InterruptAndSpeakCommandHandler(mrcpManage);
                 // 可以在这里添加更多枚举类型的处理器
                 default:
                     // 对于未明确处理的枚举类型，返回默认处理器
-                    return new DefaultTcpCommandHandler();
+                    return new DefaultMrcpEventHandler();
             }
         } catch (IllegalArgumentException e) {
             // 对于不是枚举值的字符串，使用传统方式处理
@@ -179,7 +179,7 @@ public class TcpServerHandler implements Runnable {
                 case "echo":
                     return new EchoCommandHandler(mrcpManage);
                 default:
-                    return new DefaultTcpCommandHandler();
+                    return new DefaultMrcpEventHandler();
             }
         }
     }
