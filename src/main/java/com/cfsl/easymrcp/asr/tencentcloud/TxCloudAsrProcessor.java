@@ -23,8 +23,8 @@ public class TxCloudAsrProcessor extends AsrHandler {
     public void create() {
         txCloudCallback = new AsrCallback() {
             @Override
-            public void apply(String msg) {
-                getCallback().apply(msg);
+            public void apply(String action, String msg) {
+                getCallback().apply(action, msg);
             }
         };
         txCloudClient = new TxCloudAsrClient(txCloudConfig, txCloudCallback);

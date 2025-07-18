@@ -43,8 +43,8 @@ public class XfyunTransliterateAsrProcessor extends AsrHandler {
 
         xfyunAsrCallback = new AsrCallback() {
             @Override
-            public void apply(String msg) {
-                getCallback().apply(msg);
+            public void apply(String action, String msg) {
+                getCallback().apply(action, msg);
             }
         };
         xfyunWsClient = new XfyunTransliterateWsClient(xfyunAsrCallback, stop, client);

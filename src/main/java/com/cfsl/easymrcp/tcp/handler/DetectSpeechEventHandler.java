@@ -71,10 +71,10 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
 
         asrHandler.setCallback(new AsrCallback() {
             @Override
-            public void apply(String msg) {
+            public void apply(String action, String msg) {
                 // TODO 放到vad和实时语音识别中进行处理，并且重置定时器
-                mrcpManage.interrupt(id);
-                tcpClientNotifier.sendEvent(id, TcpEventType.RecognitionComplete, msg);
+                if (action.equals(ASRConstant.Interrupt)) mrcpManage.interrupt(id);
+                if (action.equals(ASRConstant.Result)) tcpClientNotifier.sendEvent(id, TcpEventType.RecognitionComplete, msg);
             }
         });
 

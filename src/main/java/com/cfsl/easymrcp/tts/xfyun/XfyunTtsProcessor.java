@@ -37,6 +37,7 @@ public class XfyunTtsProcessor extends TtsHandler {
     public Gson gson = new Gson();
     public boolean wsCloseFlag = false;
     String wsUrl;
+    WebSocketClient webSocketClient;
 
     public XfyunTtsProcessor(XfyunTtsConfig xfyunTtsConfig) {
         this.hostUrl = xfyunTtsConfig.hostUrl;
@@ -51,6 +52,7 @@ public class XfyunTtsProcessor extends TtsHandler {
     public void create() {
         try {
             wsUrl = getAuthUrl(hostUrl, APIKey, APISecret).replace("https://", "wss://");
+            wsCloseFlag = false;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -64,6 +66,7 @@ public class XfyunTtsProcessor extends TtsHandler {
 
     @Override
     public void ttsClose() {
+        webSocketClient.close();
         log.info("xfyun tts close");
     }
 
@@ -71,7 +74,7 @@ public class XfyunTtsProcessor extends TtsHandler {
     public void websocketWork(String wsUrl) {
         try {
             URI uri = new URI(wsUrl);
-            WebSocketClient webSocketClient = new WebSocketClient(uri) {
+            webSocketClient = new WebSocketClient(uri) {
                 @Override
                 public void onOpen(ServerHandshake serverHandshake) {
                     log.info("ws建立连接成功...");

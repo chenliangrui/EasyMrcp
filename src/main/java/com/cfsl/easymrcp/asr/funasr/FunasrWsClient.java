@@ -10,6 +10,7 @@
 //                 [--chunk_size CHUNK_SIZE] [--chunk_interval CHUNK_INTERVAL] [--mode MODE]
 package com.cfsl.easymrcp.asr.funasr;
 
+import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,8 @@ import java.util.regex.Pattern;
 @Slf4j
 /** This example demonstrates how to connect to websocket server. */
 public class FunasrWsClient extends WebSocketClient {
-    private boolean iseof = false;
+    private boolean isParagraphOver;
+    private boolean iseof = true;
     @Setter
     String mode = "2pass";
     @Setter
@@ -143,8 +145,11 @@ public class FunasrWsClient extends WebSocketClient {
             jsonObject = (JSONObject) jsonParser.parse(message);
             String result = jsonObject.get("text").toString();
             log.info("text: " + result);
+            if (isParagraphOver) callback.apply(ASRConstant.Interrupt, "打断");
+            isParagraphOver = false;
             if (!stop && !result.isEmpty() && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
-                callback.apply(result);
+                callback.apply(ASRConstant.Result, result);
+                isParagraphOver = true;
             }
             if (jsonObject.containsKey("timestamp")) {
                 log.info("timestamp: " + jsonObject.get("timestamp"));

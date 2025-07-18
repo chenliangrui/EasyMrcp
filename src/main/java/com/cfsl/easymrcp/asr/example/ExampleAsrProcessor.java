@@ -1,5 +1,6 @@
 package com.cfsl.easymrcp.asr.example;
 
+import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,7 +32,7 @@ public class ExampleAsrProcessor extends AsrHandler {
                 public void run() {
                     try {
                         Thread.sleep(3000);
-                        getCallback().apply("识别成功");
+                        getCallback().apply(ASRConstant.Result, "识别成功");
                     } catch (InterruptedException e) {
                         log.error(e.getMessage(), e);
                     }

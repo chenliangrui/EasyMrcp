@@ -37,7 +37,7 @@ public class TcpClientDemo {
         this.serverHost = serverHost;
         this.serverPort = serverPort;
         // 通话建立后将pbx的通话uuid作为EasyMrcp本轮通话的唯一ID
-        this.clientId = "0b4099c2-0db6-4087-b1e2-9f43cbb21a1b";
+        this.clientId = "eaa3184b-e01e-4a70-8f6b-b0c94a779318";
     }
 
     /**
@@ -218,7 +218,7 @@ public class TcpClientDemo {
             } else if ("detect-speech".equalsIgnoreCase(input)) {
                 JSONObject detectSpeechParams = new JSONObject();
                 detectSpeechParams.put(ASRConstant.StartInputTimers, true);
-                detectSpeechParams.put(ASRConstant.NoInputTimeout, 15000);
+                detectSpeechParams.put(ASRConstant.NoInputTimeout, 60000);
                 detectSpeechParams.put(ASRConstant.SpeechCompleteTimeout, 800);
                 sendEvent(TcpEventType.DetectSpeech, detectSpeechParams.toJSONString());
             } else if ("interrupt".equalsIgnoreCase(input)) {

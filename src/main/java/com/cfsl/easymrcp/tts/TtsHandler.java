@@ -30,7 +30,7 @@ public abstract class TtsHandler implements RtpConnection {
     public void create(String localIp, DatagramSocket localSocket, String remoteIp, int remotePort) {
         //初始化rtp
         processor = new RealTimeAudioProcessor(localSocket, reSample, remoteIp, remotePort);
-        create();
+//        create();
         processor.startProcessing();
         processor.startRtpSender();
     }
@@ -43,6 +43,7 @@ public abstract class TtsHandler implements RtpConnection {
 
     public void transmit(String text) {
         processor.setCallback(getCallback());
+        this.create();
         speak(text);
     }
 
@@ -57,6 +58,9 @@ public abstract class TtsHandler implements RtpConnection {
 
     public abstract void speak(String text);
 
+    /**
+     * 当通话结束或者主动打断时需要手动关闭tts的音频流
+     */
     public abstract void ttsClose();
 
     public void stop() {

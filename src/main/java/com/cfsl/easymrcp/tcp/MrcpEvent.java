@@ -12,6 +12,9 @@ public class MrcpEvent {
     private String event;
     private String data;
 
+    public MrcpEvent() {
+    }
+
     public MrcpEvent(String id, TcpEventType event, String data) {
         this.id = id;
         this.event = event.name();

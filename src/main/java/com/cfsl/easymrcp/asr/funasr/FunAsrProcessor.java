@@ -31,8 +31,8 @@ public class FunAsrProcessor extends AsrHandler {
             String wsAddress = "ws://" + srvIp + ":" + srvPort;
             funasrCallback = new AsrCallback() {
                 @Override
-                public void apply(String msg) {
-                    getCallback().apply(msg);
+                public void apply(String action, String msg) {
+                    getCallback().apply(action, msg);
                 }
             };
             funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop, getCountDownLatch());

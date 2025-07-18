@@ -193,7 +193,7 @@ public class RealTimeAudioProcessor {
                         packageCount = 1;
                     }
                     byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
-                    log.debug("send {} bytes", payload.length);
+                    log.info("send {} bytes", payload.length);
                     finalSender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         sendSilence = true;
@@ -203,10 +203,11 @@ public class RealTimeAudioProcessor {
                     if (payload[0] == TTSConstant.TTS_INTERRUPT_BYTE && payload[1] == TTSConstant.TTS_INTERRUPT_BYTE) {
                         sendSilence = true;
 //                        stopRtpSender();
+                        log.info("语音流已经打断！！！");
                         callback.apply("interrupt");
                     }
                 } catch (Exception e) {
-                    if (!e.getMessage().equalsIgnoreCase("Socket is closed")) log.error(e.getMessage(), e);
+                    if (e.getMessage() != null && !e.getMessage().equalsIgnoreCase("Socket is closed")) log.error(e.getMessage(), e);
                 }
             }
         }).start();

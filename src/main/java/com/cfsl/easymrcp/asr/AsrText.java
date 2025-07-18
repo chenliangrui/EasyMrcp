@@ -42,7 +42,7 @@ public class AsrText {
             }
             // 创建新定时任务
             scheduledFuture = executor.schedule(() -> {
-                xfyunAsrCallback.apply(result);
+                xfyunAsrCallback.apply(ASRConstant.Result, result);
                 lock.lock();
                 try {
                     result = "";

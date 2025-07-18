@@ -109,7 +109,7 @@ public class MrcpRecogChannel implements RecogOnlyRequestHandler {
         // 设置语音识别完成的回调，当asr完成识别后调用回调
         AsrCallback callback = new AsrCallback() {
             @Override
-            public void apply(String msg) {
+            public void apply(String action, String msg) {
                 if (!mrcpSession.isComplete()) {
                     // 发送后IN_PROGRESS会打断tts，添加在此处是当完成asr识别时会打断当前正在播放的tts
 //                    MrcpEvent event = mrcpSession.createEvent(MrcpEventName.START_OF_INPUT, MrcpRequestState.IN_PROGRESS);
