@@ -23,8 +23,14 @@ public class SpeakEventHandler implements MrcpEventHandler {
     public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
         AsrHandler asrHandler = mrcpManage.getAsrHandler(id);
+        if (asrHandler == null) {
+            return null;
+        }
         asrHandler.cancelTimeouts();
         TtsHandler ttsHandler = mrcpManage.getTtsHandler(id);
+        if (ttsHandler == null) {
+            return null;
+        }
         log.info("tts开始，设置true");
         mrcpManage.setSpeaking(id,true);
         ttsHandler.setCallback(new TtsCallback() {

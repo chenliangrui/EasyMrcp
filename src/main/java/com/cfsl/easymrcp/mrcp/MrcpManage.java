@@ -60,7 +60,7 @@ public class MrcpManage {
 
     public AsrHandler getAsrHandler(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-            log.error("getTts error, callId:{} not exist", callId);
+            log.warn("getAsrHandler error, callId:{} not exist", callId);
             return null;
         } else {
             return mrcpCallDataConcurrentHashMap.get(callId).getAsrHandler();
@@ -69,7 +69,7 @@ public class MrcpManage {
 
     public TtsHandler getTtsHandler(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-            log.error("getTts error, callId:{} not exist", callId);
+            log.warn("getTtsHandler error, callId:{} not exist", callId);
             return null;
         } else {
             return mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler();
@@ -103,5 +103,13 @@ public class MrcpManage {
             mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().getProcessor().interrupt();
             setSpeaking(callId, false);
         }
+    }
+
+    public void removeMrcpCallData(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.warn("removeMrcpCallData error, callId:{} not exist", callId);
+            return;
+        }
+        mrcpCallDataConcurrentHashMap.remove(callId);
     }
 }

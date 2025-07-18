@@ -193,7 +193,7 @@ public class RealTimeAudioProcessor {
                         packageCount = 1;
                     }
                     byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
-                    log.info("send {} bytes", payload.length);
+                    log.trace("send {} bytes", payload.length);
                     finalSender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         sendSilence = true;

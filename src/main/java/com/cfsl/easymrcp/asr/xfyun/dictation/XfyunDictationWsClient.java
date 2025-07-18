@@ -51,8 +51,8 @@ public class XfyunDictationWsClient extends WebSocketListener {
     Boolean stop;
     CountDownLatch countDownLatch;
 
-    public XfyunDictationWsClient(AsrCallback funasrCallback, Boolean stop, CountDownLatch countDownLatch) {
-        this.callback = funasrCallback;
+    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch) {
+        this.callback = xfyunCallback;
         this.stop = stop;
         this.countDownLatch = countDownLatch;
     }

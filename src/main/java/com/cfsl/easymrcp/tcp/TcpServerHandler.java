@@ -157,7 +157,7 @@ public class TcpServerHandler implements Runnable {
      */
     private MrcpEventHandler createEventHandler(String eventType) {
         try {
-            // 尝试将字符串转换为枚举值（不区分大小写）
+            // 尝试将字符串转换为枚举值（区分大小写）
             TcpEventType enumEventType = TcpEventType.valueOf(eventType);
             
             // 使用枚举值进行比较
@@ -168,6 +168,8 @@ public class TcpServerHandler implements Runnable {
                     return new SpeakEventHandler(mrcpManage);
                 case InterruptAndSpeak:
                     return new InterruptAndSpeakCommandHandler(mrcpManage);
+                case ClientDisConnect:
+                    return new ClientDisConnectEventHandler(mrcpManage);
                 // 可以在这里添加更多枚举类型的处理器
                 default:
                     // 对于未明确处理的枚举类型，返回默认处理器

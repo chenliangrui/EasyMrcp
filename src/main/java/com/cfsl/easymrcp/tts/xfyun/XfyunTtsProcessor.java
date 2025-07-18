@@ -66,7 +66,7 @@ public class XfyunTtsProcessor extends TtsHandler {
 
     @Override
     public void ttsClose() {
-        webSocketClient.close();
+        if (webSocketClient != null) webSocketClient.close();
         log.info("xfyun tts close");
     }
 

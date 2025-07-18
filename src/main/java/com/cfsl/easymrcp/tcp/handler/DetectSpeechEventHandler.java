@@ -26,6 +26,9 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
     public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
         AsrHandler asrHandler = mrcpManage.getAsrHandler(id);
+        if (asrHandler == null) {
+            return null;
+        }
         // 创建超时回调
         MrcpTimeoutManager.TimeoutCallback timeoutCallback = new MrcpTimeoutManager.TimeoutCallback() {
             @Override

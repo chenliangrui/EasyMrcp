@@ -64,8 +64,12 @@ public class HandleBye {
         RtpSession rtpSession = rtpManage.getRtpSession(sessionId);
         Map<String, RtpConnection> channelMaps = rtpSession.getChannelMaps();
         for(RtpConnection channel: channelMaps.values()) {
-            mrcpServer.getMrcpServerSocket().closeChannel(channel.getChannelId());
-            channel.close();
+//            mrcpServer.getMrcpServerSocket().closeChannel(channel.getChannelId());
+            try {
+                channel.close();
+            } catch (Exception e) {
+                log.error("close rtp channel failed", e);
+            }
         }
         rtpManage.removeRtpSession(sessionId);
     }

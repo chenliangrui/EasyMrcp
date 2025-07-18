@@ -10,6 +10,11 @@ public enum TcpEventType {
     ClientConnect,
 
     /**
+     * 客户端tcp关闭事件
+     */
+    ClientDisConnect,
+
+    /**
      * 开始ASR事件
      */
     DetectSpeech,

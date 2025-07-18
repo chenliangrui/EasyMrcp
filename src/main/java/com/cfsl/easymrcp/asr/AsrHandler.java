@@ -144,7 +144,6 @@ public abstract class AsrHandler implements RtpConnection {
                             
                             if (isSpeakingNow) {
                                 if (!isSpeakingBefore) {
-//                                    callback.apply(ASRConstant.Interrupt, "打断");
                                     reCreate();
                                 }
                                 receive(take);
