@@ -13,6 +13,7 @@ import com.cfsl.easymrcp.sdp.SdpMessage;
 import com.cfsl.easymrcp.sip.MrcpServer;
 import com.cfsl.easymrcp.sip.SipSession;
 import com.cfsl.easymrcp.tcp.TcpClientNotifier;
+import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.utils.SipUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -89,6 +90,7 @@ public class HandleSipInit {
 
                     initAsr(rtpSession, datagramSocket, customHeaderUUID);
                     initTts(remoteHost, remotePort, customHeaderUUID, rtpSession, datagramSocket);
+                    tcpClientNotifier.sendEvent(customHeaderUUID, TcpEventType.ClientConnect, "SipInitSuccess");
                 }
             }
         } catch (Exception e) {

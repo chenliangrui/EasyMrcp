@@ -87,9 +87,9 @@ public class TcpServerHandler implements Runnable {
     /**
      * 处理客户端事件
      *
-     * @param event 客户端事件
+     * @param event        客户端事件
      * @param outputStream 输出流
-     * @param textWriter 文本输出流（兼容旧版本）
+     * @param textWriter   文本输出流（兼容旧版本）
      * @throws IOException IO异常
      */
     private void processEvent(MrcpEvent event, OutputStream outputStream, PrintWriter textWriter) throws IOException {
@@ -101,7 +101,6 @@ public class TcpServerHandler implements Runnable {
         // 如果客户端不存在，则注册新连接
         if (!isExistingClient) {
             connectionManager.registerClient(clientId, clientSocket, textWriter);
-            mrcpManage.updateConnection(clientId);
             LOGGER.info("注册新客户端连接: {}", clientId);
         }
 
@@ -126,7 +125,7 @@ public class TcpServerHandler implements Runnable {
      * 发送响应到客户端
      *
      * @param outputStream 输出流
-     * @param response 响应对象
+     * @param response     响应对象
      * @throws IOException IO异常
      */
     private void sendResponse(OutputStream outputStream, TcpResponse response) throws IOException {
@@ -159,7 +158,7 @@ public class TcpServerHandler implements Runnable {
         try {
             // 尝试将字符串转换为枚举值（区分大小写）
             TcpEventType enumEventType = TcpEventType.valueOf(eventType);
-            
+
             // 使用枚举值进行比较
             switch (enumEventType) {
                 case DetectSpeech:
@@ -168,6 +167,8 @@ public class TcpServerHandler implements Runnable {
                     return new SpeakEventHandler(mrcpManage);
                 case InterruptAndSpeak:
                     return new InterruptAndSpeakCommandHandler(mrcpManage);
+                case ClientConnect:
+                    return new ClientConnectEventHandler(mrcpManage);
                 case ClientDisConnect:
                     return new ClientDisConnectEventHandler(mrcpManage);
                 // 可以在这里添加更多枚举类型的处理器
