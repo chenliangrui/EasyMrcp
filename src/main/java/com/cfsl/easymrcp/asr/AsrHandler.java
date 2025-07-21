@@ -126,22 +126,15 @@ public abstract class AsrHandler implements RtpConnection {
                     } else {
                         inputRingBuffer.put(pcmData);
                     }
-
                     if (inputRingBuffer.getAvailable() >= 2048) {
                         byte[] take = inputRingBuffer.take(2048);
                         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
                             // 获取前一个说话状态
                             boolean isSpeakingBefore = vadHandle.getIsSpeaking();
-                            
                             // VAD处理PCM数据
                             vadHandle.receivePcm(take);
-                            
                             // 获取当前说话状态
                             boolean isSpeakingNow = vadHandle.getIsSpeaking();
-                            
-                            // 简化VAD状态处理，只关注语音开始检测
-                            handleSpeechStart(isSpeakingBefore, isSpeakingNow);
-                            
                             if (isSpeakingNow) {
                                 if (!isSpeakingBefore) {
                                     reCreate();
@@ -159,23 +152,6 @@ public abstract class AsrHandler implements RtpConnection {
             }
         }).start();
         return true;
-    }
-    
-    /**
-     * 处理语音开始检测，通知MrcpTimeoutManager
-     * @param previousState 前一个VAD状态
-     * @param currentState 当前VAD状态
-     */
-    private void handleSpeechStart(boolean previousState, boolean currentState) {
-        if (timeoutManager == null) {
-            return;
-        }
-        
-        // 只关注语音开始检测，用于取消No-Input-Timeout
-        if (!previousState && currentState) {
-            log.debug("VAD detected speech start, notifying timeout manager");
-            timeoutManager.onSpeechStart();
-        }
     }
 
     @Override

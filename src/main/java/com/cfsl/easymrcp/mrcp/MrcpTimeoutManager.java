@@ -22,55 +22,53 @@ import java.util.concurrent.TimeUnit;
 public class MrcpTimeoutManager {
     // 单例模式
     private static final HashedWheelTimer wheelTimer = new HashedWheelTimer(50, TimeUnit.MILLISECONDS);
-    
+
     // 超时相关字段
     private Long noInputTimeout;           // 无输入超时
     // 实际应用中不太有用，已注释
     private Long recognitionTimeout;       // 识别总超时
     private Boolean startInputTimers;      // 是否启动输入计时器
-    
+
     // 当前活动的超时任务
     private Timeout noInputTimeoutTask;
-    
+
     // 超时回调
     private TimeoutCallback timeoutCallback;
-    
-    // 当前状态
-    private boolean speechDetected = false;
-    
+
     public interface TimeoutCallback {
         void onNoInputTimeout();
+
         // Speech-Complete-Timeout由VAD直接处理，但保留接口方法供VAD检测到语音结束时调用
         void onSpeechCompleteTimeout();
     }
-    
+
     public MrcpTimeoutManager(TimeoutCallback callback) {
         this.timeoutCallback = callback;
-        
+
         // 默认超时值（毫秒）
         this.noInputTimeout = 500000L;
         this.recognitionTimeout = 100000L;
         this.startInputTimers = true;
     }
-    
+
     public void setNoInputTimeout(Long timeout) {
         if (timeout != null && timeout > 0) {
             this.noInputTimeout = timeout;
         }
     }
-    
+
     public void setRecognitionTimeout(Long timeout) {
         if (timeout != null && timeout > 0) {
             this.recognitionTimeout = timeout;
         }
     }
-    
+
     public void setStartInputTimers(Boolean start) {
         if (start != null) {
             this.startInputTimers = start;
         }
     }
-    
+
     public void startTimers() {
         // 如果不立即开始计时，则直接返回
         if (!startInputTimers) {
@@ -80,33 +78,16 @@ public class MrcpTimeoutManager {
         log.info("Starting timers: no-input={}", noInputTimeout);
         // 启动无输入超时定时器
         if (noInputTimeout > 0) {
+            if (noInputTimeoutTask != null) {
+                cancelAllTimers();
+            }
             noInputTimeoutTask = wheelTimer.newTimeout(timeout -> {
-                if (!speechDetected) {
-                    log.info("No input timeout triggered");
-                    timeoutCallback.onNoInputTimeout();
-                }
+                log.info("No input timeout triggered");
+                timeoutCallback.onNoInputTimeout();
             }, noInputTimeout, TimeUnit.MILLISECONDS);
         }
     }
-    
-    // 当检测到语音时调用
-    public void onSpeechStart() {
-        speechDetected = true;
-        log.debug("Speech detected, canceling no-input timeout");
-        // 取消无输入超时
-        if (noInputTimeoutTask != null && !noInputTimeoutTask.isExpired()) {
-            noInputTimeoutTask.cancel();
-        }
-    }
-    
-    // 当检测到语音结束时调用
-    public void onSpeechEnd() {
-        log.debug("Speech ended");
-        // 语音结束时直接调用回调，不再启动计时器
-        log.info("Speech ended, notifying timeout callback");
-        timeoutCallback.onSpeechCompleteTimeout();
-    }
-    
+
     // 取消所有定时器
     public void cancelAllTimers() {
         log.debug("Cancelling all timers");
@@ -115,7 +96,7 @@ public class MrcpTimeoutManager {
             noInputTimeoutTask = null;
         }
     }
-    
+
     // 启动输入计时器的方法(响应START_INPUT_TIMERS请求)
     public void startInputTimers() {
         log.info("Explicitly starting input timers");
