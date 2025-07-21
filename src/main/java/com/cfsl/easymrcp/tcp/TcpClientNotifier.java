@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class TcpClientNotifier {
-    private final TcpConnectionManager connectionManager;
+    private final NettyConnectionManager connectionManager;
     
     @Autowired
-    public TcpClientNotifier(TcpConnectionManager connectionManager) {
+    public TcpClientNotifier(NettyConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
     }
     

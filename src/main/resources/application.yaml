@@ -10,9 +10,9 @@ sip:
   mrcpServerPort: 1544
 mrcp:
   # 选择一个asr服务，目前已经集成：xfyun、funasr、tencent-cloud
-  asrMode: funasr
+  asrMode: xfyun
   # 选择一个tts服务，目前已经集成：xfyun、kokoro、tencent-cloud
-  ttsMode: kokoro
+  ttsMode: xfyun
 rtp:
   # asr的rtp端口范围
   asrStartPort: 20000
@@ -40,7 +40,5 @@ fs:
 # TCP服务器配置
 tcp:
   server:
-    # 是否启用TCP服务器
-    enabled: true
     # TCP服务器监听端口
     port: 9090
