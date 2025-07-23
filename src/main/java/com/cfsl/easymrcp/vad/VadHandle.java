@@ -12,9 +12,9 @@ public class VadHandle {
     private static final String MODEL_PATH = "silero_vad.onnx";
     private static final int SAMPLE_RATE = 8000;
     private static final float START_THRESHOLD = 0.6f;
-    private static final float END_THRESHOLD = 0.45f;
+    private static final float END_THRESHOLD = 0.9f;
     // Speech-Complete-Timeout默认使用600毫秒
-    private static int MIN_SILENCE_DURATION_MS = 600;
+    private static int MIN_SILENCE_DURATION_MS = 100;
     private static final int SPEECH_PAD_MS = 500;
     private static final int WINDOW_SIZE_SAMPLES = 2048;
 
