@@ -4,7 +4,6 @@ import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.RtpManager;
 import com.cfsl.easymrcp.rtp.SipMrcpManage;
-import com.cfsl.easymrcp.sip.MrcpServer;
 import com.cfsl.easymrcp.sip.SipManage;
 import com.cfsl.easymrcp.sip.SipSession;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +26,6 @@ public class HandleBye {
     SipManage sipManage;
     @Autowired
     SipMrcpManage rtpManage;
-    @Autowired
-    MrcpServer mrcpServer;
     @Autowired
     RtpManager rtpManager;
     @Autowired

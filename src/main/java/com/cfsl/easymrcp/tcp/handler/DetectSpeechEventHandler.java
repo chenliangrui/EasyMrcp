@@ -60,7 +60,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
                 }
                 Long speechCompleteTimeout = asrParams.getLong(ASRConstant.SpeechCompleteTimeout);
                 if (speechCompleteTimeout != null && speechCompleteTimeout > 0) {
-                    asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
+//                    asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
                     log.info("Setting Speech-Complete-Timeout ({} ms) for VAD initialization", speechCompleteTimeout);
                 }
             } else {

@@ -6,7 +6,6 @@ import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.*;
 import com.cfsl.easymrcp.sdp.SdpMessage;
-import com.cfsl.easymrcp.sip.MrcpServer;
 import com.cfsl.easymrcp.sip.SipSession;
 import com.cfsl.easymrcp.tcp.TcpClientNotifier;
 import com.cfsl.easymrcp.tcp.TcpEventType;
@@ -27,8 +26,6 @@ import java.util.Vector;
 public class HandleSipInit {
     @Autowired
     SipContext sipContext;
-    @Autowired
-    MrcpServer mrcpServer;
     @Autowired
     SipMrcpManage rtpManage;
     @Autowired

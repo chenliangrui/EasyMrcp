@@ -32,10 +32,6 @@ public class MrcpCallData {
     @Setter
     TtsHandler ttsHandler;
 
-//    @Getter
-//    @Setter
-//    RealTimeAudioProcessor realTimeAudioProcessor;
-
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);
     }

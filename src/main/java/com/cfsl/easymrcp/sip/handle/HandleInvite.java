@@ -28,8 +28,6 @@ public class HandleInvite {
     @Autowired
     HandleSipInit handleSipInit;
     @Autowired
-    HandleTransmitter handleTransmitter;
-    @Autowired
     HandleOk handleOk;
 
     public void handleInvite(RequestEvent requestEvent) {

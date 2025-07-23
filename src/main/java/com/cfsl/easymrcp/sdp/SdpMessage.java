@@ -27,7 +27,6 @@ import gov.nist.javax.sdp.SessionDescriptionImpl;
 import gov.nist.javax.sdp.fields.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.mrcp4j.MrcpResourceType;
 
 import javax.sdp.*;
 import java.io.Serializable;
@@ -342,49 +341,6 @@ public class SdpMessage implements Serializable {
         SdpMessage message = new SdpMessage();
         message.setSessionDescription(sd);
         return message;
-    }
-
-    /**
-     * Creates a mrcp channel sdp object for a given resource type
-     * 
-     * @param resourceType
-     *            the resource type (speechrecog or speechsynth)
-     * 
-     * @return the rcp media description (As a sdp object)
-     * 
-     * @throws SdpException
-     *             the sdp exception
-     */
-    public static MediaDescription createMrcpChannelRequest(MrcpResourceType resourceType)
-            throws SdpException {
-
-        MediaDescription md = new MediaDescriptionImpl();
-        Media m = new MediaField();
-
-        try {
-            m.setMediaPort(9);
-
-            m.setMediaType(SDP_APPLICATION_MEDIA);
-            m.setProtocol(SDP_MRCP_PROTOCOL);
-            // m.setPortCount(arg0);
-            // m.setMediaFormats(arg0)
-            md.setMedia(m);
-            md.setAttribute(SDP_SETUP_ATTR_NAME, SDP_ACTIVE_SETUP);
-            md.setAttribute(SDP_CONNECTION_ATTR_NAME, SDP_NEW_CONNECTION);
-            md.setAttribute(SDP_CMID_ATTR_NAME, "1");
-
-            if (resourceType == MrcpResourceType.SPEECHRECOG) {
-                md.setAttribute(SDP_RESOURCE_ATTR_NAME, SDP_RECOG_RESOURCE);
-            } else if (resourceType == MrcpResourceType.SPEECHSYNTH) {
-               md.setAttribute(SDP_RESOURCE_ATTR_NAME, SDP_SYNTH_RESOURCE);
-            } else if (resourceType == MrcpResourceType.RECORDER) {
-                md.setAttribute(SDP_RESOURCE_ATTR_NAME, SDP_RECORDER_RESOURCE);
-             }
-        } catch (SdpException e) {
-            LOGGER.warn(e.getMessage(), e);
-            throw e;
-        }
-        return md;
     }
 
     /**

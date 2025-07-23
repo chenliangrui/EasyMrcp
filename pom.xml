@@ -35,12 +35,12 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>directory-network</groupId>
-            <artifactId>mina</artifactId>
-            <version>0.8.0</version>
-            <scope>compile</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>directory-network</groupId>-->
+<!--            <artifactId>mina</artifactId>-->
+<!--            <version>0.8.0</version>-->
+<!--            <scope>compile</scope>-->
+<!--        </dependency>-->
 <!--        <dependency>-->
 <!--            <groupId>org.apache.logging.log4j</groupId>-->
 <!--            <artifactId>log4j-api</artifactId>-->

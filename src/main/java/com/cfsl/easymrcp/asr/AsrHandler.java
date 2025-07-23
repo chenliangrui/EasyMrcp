@@ -93,6 +93,8 @@ public abstract class AsrHandler implements MrcpConnection {
             vadHandle = speechCompleteTimeout != null ? new VadHandle(speechCompleteTimeout) : new VadHandle();
         }
         nettyAsrRtpProcessor.setVadHandle(vadHandle);
+        nettyAsrRtpProcessor.setIdentifyPatterns(identifyPatterns);
+        nettyAsrRtpProcessor.setReSample(reSample);
         nettyAsrRtpProcessor.startAudioProcessing();
     }
 

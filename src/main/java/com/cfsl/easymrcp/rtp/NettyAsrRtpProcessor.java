@@ -31,13 +31,13 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
-    @Setter
-    private Channel channel;
     @Getter
     private final RingBuffer inputRingBuffer = new RingBuffer(1000000);
+    @Setter
     private String reSample;
     @Setter
     private VadHandle vadHandle;
+    @Setter
     private String identifyPatterns; // 添加识别模式
 
     @Setter
@@ -48,8 +48,6 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     Callback sendEof;
 
     // 状态标志
-    private final AtomicBoolean bound = new AtomicBoolean(false);
-    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean stop = new AtomicBoolean(false);
 
     /**
@@ -107,7 +105,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                     } else {
                         // 避免CPU占用过高
                         try {
-                            Thread.sleep(1);
+                            Thread.sleep(50);
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
@@ -118,32 +116,9 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             }
         });
     }
-    /**
-     * 关闭处理器
-     */
-    public void close() {
-        if (closed.getAndSet(true)) {
-            return;
-        }
-
-        stop.set(true);
-
-        if (channel != null) {
-            channel.close();
-            channel = null;
-            bound.set(false);
-            log.info("ASR RTP通道已关闭");
-        }
-
-        // 释放VAD资源
-        if (vadHandle != null) {
-            vadHandle.release();
-            vadHandle = null;
-        }
-    }
 
     @Override
-    protected void initChannel(DatagramChannel ch) throws Exception {
+    protected void initChannel(DatagramChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
         pipeline.addLast("rtpHandler", new SimpleChannelInboundHandler<DatagramPacket>() {
             @Override
