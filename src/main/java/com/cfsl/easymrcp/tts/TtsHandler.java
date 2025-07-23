@@ -1,18 +1,19 @@
 package com.cfsl.easymrcp.tts;
 
-import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.domain.TtsConfig;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
-import com.cfsl.easymrcp.rtp.RtpConnection;
+import com.cfsl.easymrcp.rtp.MrcpConnection;
+import io.netty.channel.Channel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.BindException;
-import java.net.DatagramSocket;
-
+/**
+ * 管理一通电话中的tts相关的操作
+ * 主要侧重于与不同厂家tts客户端的集成，处理音频流、控制tts客户端生命周期等操作
+ */
 @Slf4j
-public abstract class TtsHandler implements RtpConnection {
+public abstract class TtsHandler implements MrcpConnection {
     @Getter
     @Setter
     private String channelId;
@@ -22,36 +23,69 @@ public abstract class TtsHandler implements RtpConnection {
     @Getter
     boolean stop = false;
     protected String reSample;
-
-    @Getter
-    protected RealTimeAudioProcessor processor;
+    // 音频处理器
+    private NettyTtsRtpProcessor rtpProcessor;
 
     @Override
-    public void create(String localIp, DatagramSocket localSocket, String remoteIp, int remotePort) {
-        //初始化rtp
-        processor = new RealTimeAudioProcessor(localSocket, reSample, remoteIp, remotePort);
-//        create();
-        processor.startProcessing();
-        processor.startRtpSender();
+    public void create(String remoteIp, int remotePort) {
+        try {
+            // 创建RTP处理器
+            rtpProcessor = new NettyTtsRtpProcessor(reSample, remoteIp, remotePort);
+            // 启动处理器
+            rtpProcessor.startProcessing();
+        } catch (Exception e) {
+            log.error("初始化TTS失败: {}", e.getMessage(), e);
+            throw new RuntimeException("初始化TTS失败", e);
+        }
+    }
+
+    public void startRtpSender() {
+        rtpProcessor.startRtpSender();
+    }
+
+    public void setRtpChannel(Channel channel) {
+        rtpProcessor.setRtpChannel(channel);
     }
 
     public void setConfig(TtsConfig ttsConfig) {
-        if (ttsConfig.getReSample() != null && !ttsConfig.getReSample().isEmpty()) {
-            this.reSample = ttsConfig.getReSample();
+        if (ttsConfig != null) {
+            reSample = ttsConfig.getReSample();
         }
     }
 
     public void transmit(String text) {
-        processor.setCallback(getCallback());
-        this.create();
+        rtpProcessor.setCallback(callback);
+        create();
         speak(text);
     }
 
     @Override
     public void close() {
-        processor.stopRtpSender();
+        stop = true;
+        rtpProcessor.stopRtpSender();
         ttsClose();
-//        getCallback().apply("");
+    }
+
+    /**
+     * 向音频处理器中添加数据
+     *
+     * @param pcmBuffer      音频数据
+     * @param bytesRead
+     */
+    public void putAudioData(byte[] pcmBuffer, int bytesRead) {
+        byte[] data = new byte[bytesRead];
+        System.arraycopy(pcmBuffer, 0, data, 0, bytesRead);
+        rtpProcessor.putData(data);
+    }
+
+    /**
+     * 中断当前TTS播放
+     */
+    public void interrupt() {
+        if (rtpProcessor != null) {
+            rtpProcessor.interrupt();
+        }
+        log.info("TTS播放已中断");
     }
 
     public abstract void create();
@@ -59,12 +93,11 @@ public abstract class TtsHandler implements RtpConnection {
     public abstract void speak(String text);
 
     /**
-     * 当通话结束或者主动打断时需要手动关闭tts的音频流
+     * 关闭TTS资源
      */
     public abstract void ttsClose();
 
     public void stop() {
         stop = true;
     }
-
 }

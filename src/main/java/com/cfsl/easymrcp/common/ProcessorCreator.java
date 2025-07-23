@@ -11,6 +11,7 @@ import com.cfsl.easymrcp.asr.tencentcloud.TxCloudAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
+import com.cfsl.easymrcp.rtp.RtpManager;
 import com.cfsl.easymrcp.tts.example.ExampleTtsConfig;
 import com.cfsl.easymrcp.tts.example.ExampleTtsProcessor;
 import com.cfsl.easymrcp.tts.kokoro.KokoroConfig;
@@ -33,6 +34,7 @@ public class ProcessorCreator {
     String asrMode;
     @Value("${mrcp.ttsMode}")
     String ttsMode;
+    
     @Autowired
     FunasrConfig funasrConfig;
     @Autowired
@@ -46,11 +48,21 @@ public class ProcessorCreator {
     @Autowired
     TxCloudAsrConfig txCloudAsrConfig;
     @Autowired
-    TxCloudTtsConfig txCloudTtsConfig;;
+    TxCloudTtsConfig txCloudTtsConfig;
     @Autowired
     ExampleTtsConfig exampleTtsConfig;
+    @Autowired
+    RtpManager rtpManager;
 
     public AsrHandler getAsrHandler() {
+        AsrHandler asrHandler = createAsrHandler();
+        if (asrHandler != null) {
+            asrHandler.setRtpManager(rtpManager);
+        }
+        return asrHandler;
+    }
+    
+    private AsrHandler createAsrHandler() {
         switch (asrMode) {
             case "funasr":
                 FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);

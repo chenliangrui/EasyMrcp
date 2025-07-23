@@ -1,5 +1,6 @@
 package com.cfsl.easymrcp.tts.example;
 
+import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,10 +32,12 @@ public class ExampleTtsProcessor extends TtsHandler {
                 byte[] buffer = new byte[4096];
                 int bytesRead;
                 while ((bytesRead = fis.read(buffer)) != -1) {
-                    processor.putData(buffer, bytesRead);
+                    byte[] audioChunk = new byte[bytesRead];
+                    System.arraycopy(buffer, 0, audioChunk, 0, bytesRead);
+                    putAudioData(audioChunk, bytesRead);
                 }
                 // 发送结束标志
-                processor.putData(com.cfsl.easymrcp.tts.TTSConstant.TTS_END_FLAG, com.cfsl.easymrcp.tts.TTSConstant.TTS_END_FLAG.length);
+                putAudioData(TTSConstant.TTS_END_FLAG, bytesRead);
             } catch (Exception e) {
                 log.error("发送失败: " + e.getMessage(), e);
             }

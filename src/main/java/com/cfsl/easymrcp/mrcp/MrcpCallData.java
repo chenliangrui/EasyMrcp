@@ -1,7 +1,6 @@
 package com.cfsl.easymrcp.mrcp;
 
 import com.cfsl.easymrcp.asr.AsrHandler;
-import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,9 +32,9 @@ public class MrcpCallData {
     @Setter
     TtsHandler ttsHandler;
 
-    @Getter
-    @Setter
-    RealTimeAudioProcessor realTimeAudioProcessor;
+//    @Getter
+//    @Setter
+//    RealTimeAudioProcessor realTimeAudioProcessor;
 
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);

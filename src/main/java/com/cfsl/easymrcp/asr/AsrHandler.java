@@ -3,29 +3,25 @@ package com.cfsl.easymrcp.asr;
 import com.cfsl.easymrcp.domain.AsrConfig;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
-import com.cfsl.easymrcp.rtp.G711AUtil;
-import com.cfsl.easymrcp.rtp.RtpConnection;
-import com.cfsl.easymrcp.rtp.RtpPacket;
-import com.cfsl.easymrcp.tts.RingBuffer;
-import com.cfsl.easymrcp.utils.ReSample;
+import com.cfsl.easymrcp.rtp.NettyAsrRtpProcessor;
+import com.cfsl.easymrcp.rtp.MrcpConnection;
+import com.cfsl.easymrcp.rtp.RtpManager;
 import com.cfsl.easymrcp.vad.VadHandle;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketTimeoutException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.cfsl.easymrcp.rtp.RtpPacket.parseRtpHeader;
-
+/**
+ * 管理一通电话中的asr相关的操作
+ * 主要侧重于与不同厂家asr客户端的集成，处理音频流、控制asr客户端生命周期等操作
+ */
 @Data
 @Slf4j
-public abstract class AsrHandler implements RtpConnection {
+public abstract class AsrHandler implements MrcpConnection {
     @Setter
     @Getter
     private String channelId;
@@ -42,13 +38,13 @@ public abstract class AsrHandler implements RtpConnection {
     // 保存Speech-Complete-Timeout参数值
     private Long speechCompleteTimeout;
 
-    private DatagramSocket socket;
-    private int RTP_PORT; // RTP端口
-    private static final int BUFFER_SIZE = 172;
-    byte[] buffer = new byte[BUFFER_SIZE];
+    // RTP相关
+    private NettyAsrRtpProcessor nettyAsrRtpProcessor;
+    private RtpManager rtpManager;
+
     protected Boolean stop = false;
     protected CountDownLatch countDownLatch = new CountDownLatch(1);
-    VadHandle vadHandle;
+    private VadHandle vadHandle;
 
     public void setConfig(AsrConfig asrConfig) {
         if (asrConfig.getIdentifyPatterns() != null && !asrConfig.getIdentifyPatterns().isEmpty()) {
@@ -60,10 +56,12 @@ public abstract class AsrHandler implements RtpConnection {
     }
 
     @Override
-    public void create(String localIp, DatagramSocket localSocket, String remoteIp, int remotePort) {
-        this.socket = localSocket;
-        this.RTP_PORT = localSocket.getLocalPort();
-        this.create();
+    public void create(String remoteIp, int remotePort) {
+        nettyAsrRtpProcessor = new NettyAsrRtpProcessor();
+        nettyAsrRtpProcessor.setReceive(this::receive);
+        nettyAsrRtpProcessor.setReCreate(this::reCreate);
+        nettyAsrRtpProcessor.setSendEof(this::sendEof);
+        create();
         try {
             boolean await = countDownLatch.await(5000, TimeUnit.MILLISECONDS);
             if (!await) {
@@ -73,11 +71,8 @@ public abstract class AsrHandler implements RtpConnection {
             throw new RuntimeException(e);
         }
     }
-
-    public abstract void create();
     
     /**
-     * TODO vad检测时间需要重新设计，目前新参数会导致重新加载vad
      * 设置Speech-Complete-Timeout参数值
      * @param timeout Speech-Complete-Timeout参数值（毫秒）
      */
@@ -89,81 +84,28 @@ public abstract class AsrHandler implements RtpConnection {
         }
     }
 
-    public boolean receive() {
+    /**
+     * 启动ASR RTP接收
+     */
+    public void receive() {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
             // 使用Speech-Complete-Timeout参数初始化VAD
-            vadHandle = speechCompleteTimeout != null ? 
-                    new VadHandle(speechCompleteTimeout) : new VadHandle();
+            vadHandle = speechCompleteTimeout != null ? new VadHandle(speechCompleteTimeout) : new VadHandle();
         }
-        
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                RingBuffer inputRingBuffer = new RingBuffer(1000000);
-                while (true) {
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                    try {
-                        socket.receive(packet); // 阻塞等待数据
-                    } catch (IOException e) {
-                        if (e.getMessage().equalsIgnoreCase("socket closed") || e instanceof SocketTimeoutException) {
-                            log.info("rtp socket {} port closed", RTP_PORT);
-                        } else {
-                            log.error(e.getMessage(), e);
-                        }
-                        return;
-                    }
-                    byte[] rtpData = packet.getData();
-                    int packetLength = packet.getLength();
-                    // 解析RTP头部（前12字节）
-                    RtpPacket parsedPacket = parseRtpHeader(rtpData, packetLength);
-                    // 提取G.711a负载
-                    byte[] g711Data = parsedPacket.getPayload();
-                    // G.711a解码为PCM
-                    byte[] pcmData = G711AUtil.decode(g711Data);
-                    if (reSample != null && reSample.equals("upsample8kTo16k")) {
-                        byte[] bytes = ReSample.resampleFrame(pcmData);
-                        inputRingBuffer.put(bytes);
-                    } else {
-                        inputRingBuffer.put(pcmData);
-                    }
-                    if (inputRingBuffer.getAvailable() >= 2048) {
-                        byte[] take = inputRingBuffer.take(2048);
-                        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-                            // 获取前一个说话状态
-                            boolean isSpeakingBefore = vadHandle.getIsSpeaking();
-                            // VAD处理PCM数据
-                            vadHandle.receivePcm(take);
-                            // 获取当前说话状态
-                            boolean isSpeakingNow = vadHandle.getIsSpeaking();
-                            if (isSpeakingNow) {
-                                if (!isSpeakingBefore) {
-                                    reCreate();
-                                }
-                                receive(take);
-                            } else if (isSpeakingBefore) {
-                                log.info("VAD detected speech end, sending EOF");
-                                sendEof();
-                            }
-                        } else {
-                            receive(take);
-                        }
-                    }
-                }
-            }
-        }).start();
-        return true;
+        nettyAsrRtpProcessor.setVadHandle(vadHandle);
+        nettyAsrRtpProcessor.startAudioProcessing();
     }
 
     @Override
     public void close() {
-        socket.close();
+        stop = true;
+        // 关闭ASR客户端
         asrClose();
-        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
+        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns) && vadHandle != null) {
             vadHandle.release();
         }
         // 取消所有超时定时器
         cancelTimeouts();
-//        getCallback().apply("");
     }
     
     /**
@@ -184,6 +126,13 @@ public abstract class AsrHandler implements RtpConnection {
         }
     }
 
+    public abstract void create();
+
+    /**
+     * 处理PCM音频数据
+     * 
+     * @param pcmData PCM音频数据
+     */
     public abstract void receive(byte[] pcmData);
 
     /**

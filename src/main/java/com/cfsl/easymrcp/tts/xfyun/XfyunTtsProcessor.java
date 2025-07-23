@@ -92,7 +92,8 @@ public class XfyunTtsProcessor extends TtsHandler {
                         try {
                             if (myJsonParse.data.audio != null) {
                                 byte[] textBase64Decode = Base64.getDecoder().decode(myJsonParse.data.audio);
-                                processor.putData(textBase64Decode, textBase64Decode.length);
+                                // 直接使用父类TtsHandler的putAudioData方法
+                                putAudioData(textBase64Decode, textBase64Decode.length);
                             }
                         } catch (Exception e) {
                             log.error(e.getMessage(), e);
@@ -165,7 +166,7 @@ public class XfyunTtsProcessor extends TtsHandler {
                 }
                 webSocketClient.close();
                 // tts语音合成结束，写入结束标志
-                processor.putData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+                putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
             } catch (Exception e) {
                 e.printStackTrace();
             }

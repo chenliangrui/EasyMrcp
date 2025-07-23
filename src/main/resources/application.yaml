@@ -10,10 +10,12 @@ sip:
   mrcpServerPort: 1544
 mrcp:
   # 选择一个asr服务，目前已经集成：xfyun、funasr、tencent-cloud
-  asrMode: xfyun
+  asrMode: funasr
   # 选择一个tts服务，目前已经集成：xfyun、kokoro、tencent-cloud
-  ttsMode: xfyun
+  ttsMode: kokoro
 rtp:
+  # Netty线程池大小，默认为CPU核心数的2倍
+  nettyThreads: 8
   # asr的rtp端口范围
   asrStartPort: 20000
   asrStopPort: 22000

@@ -1,29 +1,26 @@
 package com.cfsl.easymrcp.tts.tencentcloud;
 
-import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
 import com.cfsl.easymrcp.tts.TTSConstant;
+import com.cfsl.easymrcp.tts.TtsHandler;
 import com.google.gson.Gson;
-import com.tencent.core.utils.ByteUtils;
 import com.tencent.core.ws.Credential;
 import com.tencent.core.ws.SpeechClient;
-import com.tencent.tts.utils.Ttsutils;
 import com.tencent.ttsv2.*;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sound.sampled.LineUnavailableException;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
 @Slf4j
 public class TxCloudTtsClient {
-    RealTimeAudioProcessor processor;
+    TtsHandler ttsHandler;
     SpeechClient proxy;
     TxCloudTtsConfig config;
     Credential credential;
 
-    public TxCloudTtsClient(TxCloudTtsConfig config, RealTimeAudioProcessor processor) {
+    public TxCloudTtsClient(TxCloudTtsConfig config, TtsHandler ttsHandler) {
         this.config = config;
-        this.processor = processor;
+        this.ttsHandler = ttsHandler;
     }
 
     public void create() {
@@ -57,8 +54,9 @@ public class TxCloudTtsClient {
                 log.info("{} session_id:{},{}", "onSynthesisEnd", response.getSessionId(), new Gson().toJson(response));
                 // tts语音合成结束，写入结束标志
                 try {
-                    processor.putData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
-                } catch (LineUnavailableException e) {
+                    // 直接使用TtsHandler的putAudioData方法
+                    ttsHandler.putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+                } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
             }
@@ -68,9 +66,10 @@ public class TxCloudTtsClient {
                 byte[] data = new byte[buffer.remaining()];
                 buffer.get(data);
                 try {
-                    processor.putData(data, data.length);
-                } catch (LineUnavailableException e) {
-                    log.error("line unavailable", e);
+                    // 直接使用TtsHandler的putAudioData方法
+                    ttsHandler.putAudioData(data, data.length);
+                } catch (Exception e) {
+                    log.error("处理音频数据失败", e);
                 }
             }
 

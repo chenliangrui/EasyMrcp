@@ -1,9 +1,9 @@
 package com.cfsl.easymrcp.sip.handle;
 
 import com.cfsl.easymrcp.common.SipContext;
-import com.cfsl.easymrcp.rtp.RtpConnection;
-import com.cfsl.easymrcp.rtp.SipRtpManage;
-import com.cfsl.easymrcp.rtp.RtpSession;
+import com.cfsl.easymrcp.mrcp.MrcpManage;
+import com.cfsl.easymrcp.rtp.RtpManager;
+import com.cfsl.easymrcp.rtp.SipMrcpManage;
 import com.cfsl.easymrcp.sip.MrcpServer;
 import com.cfsl.easymrcp.sip.SipManage;
 import com.cfsl.easymrcp.sip.SipSession;
@@ -17,7 +17,6 @@ import javax.sip.message.Response;
 import java.rmi.RemoteException;
 import java.text.ParseException;
 import java.util.Iterator;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -27,9 +26,13 @@ public class HandleBye {
     @Autowired
     SipManage sipManage;
     @Autowired
-    SipRtpManage rtpManage;
+    SipMrcpManage rtpManage;
     @Autowired
     MrcpServer mrcpServer;
+    @Autowired
+    RtpManager rtpManager;
+    @Autowired
+    MrcpManage mrcpManage;
 
     public void processBye(RequestEvent requestEvent) {
         Request request = requestEvent.getRequest();
@@ -61,17 +64,10 @@ public class HandleBye {
     }
 
     public void bye(String sessionId) throws RemoteException {
-        RtpSession rtpSession = rtpManage.getRtpSession(sessionId);
-        Map<String, RtpConnection> channelMaps = rtpSession.getChannelMaps();
-        for(RtpConnection channel: channelMaps.values()) {
-//            mrcpServer.getMrcpServerSocket().closeChannel(channel.getChannelId());
-            try {
-                channel.close();
-            } catch (Exception e) {
-                log.error("close rtp channel failed", e);
-            }
-        }
-        rtpManage.removeRtpSession(sessionId);
+        String uuid = rtpManage.getMrcpUuid(sessionId);
+        rtpManager.close(sessionId);
+        mrcpManage.close(uuid);
+        rtpManage.removeMrcpUuid(sessionId);
     }
 
     public static void sendResponse(ServerTransaction serverTransaction, Response response) throws SipException, InvalidArgumentException {

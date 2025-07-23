@@ -73,11 +73,12 @@ public class KokoroProcessor extends TtsHandler {
                 byte[] pcmBuffer = new byte[409600];
                 int bytesRead;
                 while ((bytesRead = inputStream.read(pcmBuffer)) != -1) {
-                    processor.putData(pcmBuffer, bytesRead);
+                    putAudioData(pcmBuffer, bytesRead);
                 }
             }
             // tts语音合成结束，写入结束标志
-            processor.putData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+            putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+            log.info("Kokoro tts end");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -1,7 +1,6 @@
 package com.cfsl.easymrcp.mrcp;
 
 import com.cfsl.easymrcp.asr.AsrHandler;
-import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -83,12 +82,12 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setSpeaking(isSpeaking);
     }
 
-    public void setRealTimeAudioProcessor(String callId, RealTimeAudioProcessor realTimeAudioProcessor) {
-        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-            log.error("setRealTimeAudioProcessor error, callId:{} not exist", callId);
-        }
-        mrcpCallDataConcurrentHashMap.get(callId).setRealTimeAudioProcessor(realTimeAudioProcessor);
-    }
+//    public void setRealTimeAudioProcessor(String callId, RealTimeAudioProcessor realTimeAudioProcessor) {
+//        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+//            log.error("setRealTimeAudioProcessor error, callId:{} not exist", callId);
+//        }
+//        mrcpCallDataConcurrentHashMap.get(callId).setRealTimeAudioProcessor(realTimeAudioProcessor);
+//    }
 
     public void interrupt(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
@@ -100,7 +99,7 @@ public class MrcpManage {
             // 1. 停止tts
             mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().ttsClose();
             // 2. 停止rtp数据发送
-            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().getProcessor().interrupt();
+            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().interrupt();
             setSpeaking(callId, false);
         }
     }
@@ -111,5 +110,15 @@ public class MrcpManage {
             return;
         }
         mrcpCallDataConcurrentHashMap.remove(callId);
+    }
+
+    public void close(String uuid) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(uuid)) {
+            log.warn("removeMrcpCallData error, callId:{} not exist", uuid);
+            return;
+        }
+        MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(uuid);
+        mrcpCallData.getAsrHandler().close();
+        mrcpCallData.getTtsHandler().close();
     }
 }

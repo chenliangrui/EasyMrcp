@@ -3,82 +3,67 @@ package com.cfsl.easymrcp.tts;
 import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.G711AUtil;
+import com.cfsl.easymrcp.rtp.NettyRtpSender;
+import com.cfsl.easymrcp.rtp.RtpManager;
+import io.netty.channel.Channel;
+import io.netty.channel.EventLoopGroup;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sound.sampled.LineUnavailableException;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.BindException;
-import java.net.DatagramSocket;
 import java.util.Arrays;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * TTS音频处理器
+ * 负责处理和发送TTS合成的音频数据
+ */
 @Slf4j
-public class RealTimeAudioProcessor {
-    private G711RtpSender sender;
-    @Setter
-    private int localPort;
-    // 网络参数
-    public String destinationIp;
-    public int destinationPort;
+public class NettyTtsRtpProcessor {
+    private NettyRtpSender sender;
     @Setter
     private TtsCallback callback;
     private String reSample;
-    // 为解决24khz采样率重采样到8kHz采样率时数据长度不为6的倍数时导致的偶发的噪声问题，统一读取6 * n字节
-    private int receiveTakeBytes = 6 * 500;
-
-//    FileOutputStream fileOutputStream;
-//
-//    {
-//        try {
-//            fileOutputStream = new FileOutputStream("D:\\code\\EasyMrcp\\src\\main\\resources\\test.pcm", true);
-//        } catch (FileNotFoundException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-
-    public RealTimeAudioProcessor(DatagramSocket socket, String reSample, String remoteIp, int remotePort) {
-        this.reSample = reSample;
-        this.destinationIp = remoteIp;
-        this.destinationPort = remotePort;
-
-        try {
-            sender = new G711RtpSender(socket, destinationIp, destinationPort);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
-    }
-
+    
     // 线程间缓冲队列
     private final RingBuffer inputRingBuffer = new RingBuffer(1000000);
     private final RingBuffer outputQueue = new RingBuffer(1000000);
-
-    private boolean stop;
-
+    
+    private final AtomicBoolean stop = new AtomicBoolean(false);
+    
+    // 为解决24khz采样率重采样到8kHz采样率时数据长度不为6的倍数时导致的偶发的噪声问题，统一读取6 * n字节
+    private int receiveTakeBytes = 6 * 500;
+    
     /**
-     * 初始化音频采集
+     * 构造函数 - 使用RtpManager
+     *
+     * @param reSample       重采样配置
+     * @param remoteIp       远程IP地址
+     * @param remotePort     远程端口
      */
-    public void putData(byte[] pcmBuffer, int bytesRead) throws LineUnavailableException {
-        byte[] b = new byte[bytesRead];
-        System.arraycopy(pcmBuffer, 0, b, 0, bytesRead);
-        inputRingBuffer.put(b);
+    public NettyTtsRtpProcessor(String reSample, String remoteIp, int remotePort) {
+        this.reSample = reSample;
+        try {
+            // 创建RTP发送器
+            this.sender = new NettyRtpSender(remoteIp, remotePort);
+        } catch (Exception e) {
+            log.error("初始化NettyTtsRtpProcessor失败", e);
+        }
     }
 
+    public void setRtpChannel(Channel channel) {
+        sender.setRtpChannel(channel);
+    }
+    
     /**
-     * 实时处理线程
+     * 开始处理音频数据
      */
     public void startProcessing() {
-        //实时处理
         new Thread(() -> {
             while (true) {
                 try {
-                    byte[] pcm;
                     // 为解决24khz采样率重采样到8kHz采样率时数据长度不为6的倍数时导致的偶发的噪声问题，统一读取6 * n字节
                     while (inputRingBuffer.getAvailable() == 0 || inputRingBuffer.getAvailable() < receiveTakeBytes) {
-//                        log.info("inputRingBuffer available: {}", inputRingBuffer.getAvailable());
                         // 判断是否含有结束标志，有的话取出最后的音频数据
                         if (inputRingBuffer.getAvailable() > 0) {
                             byte[] peek = inputRingBuffer.peek(receiveTakeBytes);
@@ -87,46 +72,39 @@ public class RealTimeAudioProcessor {
                             }
                         }
                         Thread.sleep(200); // 非阻塞等待
-                        if (stop) {
+                        if (stop.get()) {
+                            log.info("音频处理线程已停止");
                             return;
                         }
                     }
-                    pcm = inputRingBuffer.take(receiveTakeBytes);
-                    byte[] bytes;
+                    byte[] pcmData = inputRingBuffer.take(receiveTakeBytes);
+                    byte[] processedData;
                     if (reSample != null && reSample.equals("downsample24kTo8k")) {
-                        bytes = downsample24kTo8k(pcm);
+                        processedData = downsample24kTo8k(pcmData);
                     } else {
-                        bytes = pcm;
+                        processedData = pcmData;
                     }
-//                    try {
-//                        fileOutputStream.write(bytes);
-//                    } catch (IOException e) {
-//                        throw new RuntimeException(e);
-//                    }
-                    // G711编码
-//                    byte[] g711uBytes = G711UEncoder.encode(bytes);
-                    byte[] g711uBytes = G711AUtil.encode(bytes);
-                    outputQueue.put(g711uBytes);
-                    if (pcm[pcm.length - 2] == TTSConstant.TTS_END_BYTE && pcm[pcm.length - 1] == TTSConstant.TTS_END_BYTE) {
-                        // 结束
-                        outputQueue.put(TTSConstant.TTS_END_FLAG); // 结束标记
+                    byte[] g711Data = G711AUtil.encode(processedData);
+                    outputQueue.put(g711Data);
+                    if (pcmData[pcmData.length - 2] == TTSConstant.TTS_END_BYTE && pcmData[pcmData.length - 1] == TTSConstant.TTS_END_BYTE) {
+                        // 结束标记
+                        outputQueue.put(TTSConstant.TTS_END_FLAG);
                     }
                 } catch (Exception e) {
-                    log.error(e.getMessage(), e);
+                    log.error("处理音频数据异常", e);
                 }
             }
         }).start();
     }
-
-    // 将 PCM 字节流从 24kHz 降采样到 8kHz
+    
+    /**
+     * 将PCM字节流从24kHz降采样到8kHz
+     */
     public static byte[] downsample24kTo8k(byte[] inputBytes) {
-        int sampleSize = 2; // 每个采样点 16-bit，即 2 字节
+        int sampleSize = 2; // 每个采样点16-bit，即2字节
         int ratio = 3;      // 24kHz -> 8kHz，每3个采样点降为1个
         int totalSamples = inputBytes.length / sampleSize;
         int newSamples = totalSamples / ratio;
-//        if (inputBytes.length % (2 * 3) != 0) {
-//            log.info("输入数据长度不是采样帧3的倍数，可能导致噪声");
-//        }
 
         byte[] outputBytes = new byte[newSamples * sampleSize];
 
@@ -135,7 +113,7 @@ public class RealTimeAudioProcessor {
             int idx2 = idx1 + sampleSize;
             int idx3 = idx2 + sampleSize;
 
-            // 防止越界（尾部可能不足 3 个采样点）
+            // 防止越界（尾部可能不足3个采样点）
             if (idx3 + 1 >= inputBytes.length) {
                 break;
             }
@@ -158,32 +136,45 @@ public class RealTimeAudioProcessor {
 
         return outputBytes;
     }
-
+    
     /**
-     * RTP发送线程
+     * 向输入缓冲区写入数据
+     *
+     * @param data 输入数据
+     */
+    public void putData(byte[] data) {
+        inputRingBuffer.put(data);
+    }
+    
+    /**
+     * 开始RTP发送
      */
     public void startRtpSender() {
-        G711RtpSender finalSender = sender;
         new Thread(() -> {
             boolean sendSilence = true;
             byte[] silenceData = new byte[160];
             Arrays.fill(silenceData, (byte) 0xd5);
+            
             while (true) {
                 try {
                     // 控制每次分包是160字节 * n
                     byte[] peek = outputQueue.peek(EMConstant.VOIP_SAMPLES_PER_FRAME * 1000);
-                    if (stop) {
-                        finalSender.close();
+                    if (stop.get()) {
+                        sender.close();
                         return;
                     }
+                    
                     if (peek != null) sendSilence = false;
                     if (peek == null && sendSilence) {
-                        finalSender.sendFrame(silenceData);
+                        sender.sendFrame(silenceData);
                         continue;
                     }
+                    
                     int packageCount = peek.length / EMConstant.VOIP_SAMPLES_PER_FRAME;
                     int redundantData = peek.length % EMConstant.VOIP_SAMPLES_PER_FRAME;
-                    if (!(peek[peek.length - 2] == TTSConstant.TTS_END_BYTE) && !(peek[peek.length - 1] == TTSConstant.TTS_END_BYTE) && redundantData != 0) {
+                    if (!(peek[peek.length - 2] == TTSConstant.TTS_END_BYTE) && 
+                        !(peek[peek.length - 1] == TTSConstant.TTS_END_BYTE) && 
+                        redundantData != 0) {
                         if (packageCount > 1) {
                             packageCount = packageCount - 1;
                         } else {
@@ -192,44 +183,47 @@ public class RealTimeAudioProcessor {
                     } else if (packageCount == 0) {
                         packageCount = 1;
                     }
+                    
                     byte[] payload = outputQueue.take(EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
-                    log.trace("send {} bytes", payload.length);
-                    finalSender.sendFrame(payload);
+                    log.trace("发送 {} 字节的RTP数据", payload.length);
+                    sender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         sendSilence = true;
-//                        stopRtpSender();
                         callback.apply("completed");
+                        log.info("TTS播放完成，已触发回调");
                     }
                     if (payload[0] == TTSConstant.TTS_INTERRUPT_BYTE && payload[1] == TTSConstant.TTS_INTERRUPT_BYTE) {
                         sendSilence = true;
-//                        stopRtpSender();
                         log.info("语音流已经打断！！！");
                         callback.apply("interrupt");
                     }
                 } catch (Exception e) {
-                    if (e.getMessage() != null && !e.getMessage().equalsIgnoreCase("Socket is closed")) log.error(e.getMessage(), e);
+                    log.error("RTP发送异常", e);
                 }
             }
         }).start();
     }
-
+    
+    /**
+     * 停止RTP发送
+     */
     public void stopRtpSender() {
-        this.stop = true;
-//        try {
-//            fileOutputStream.close();
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+        stop.set(true);
+        if (sender != null) {
+            sender.close();
+        }
     }
-
+    
+    /**
+     * 中断TTS播放
+     */
     public void interrupt() {
         inputRingBuffer.clear();
         outputQueue.clear();
-        sender.interrupt();
+        if (sender != null) {
+            sender.interrupt();
+        }
         outputQueue.put(TTSConstant.TTS_INTERRUPT_FLAG); // 结束标记
-        log.info("已经打断！！！！！！！！！！！");
-//        stopRtpSender(); // 结束标记
-//        sender.close();
-//        callback.apply(null);
+        log.info("已中断TTS播放");
     }
-}
+} 

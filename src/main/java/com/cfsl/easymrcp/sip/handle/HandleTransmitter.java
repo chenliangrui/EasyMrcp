@@ -3,7 +3,6 @@ package com.cfsl.easymrcp.sip.handle;
 import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
-import com.cfsl.easymrcp.mrcp.MrcpSpeechSynthChannel;
 import com.cfsl.easymrcp.rtp.*;
 import com.cfsl.easymrcp.sdp.SdpMessage;
 import com.cfsl.easymrcp.sip.MrcpServer;
@@ -21,7 +20,6 @@ import javax.sdp.SdpException;
 import java.net.BindException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -32,7 +30,7 @@ public class HandleTransmitter {
     @Autowired
     SipContext sipContext;
     @Autowired
-    SipRtpManage rtpManage;
+    SipMrcpManage rtpManage;
     @Autowired
     MrcpServer mrcpServer;
     @Autowired
@@ -41,7 +39,8 @@ public class HandleTransmitter {
     ProcessorCreator processorCreator;
     @Autowired
     SipUtils sipUtils;
-
+    @Autowired
+    RtpManager rtpManager;
 
     public SdpMessage invite(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) {
         log.debug("transmitter initAsrAndTts for");
@@ -50,11 +49,11 @@ public class HandleTransmitter {
 
         // Create a resource session object
         // TODO: Check if there is already a session (ie. This is a re-initAsrAndTts)
-        RtpSession rtpSession = new RtpSession(session.getDialog().getDialogId());
+//        RtpSession rtpSession = new RtpSession(session.getDialog().getDialogId());
 
         // get the map that holds list of the channels and the resources used for each channel
         // the key is the dialogID
-        Map<String, RtpConnection> channelMaps = rtpSession.getChannelMaps();
+//        Map<String, MrcpConnection> channelMaps = rtpSession.getChannelMaps();
 
         try {
             List<MediaDescription> channels = sdpMessage.getMrcpTransmitterChannels();
@@ -70,11 +69,6 @@ public class HandleTransmitter {
 
                     MrcpResourceType resourceType = MrcpResourceType.fromString(rt);
 
-                    // if (rt.equalsIgnoreCase("speechrecog")) {
-                    // resourceType = MrcpResourceType.SPEECHRECOG;
-                    // } else if (rt.equalsIgnoreCase("speechsynth")) {
-                    // resourceType = MrcpResourceType.SPEECHSYNTH;
-                    // }
                     List<MediaDescription> rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
                     if (rtpmd.size() > 0) {
                         //TODO: Complete the method below that checks if audio format is supported.  
@@ -122,47 +116,55 @@ public class HandleTransmitter {
                             } while (!startedRtp && findRtpCount <= 10);
                             // 开启rtp
                             TtsHandler ttsHandler = processorCreator.getTtsHandler();
-                            ttsHandler.create(null, datagramSocket, remoteHost.getHostAddress(), remotePort);
+                            
+//                            ttsHandler.create(null, datagramSocket, remoteHost.getHostAddress(), remotePort);
                             ttsHandler.setChannelId(channelID);
-                            channelMaps.put(channelID, ttsHandler);
+//                            channelMaps.put(channelID, ttsHandler);
                             mrcpManage.addNewTts(customHeaderUUID, ttsHandler);
                             // 开启mrcp
 //                            mrcpServer.getMrcpServerSocket().openChannel(channelID, new MrcpSpeechSynthChannel(ttsHandler, mrcpManage));
                             md.getMedia().setMediaPort(mrcpServer.getMrcpServerSocket().getPort());
+
+                            try {
+                                AttributeField af = new AttributeField();
+                                af.setName(SdpMessage.SDP_SETUP_ATTR_NAME);
+                                af.setValue(SdpMessage.SDP_PASSIVE_SETUP);
+                                md.addAttribute(af);
+
+                                af = new AttributeField();
+                                af.setName(SdpMessage.SDP_CONNECTION_ATTR_NAME);
+                                af.setValue(SdpMessage.SDP_NEW_CONNECTION);
+                                md.addAttribute(af);
+                            } catch (SdpException e) {
+                                log.error("SdpException when adding attribute",e);
+                            }
+                            
+                            // 设置RTP相关信息
                             rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                             rtpmd.get(0).getMedia().setMediaPort(localPort);
-                            //修改sdp收发问题
+                            
+                            // 修改sdp收发问题
                             for (Object attribute : rtpmd.get(0).getAttributes(true)) {
                                 AttributeField attribute1 = (AttributeField) attribute;
                                 if (attribute1.getName().equalsIgnoreCase("recvonly")) {
                                     attribute1.setName("sendonly");
                                 }
                             }
-
-                            log.debug("Created a SPEECHSYNTH Channel.  id is: "+channelID+" rtp remotehost:port is: "+ mediaHost+":"+remotePort);
+                            
+                            log.debug("Created a SPEECHSYNTH Channel. id is: "+channelID+" rtp remotehost:port is: "+ mediaHost+":"+remotePort);
                             break;
-
+                            
                         default:
-                            throw new RuntimeException("Unsupported resource type!");
+                            log.warn("No handler for resource " + resourceType);
                     }
-
-                    // Create a channel resources object and put it in the channel map (which is in the session).  
-                    // These resources must be returned to the pool when the channel is closed.  In the case of a 
-                    // transmitter, the resource is the RTP port in the port pair pool
-                    // TODO:  The channels should cleanup after themselves (retrun resource to pools)
-                    //        instead of keeping track of the resoruces in the session.
-//                    RtpTransmitter rtpTransmitter = new RtpTransmitter();
-//                    rtpTransmitter.setChannelId(channelID);
-//                    channelMaps.put(channelID, rtpTransmitter);
                 }
             } else {
                 log.warn("Invite request had no channels.");
             }
-        } catch (SdpException | UnknownHostException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
-        // Add the session to the session list
-        rtpManage.addRtpSession(session.getDialog().getDialogId(), rtpSession);
+//        rtpManage.addMrcpUuid(session.getDialog().getDialogId(), rtpSession);
 
         return sdpMessage;
     }
