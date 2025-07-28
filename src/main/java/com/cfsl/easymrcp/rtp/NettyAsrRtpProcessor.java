@@ -31,8 +31,6 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
-    @Getter
-    private final RingBuffer inputRingBuffer = new RingBuffer(1000000);
     @Setter
     private String reSample;
     @Setter
@@ -51,11 +49,12 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     private final AtomicBoolean stop = new AtomicBoolean(false);
 
     /**
-     * 处理接收到的RTP数据
+     * 处理接收到的RTP数据，返回解码后的PCM数据
      *
      * @param data RTP数据
+     * @return 解码后的PCM数据
      */
-    private void processRtpData(byte[] data) {
+    private byte[] processRtpData(byte[] data) {
         try {
             // 解析RTP头部
             RtpPacket parsedPacket = RtpPacket.parseRtpHeader(data, data.length);
@@ -66,55 +65,73 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
 
             // 处理重采样
             if (reSample != null && reSample.equals("upsample8kTo16k")) {
-                byte[] bytes = ReSample.resampleFrame(pcmData);
-                inputRingBuffer.put(bytes);
+                return ReSample.resampleFrame(pcmData);
             } else {
-                inputRingBuffer.put(pcmData);
+                return pcmData;
             }
         } catch (Exception e) {
             log.error("处理RTP数据包异常", e);
+            return null;
         }
     }
 
     /**
-     * 启动音频处理线程
+     * PCM聚合Handler，聚合到2048字节后下发
      */
-    public void startAudioProcessing() {
-        CompletableFuture.runAsync(() -> {
-            while (!stop.get()) {
-                try {
-                    if (inputRingBuffer.getAvailable() >= 2048) {
-                        byte[] take = inputRingBuffer.take(2048);
-                        if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-                            boolean isSpeakingBefore = vadHandle.getIsSpeaking();
-                            vadHandle.receivePcm(take);
-                            boolean isSpeakingNow = vadHandle.getIsSpeaking();
-                            if (isSpeakingNow) {
-                                if (!isSpeakingBefore) {
-                                    log.info("VAD检测到语音开始");
-                                    reCreate.execute();
-                                }
-                                receive.accept(take);
-                            } else if (isSpeakingBefore) {
-                                log.info("VAD检测到语音结束");
-                                sendEof.execute();
-                            }
-                        } else {
-                            receive.accept(take);
-                        }
-                    } else {
-                        // 避免CPU占用过高
-                        try {
-                            Thread.sleep(50);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("处理PCM数据异常", e);
+    private class PcmAggregatorHandler extends ChannelInboundHandlerAdapter {
+        private ByteBuf pcmBuffer = Unpooled.buffer();
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof ByteBuf) {
+                pcmBuffer.writeBytes((ByteBuf) msg);
+                ((ByteBuf) msg).release();
+                while (pcmBuffer.readableBytes() >= 2048) {
+                    ByteBuf chunk = pcmBuffer.readRetainedSlice(2048);
+                    ctx.fireChannelRead(chunk);
                 }
+            } else {
+                super.channelRead(ctx, msg);
             }
-        });
+        }
+
+        @Override
+        public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+            pcmBuffer.release();
+            super.handlerRemoved(ctx);
+        }
+    }
+
+    /**
+     * 业务处理Handler，处理2048字节PCM块，包含VAD和回调逻辑
+     */
+    private class AsrBusinessHandler extends SimpleChannelInboundHandler<ByteBuf> {
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
+            byte[] take = new byte[msg.readableBytes()];
+            msg.readBytes(take);
+            try {
+                if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
+                    boolean isSpeakingBefore = vadHandle.getIsSpeaking();
+                    vadHandle.receivePcm(take);
+                    boolean isSpeakingNow = vadHandle.getIsSpeaking();
+                    if (isSpeakingNow) {
+                        if (!isSpeakingBefore) {
+                            log.info("VAD检测到语音开始");
+                            reCreate.execute();
+                        }
+                        receive.accept(take);
+                    } else if (isSpeakingBefore) {
+                        log.info("VAD检测到语音结束");
+                        sendEof.execute();
+                    }
+                } else {
+                    receive.accept(take);
+                }
+            } catch (Exception e) {
+                log.error("处理PCM数据异常", e);
+            }
+        }
     }
 
     @Override
@@ -127,8 +144,11 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 int length = content.readableBytes();
                 byte[] data = new byte[length];
                 content.getBytes(content.readerIndex(), data);
-                // 处理接收到的RTP数据
-                processRtpData(data);
+                // 处理接收到的RTP数据，解码为PCM
+                byte[] pcm = processRtpData(data);
+                if (pcm != null && pcm.length > 0) {
+                    ctx.fireChannelRead(Unpooled.wrappedBuffer(pcm));
+                }
             }
 
             @Override
@@ -136,5 +156,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 log.error("RTP通道异常", cause);
             }
         });
+        pipeline.addLast("pcmAggregator", new PcmAggregatorHandler());
+        pipeline.addLast("asrBusinessHandler", new AsrBusinessHandler());
     }
 } 

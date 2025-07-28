@@ -95,7 +95,7 @@ public abstract class AsrHandler implements MrcpConnection {
         nettyAsrRtpProcessor.setVadHandle(vadHandle);
         nettyAsrRtpProcessor.setIdentifyPatterns(identifyPatterns);
         nettyAsrRtpProcessor.setReSample(reSample);
-        nettyAsrRtpProcessor.startAudioProcessing();
+//        nettyAsrRtpProcessor.startAudioProcessing();
     }
 
     @Override
