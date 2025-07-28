@@ -172,6 +172,10 @@ public class NettyTtsRtpProcessor {
                     
                     int packageCount = peek.length / EMConstant.VOIP_SAMPLES_PER_FRAME;
                     int redundantData = peek.length % EMConstant.VOIP_SAMPLES_PER_FRAME;
+                    // 解决Index -1 out of bounds for length 1问题
+                    if (peek.length == 1 && peek[0] == TTSConstant.TTS_END_BYTE) {
+                        outputQueue.put(TTSConstant.TTS_END_FLAG);
+                    }
                     if (!(peek[peek.length - 2] == TTSConstant.TTS_END_BYTE) && 
                         !(peek[peek.length - 1] == TTSConstant.TTS_END_BYTE) && 
                         redundantData != 0) {

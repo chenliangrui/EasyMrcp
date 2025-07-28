@@ -11,10 +11,10 @@ import java.util.Map;
 public class VadHandle {
     private static final String MODEL_PATH = "silero_vad.onnx";
     private static final int SAMPLE_RATE = 8000;
-    private static final float START_THRESHOLD = 0.6f;
-    private static final float END_THRESHOLD = 0.9f;
+    private static final float START_THRESHOLD = 0.45f;
+    private static final float END_THRESHOLD = 0.8f;
     // Speech-Complete-Timeout默认使用600毫秒
-    private static int MIN_SILENCE_DURATION_MS = 100;
+    private static int MIN_SILENCE_DURATION_MS = 300;
     private static final int SPEECH_PAD_MS = 500;
     private static final int WINDOW_SIZE_SAMPLES = 2048;
 
@@ -22,7 +22,7 @@ public class VadHandle {
     @Getter
     private Boolean isSpeaking = false;
     // 为解决vad会重复判断的问题，这里记录上一次vad时间，讲话间隔小于1秒的不视为讲话
-    private Double lastVad = 0.0;
+//    private Double lastVad = 0.0;
 
     public VadHandle() {
         initVad();
@@ -94,12 +94,14 @@ public class VadHandle {
             log.error("Error applying VAD detector: {}", e.getMessage());
         }
 
-        if (!detectResult.isEmpty()) {
-            if (detectResult.containsKey("start") && detectResult.get("start") - lastVad > 1) {
+        if (detectResult != null && !detectResult.isEmpty()) {
+            if (detectResult.containsKey("start")
+//                    && detectResult.get("start") - lastVad > 1
+            ) {
                 isSpeaking = true;
             } else if (detectResult.containsKey("end")) {
                 isSpeaking = false;
-                lastVad = detectResult.get("end");
+//                lastVad = detectResult.get("end");
             }
             log.trace("vad status: {}", detectResult);
         }
