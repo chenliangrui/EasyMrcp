@@ -47,5 +47,10 @@ public enum TcpEventType {
     /**
      * 打断当前TTS并进行TTS合成事件
      */
-    InterruptAndSpeak
+    InterruptAndSpeak,
+
+    /**
+     * TTS静音事件
+     */
+    Silence,
 }

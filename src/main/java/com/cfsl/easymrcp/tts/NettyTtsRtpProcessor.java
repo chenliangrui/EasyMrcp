@@ -154,7 +154,7 @@ public class NettyTtsRtpProcessor {
         new Thread(() -> {
             boolean sendSilence = true;
             byte[] silenceData = new byte[160];
-            Arrays.fill(silenceData, (byte) 0xd5);
+            Arrays.fill(silenceData, TTSConstant.TTS_SILENCE_BYTE);
             
             while (true) {
                 try {

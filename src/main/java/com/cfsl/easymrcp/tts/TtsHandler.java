@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
+
 /**
  * 管理一通电话中的tts相关的操作
  * 主要侧重于与不同厂家tts客户端的集成，处理音频流、控制tts客户端生命周期等操作
@@ -57,6 +59,19 @@ public abstract class TtsHandler implements MrcpConnection {
         rtpProcessor.setCallback(callback);
         create();
         speak(text);
+    }
+
+    /**
+     * TTS播放静音
+     * @param duration 静音时长(毫秒ms)
+     */
+    public void silence(int duration)  {
+        rtpProcessor.setCallback(callback);
+        int i = duration * 16;
+        byte[] silenceData = new byte[i];
+        Arrays.fill(silenceData, TTSConstant.TTS_SILENCE_BYTE);
+        putAudioData(silenceData, silenceData.length);
+        putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
     }
 
     @Override

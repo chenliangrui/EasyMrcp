@@ -27,6 +27,12 @@ public class SpeakEventHandler implements MrcpEventHandler {
         if (ttsHandler == null) {
             return null;
         }
+        if (event.getEvent().equals(TcpEventType.InterruptAndSpeak.name())) {
+            // 清除speak队列中未完成的任务
+            mrcpManage.clearAllSpeakTask(id);
+            // 中断当前TTS
+            mrcpManage.interrupt(id);
+        }
         MrcpEventWithCallback mrcpEventWithCallback = new MrcpEventWithCallback();
         mrcpEventWithCallback.setRunnable(new Runnable() {
             @Override
@@ -48,7 +54,11 @@ public class SpeakEventHandler implements MrcpEventHandler {
                         }
                     }
                 });
-                ttsHandler.transmit(event.getData());
+                if (event.getEvent().equals(TcpEventType.Silence.name())) {
+                    ttsHandler.silence(Integer.parseInt(event.getData()));
+                } else {
+                    ttsHandler.transmit(event.getData());
+                }
                 log.info("speak event received");
             }
         });
