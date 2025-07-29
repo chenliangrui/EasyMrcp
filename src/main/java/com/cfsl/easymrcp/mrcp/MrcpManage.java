@@ -1,11 +1,15 @@
 package com.cfsl.easymrcp.mrcp;
 
 import com.cfsl.easymrcp.asr.AsrHandler;
+import com.cfsl.easymrcp.tcp.MrcpEventWithCallback;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 业务层面全局管理mrcp通话
@@ -13,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Component
 public class MrcpManage {
+    ExecutorService mrcpEventThreadPool = Executors.newCachedThreadPool();
     private ConcurrentHashMap<String, MrcpCallData> mrcpCallDataConcurrentHashMap = new ConcurrentHashMap<>();
 
     public void updateConnection(String callId) {
@@ -25,7 +30,8 @@ public class MrcpManage {
 
     /**
      * 添加asr的处理器
-     * @param callId pbx的uuid
+     *
+     * @param callId     pbx的uuid
      * @param asrHandler asr的核心处理流程
      */
     public void addNewAsr(String callId, AsrHandler asrHandler) {
@@ -42,7 +48,8 @@ public class MrcpManage {
 
     /**
      * 添加tts的处理器
-     * @param callId pbx的uuid
+     *
+     * @param callId     pbx的uuid
      * @param ttsHandler tts的核心处理流程
      */
     public void addNewTts(String callId, TtsHandler ttsHandler) {
@@ -82,13 +89,6 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setSpeaking(isSpeaking);
     }
 
-//    public void setRealTimeAudioProcessor(String callId, RealTimeAudioProcessor realTimeAudioProcessor) {
-//        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-//            log.error("setRealTimeAudioProcessor error, callId:{} not exist", callId);
-//        }
-//        mrcpCallDataConcurrentHashMap.get(callId).setRealTimeAudioProcessor(realTimeAudioProcessor);
-//    }
-
     public void interrupt(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("interrupt error, callId:{} not exist", callId);
@@ -120,5 +120,55 @@ public class MrcpManage {
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(uuid);
         mrcpCallData.getAsrHandler().close();
         mrcpCallData.getTtsHandler().close();
+    }
+
+
+    /**
+     * 添加speak事件
+     * @param callId 通话的uuid
+     * @param event 队列中取出任务的执行回调
+     */
+    public void addEvent(String callId, MrcpEventWithCallback event) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.warn("addEvent error, callId:{} not exist", callId);
+            return;
+        }
+        MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+        try {
+            LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = mrcpCallData.getMrcpEventQueue();
+            mrcpEventQueue.put(event);
+            if (!mrcpCallData.isSpeaking()) {
+                mrcpEventQueue.take().getRunnable().run();
+            }
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 当完成tts时，执行下一个speak
+     * @param callId 通话的uuid
+     */
+    public void runNextSpeak(String callId) {
+        try {
+            MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+            LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = mrcpCallData.getMrcpEventQueue();
+            if (!mrcpEventQueue.isEmpty()) {
+                MrcpEventWithCallback take = mrcpEventQueue.take();
+                mrcpEventThreadPool.execute(take.getRunnable());
+            }
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 当有asr打断时，清除所有等待speak的任务
+     * @param callId 通话的uuid
+     */
+    public void clearAllSpeakTask(String callId) {
+        MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+        LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = mrcpCallData.getMrcpEventQueue();
+        mrcpEventQueue.clear();
     }
 }

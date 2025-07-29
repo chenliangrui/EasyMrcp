@@ -1,10 +1,12 @@
 package com.cfsl.easymrcp.mrcp;
 
 import com.cfsl.easymrcp.asr.AsrHandler;
+import com.cfsl.easymrcp.tcp.MrcpEventWithCallback;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -31,6 +33,12 @@ public class MrcpCallData {
     @Getter
     @Setter
     TtsHandler ttsHandler;
+
+    /**
+     * 多次串行speak的队列
+     */
+    @Getter
+    LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = new LinkedBlockingQueue<>();
 
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);
