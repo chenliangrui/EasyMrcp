@@ -5,6 +5,7 @@ import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.G711AUtil;
 import com.cfsl.easymrcp.rtp.NettyRtpSender;
 import com.cfsl.easymrcp.rtp.RtpManager;
+import com.cfsl.easymrcp.utils.SipUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import lombok.Setter;
@@ -194,13 +195,13 @@ public class NettyTtsRtpProcessor {
                     sender.sendFrame(payload);
                     if (payload[payload.length - 2] == TTSConstant.TTS_END_BYTE && payload[payload.length - 1] == TTSConstant.TTS_END_BYTE) {
                         sendSilence = true;
-                        callback.apply("completed");
+                        SipUtils.executeTask(() -> callback.apply("completed"));
                         log.info("TTS播放完成，已触发回调");
                     }
                     if (payload[0] == TTSConstant.TTS_INTERRUPT_BYTE && payload[1] == TTSConstant.TTS_INTERRUPT_BYTE) {
                         sendSilence = true;
+                        SipUtils.executeTask(() -> callback.apply("interrupt"));
                         log.info("语音流已经打断！！！");
-                        callback.apply("interrupt");
                     }
                 } catch (Exception e) {
                     log.error("RTP发送异常", e);

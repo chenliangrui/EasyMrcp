@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.asr.tencentcloud;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.utils.SipUtils;
 import com.google.gson.Gson;
 import com.tencent.asrv2.*;
 import com.tencent.core.ws.Credential;
@@ -51,7 +52,7 @@ public class TxCloudAsrClient {
             @Override
             public void onSentenceEnd(SpeechRecognizerResponse response) {//一段话识别结束，slice_type=2,voice_text_str 为稳态结果(该段识别结果不再变化)
                 log.info("{} voice_id:{},{}", "onSentenceEnd", response.getVoiceId(), new Gson().toJson(response));
-                txCloudCallback.apply(ASRConstant.Result, response.getResult().getVoiceTextStr());
+                SipUtils.executeTask(() -> txCloudCallback.apply(ASRConstant.Result, response.getResult().getVoiceTextStr()));
             }
 
             @Override

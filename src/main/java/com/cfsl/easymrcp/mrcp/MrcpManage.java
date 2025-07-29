@@ -6,10 +6,7 @@ import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 /**
  * 业务层面全局管理mrcp通话
@@ -17,7 +14,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Slf4j
 @Component
 public class MrcpManage {
-    ExecutorService mrcpEventThreadPool = Executors.newCachedThreadPool();
+    ThreadPoolExecutor mrcpEventThreadPool = new ThreadPoolExecutor(
+            8,                      // 核心线程数
+            100,                     // 最大线程数
+            60L, TimeUnit.SECONDS,  // 空闲线程最大存活时间
+            new LinkedBlockingQueue<>(), // 队列，用来存放任务
+            new ThreadPoolExecutor.CallerRunsPolicy()  // 拒绝策略：任务由提交线程执行
+    );
+
     private ConcurrentHashMap<String, MrcpCallData> mrcpCallDataConcurrentHashMap = new ConcurrentHashMap<>();
 
     public void updateConnection(String callId) {
@@ -170,5 +174,9 @@ public class MrcpManage {
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
         LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = mrcpCallData.getMrcpEventQueue();
         mrcpEventQueue.clear();
+    }
+
+    public void executeTask(Runnable runnable) {
+        mrcpEventThreadPool.execute(runnable);
     }
 }

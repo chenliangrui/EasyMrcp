@@ -12,6 +12,7 @@ package com.cfsl.easymrcp.asr.funasr;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.utils.SipUtils;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
@@ -145,10 +146,10 @@ public class FunasrWsClient extends WebSocketClient {
             jsonObject = (JSONObject) jsonParser.parse(message);
             String result = jsonObject.get("text").toString();
             log.info("text: " + result);
-            if (isParagraphOver) callback.apply(ASRConstant.Interrupt, "打断");
+            if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
             isParagraphOver = false;
             if (!stop && !result.isEmpty() && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
-                callback.apply(ASRConstant.Result, result);
+                SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                 isParagraphOver = true;
             }
             if (jsonObject.containsKey("timestamp")) {

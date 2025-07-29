@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.asr;
 
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.utils.SipUtils;
 
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -42,7 +43,7 @@ public class AsrText {
             }
             // 创建新定时任务
             scheduledFuture = executor.schedule(() -> {
-                xfyunAsrCallback.apply(ASRConstant.Result, result);
+                SipUtils.executeTask(() -> xfyunAsrCallback.apply(ASRConstant.Result, result));
                 lock.lock();
                 try {
                     result = "";

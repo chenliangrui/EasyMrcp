@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.asr.xfyun.dictation;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.utils.SipUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.Data;
@@ -86,7 +87,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     log.info(te.toString());
                     try {
                         decoder.decode(te);
-                        if (isParagraphOver) callback.apply(ASRConstant.Interrupt, "打断");
+                        if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
                         isParagraphOver = false;
                         log.info("中间识别结果 ==》" + decoder.toString());
                     } catch (Exception e) {
@@ -103,7 +104,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     String result = decoder.toString();
                     log.info("最终识别结果 ==》" + result);
                     log.info("本次识别sid ==》" + resp.getSid());
-                    if (!stop && !result.isEmpty()) callback.apply(ASRConstant.Result, result);
+                    if (!stop && !result.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                     isParagraphOver = true;
                     decoder.discard();
                     webSocket.close(1000, "Normal closure after completion");
