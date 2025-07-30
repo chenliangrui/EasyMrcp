@@ -63,14 +63,9 @@ public class NettyTcpServer {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        
-                        // 添加空闲检测处理器 - 30秒没有读/写操作则触发IdleStateEvent
-//                        pipeline.addLast(new IdleStateHandler(30, 30, 0, TimeUnit.SECONDS));
-                        
                         // 添加自定义消息编解码器
                         pipeline.addLast(new NettyMessageDecoder());
                         pipeline.addLast(new NettyMessageEncoder());
-                        
                         // 添加业务处理器
                         pipeline.addLast(new NettyTcpServerHandler(objectMapper, connectionManager, mrcpManage, tcpClientNotifier));
                     }
@@ -80,7 +75,6 @@ public class NettyTcpServer {
             ChannelFuture future = bootstrap.bind(port).sync();
             serverChannel = future.channel();
             log.info("Netty TCP服务器已启动，监听端口: {}", port);
-            
         } catch (Exception e) {
             log.error("启动Netty TCP服务器失败", e);
             shutdown();
@@ -92,16 +86,13 @@ public class NettyTcpServer {
         if (serverChannel != null) {
             serverChannel.close();
         }
-        
         if (bossGroup != null && workerGroup != null) {
             // 优雅关闭，等待处理中的请求完成
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
-        
         // 关闭所有客户端连接
         connectionManager.closeAll();
-        
         log.info("Netty TCP服务器已停止");
     }
 } 

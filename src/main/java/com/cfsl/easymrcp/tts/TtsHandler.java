@@ -68,7 +68,7 @@ public abstract class TtsHandler implements MrcpConnection {
     public void silence(int duration)  {
         rtpProcessor.setCallback(callback);
         int i = duration * 16;
-        if (reSample.equals("downsample24kTo8k")) {
+        if (reSample != null && reSample.equals("downsample24kTo8k")) {
             i = i * 3;
         }
         byte[] silenceData = new byte[i];
