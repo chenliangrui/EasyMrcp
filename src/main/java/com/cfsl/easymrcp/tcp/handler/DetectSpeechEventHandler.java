@@ -92,6 +92,6 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
 
         // 启动超时计时
         timeoutManager.startTimers();
-        return null;
+        return TcpResponse.success(id, "success");
     }
 }

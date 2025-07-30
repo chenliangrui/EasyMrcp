@@ -63,6 +63,6 @@ public class SpeakEventHandler implements MrcpEventHandler {
             }
         });
         mrcpManage.addEvent(id, mrcpEventWithCallback);
-        return null;
+        return TcpResponse.success(id, "success");
     }
 }

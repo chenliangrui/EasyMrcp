@@ -17,7 +17,8 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
 
     @Override
     public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
-        mrcpManage.updateConnection(event.getId());
-        return null;
+        String id = event.getId();
+        mrcpManage.updateConnection(id);
+        return TcpResponse.success(id, "success");
     }
 }
