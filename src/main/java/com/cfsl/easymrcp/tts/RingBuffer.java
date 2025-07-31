@@ -22,7 +22,7 @@ public class RingBuffer {
         this.available = 0;
     }
 
-    public synchronized void put(byte[] data) {
+    public void put(byte[] data) {
         int bytesToWrite = Math.min(data.length, capacity - available);
         if (bytesToWrite <= 0) return;
 
@@ -39,7 +39,7 @@ public class RingBuffer {
         available += bytesToWrite;
     }
 
-    public synchronized byte[] take(int maxLength) {
+    public byte[] take(int maxLength) {
         if (available <= 0) return null;
 
         int bytesToRead = Math.min(maxLength, available);
@@ -59,7 +59,7 @@ public class RingBuffer {
         return result;
     }
 
-    public synchronized byte[] peek(int maxLength) {
+    public byte[] peek(int maxLength) {
         if (available <= 0) return null;
 
         int bytesToRead = Math.min(maxLength, available);

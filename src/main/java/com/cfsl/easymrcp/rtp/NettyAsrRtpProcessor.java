@@ -170,7 +170,6 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                     log.info("开始ASR连接...");
                     reCreate.execute();
                     log.info("ASR连接成功，准备发送缓存音频");
-
                     // 连接成功，标记为非连接状态，后续音频处理会自动发送缓存数据
                     isReconnecting = false;
                     if (connectedAndSendRemain) {
@@ -208,7 +207,6 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             ByteBuf remaining = audioBuffer.readAll();
             if (remaining.readableBytes() > 0) {
                 log.info("发送剩余音频数据: {}字节", remaining.readableBytes());
-
                 // 按块发送剩余数据
                 int offset = 0;
                 int totalSize = remaining.readableBytes();
@@ -251,7 +249,6 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     @Override
     protected void initChannel(DatagramChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
-
         // RTP处理器
         pipeline.addLast("rtpHandler", new SimpleChannelInboundHandler<DatagramPacket>() {
             @Override
@@ -268,8 +265,6 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 log.error("RTP通道异常", cause);
             }
         });
-
-        // 直接连接业务处理器，移除PcmAggregatorHandler
         pipeline.addLast("asrBusinessHandler", new AsrBusinessHandler());
     }
 } 
