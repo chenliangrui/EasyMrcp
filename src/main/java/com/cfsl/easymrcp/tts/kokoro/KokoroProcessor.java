@@ -77,7 +77,7 @@ public class KokoroProcessor extends TtsHandler {
                 }
             }
             // tts语音合成结束，写入结束标志
-            putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+            putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
             log.info("Kokoro tts end");
         } catch (Exception e) {
             throw new RuntimeException(e);

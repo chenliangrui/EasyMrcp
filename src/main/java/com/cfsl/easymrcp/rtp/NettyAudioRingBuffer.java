@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
  * @author EasyMrcp
  */
 @Slf4j
-public class NettyCircularAudioBuffer {
+public class NettyAudioRingBuffer {
     
     /** ByteBuf分配器 */
     private final ByteBufAllocator allocator;
@@ -65,7 +65,7 @@ public class NettyCircularAudioBuffer {
      * @param allocator ByteBuf分配器
      * @param sampleRate 采样率（Hz）
      */
-    public NettyCircularAudioBuffer(ByteBufAllocator allocator, int sampleRate) {
+    public NettyAudioRingBuffer(ByteBufAllocator allocator, int sampleRate) {
         this(allocator, sampleRate, 3, false); // 默认3秒，ASR模式
     }
     
@@ -77,7 +77,7 @@ public class NettyCircularAudioBuffer {
      * @param bufferSeconds 缓冲时长（秒）
      * @param enableAutoExpand 是否启用自动扩容（TTS模式）
      */
-    public NettyCircularAudioBuffer(ByteBufAllocator allocator, int sampleRate, int bufferSeconds, boolean enableAutoExpand) {
+    public NettyAudioRingBuffer(ByteBufAllocator allocator, int sampleRate, int bufferSeconds, boolean enableAutoExpand) {
         this.allocator = allocator;
         this.sampleRate = sampleRate;
         this.bufferSeconds = Math.max(1, bufferSeconds); // 最少1秒
@@ -420,9 +420,9 @@ public class NettyCircularAudioBuffer {
      * 预览数据但不移除（用于TTS处理中的peek需求）
      * 
      * @param maxLength 最大预览长度
-     * @return 预览的字节数组，如果没有数据则返回null
+     * @return 预览的ByteBuf，如果没有数据则返回null
      */
-    public byte[] peek(int maxLength) {
+    public ByteBuf peek(int maxLength) {
         if (closed) {
             return null;
         }
@@ -432,13 +432,13 @@ public class NettyCircularAudioBuffer {
         }
         
         int actualLength = Math.min(maxLength, dataSize);
-        byte[] result = new byte[actualLength];
+        ByteBuf result = allocator.buffer(actualLength);
         
         // 保存当前读指针位置
         int savedReadPos = readPos;
         
         // 读取数据但不更新dataSize和readPos
-        peekFromCircularBuffer(result, actualLength);
+        peekFromCircularBufferToByteBuf(result, actualLength);
         
         // 恢复读指针位置
         readPos = savedReadPos;
@@ -447,22 +447,20 @@ public class NettyCircularAudioBuffer {
     }
     
     /**
-     * 从环形缓冲区预览数据（不移动读指针）
+     * 从环形缓冲区预览数据到ByteBuf（不移动读指针）
      */
-    private void peekFromCircularBuffer(byte[] dest, int length) {
+    private void peekFromCircularBufferToByteBuf(ByteBuf dest, int length) {
         int remaining = length;
         int tempReadPos = readPos;
-        int destPos = 0;
         
         while (remaining > 0) {
             int dataToEnd = capacity - tempReadPos;
             int bytesToRead = Math.min(remaining, dataToEnd);
             
-            // 直接读取到字节数组
-            circularBuffer.getBytes(tempReadPos, dest, destPos, bytesToRead);
+            // 直接读取到ByteBuf
+            dest.writeBytes(circularBuffer, tempReadPos, bytesToRead);
             
             tempReadPos = (tempReadPos + bytesToRead) % capacity;
-            destPos += bytesToRead;
             remaining -= bytesToRead;
         }
     }

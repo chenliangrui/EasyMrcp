@@ -13,6 +13,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.locks.LockSupport;
+import io.netty.buffer.ByteBuf;
 
 /**
  * 基于Netty实现的RTP发送器
@@ -49,16 +50,25 @@ public class NettyRtpSender {
     /**
      * 发送G.711u音频帧（每帧160字节，对应20ms音频）
      *
-     * @param g711Data G711编码的音频数据
+     * @param g711Data G711编码的音频数据ByteBuf
      */
-    public void sendFrame(byte[] g711Data) {
-        int offset = 0;
+    public void sendFrame(ByteBuf g711Data) {
+        if (g711Data == null || g711Data.readableBytes() == 0) {
+            return;
+        }
+        
         InetSocketAddress remoteAddress = new InetSocketAddress(destAddress, destPort);
-        while (offset < g711Data.length && !interrupt) {
-            int frameSize = Math.min(EMConstant.VOIP_SAMPLES_PER_FRAME, g711Data.length - offset);
-            byte[] rtpPacket = buildRtpPacket(g711Data, offset, frameSize);
-            DatagramPacket packet = new DatagramPacket(Unpooled.copiedBuffer(rtpPacket), remoteAddress);
+        int remainingBytes = g711Data.readableBytes();
+        int readerIndex = g711Data.readerIndex();
+        
+        while (remainingBytes > 0 && !interrupt) {
+            int frameSize = Math.min(EMConstant.VOIP_SAMPLES_PER_FRAME, remainingBytes);
+            
+            // 直接使用ByteBuf构建RTP包，避免拷贝
+            ByteBuf rtpPacket = buildRtpPacket(g711Data, readerIndex, frameSize);
+            DatagramPacket packet = new DatagramPacket(rtpPacket, remoteAddress);
             channel.writeAndFlush(packet);
+            
             // 控制发送速率
             long time = System.nanoTime();
             if (nextSendTime == 0) {
@@ -71,7 +81,8 @@ public class NettyRtpSender {
                 LockSupport.parkNanos(-parkTime);
             }
 
-            offset += frameSize;
+            readerIndex += frameSize;
+            remainingBytes -= frameSize;
             updateHeader(); // 更新序列号和时间戳
             nextSendTime += EMConstant.VOIP_FRAME_DURATION * 1000000;
         }
@@ -79,27 +90,27 @@ public class NettyRtpSender {
     }
 
     /**
-     * 构建RTP包
+     * 构建RTP包（零拷贝版本）
      *
-     * @param payload 负载数据
+     * @param payload 负载数据ByteBuf
      * @param offset  偏移量
      * @param length  长度
-     * @return 完整的RTP包
+     * @return 完整的RTP包ByteBuf
      */
-    private byte[] buildRtpPacket(byte[] payload, int offset, int length) {
-        ByteBuffer buffer = ByteBuffer.allocate(RTP_HEADER_SIZE + length);
+    private ByteBuf buildRtpPacket(ByteBuf payload, int offset, int length) {
+        ByteBuf rtpPacket = Unpooled.buffer(RTP_HEADER_SIZE + length);
 
         // RTP头部（RFC3550）
-        buffer.put((byte) 0x80);  // Version 2, no padding/extension/CSRC
-        buffer.put((byte) (PAYLOAD_TYPE & 0x7F));
-        buffer.putShort((short) sequenceNumber);
-        buffer.putInt(timestamp);
-        buffer.putInt(ssrc);
+        rtpPacket.writeByte(0x80);  // Version 2, no padding/extension/CSRC
+        rtpPacket.writeByte(PAYLOAD_TYPE & 0x7F);
+        rtpPacket.writeShort(sequenceNumber);
+        rtpPacket.writeInt(timestamp);
+        rtpPacket.writeInt(ssrc);
 
-        // 音频负载
-        buffer.put(payload, offset, length);
+        // 音频负载 - 直接复制，避免额外的byte[]转换
+        rtpPacket.writeBytes(payload, offset, length);
 
-        return buffer.array();
+        return rtpPacket;
     }
 
     /**

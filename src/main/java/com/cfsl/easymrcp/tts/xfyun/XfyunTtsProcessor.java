@@ -166,7 +166,7 @@ public class XfyunTtsProcessor extends TtsHandler {
                 }
                 webSocketClient.close();
                 // tts语音合成结束，写入结束标志
-                putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+                putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
             } catch (Exception e) {
                 e.printStackTrace();
             }

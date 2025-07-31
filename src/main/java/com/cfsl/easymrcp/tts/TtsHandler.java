@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.tts;
 import com.cfsl.easymrcp.domain.TtsConfig;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.MrcpConnection;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import lombok.Getter;
 import lombok.Setter;
@@ -74,7 +75,8 @@ public abstract class TtsHandler implements MrcpConnection {
         byte[] silenceData = new byte[i];
         Arrays.fill(silenceData, (byte) 0x00);
         putAudioData(silenceData, silenceData.length);
-        putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+        // 使用ByteBuf版本的结束标记
+        rtpProcessor.putData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
     }
 
     @Override
@@ -94,6 +96,15 @@ public abstract class TtsHandler implements MrcpConnection {
         byte[] data = new byte[bytesRead];
         System.arraycopy(pcmBuffer, 0, data, 0, bytesRead);
         rtpProcessor.putData(data);
+    }
+    
+    /**
+     * 向音频处理器中添加ByteBuf数据
+     *
+     * @param pcmBuffer      音频数据ByteBuf
+     */
+    public void putAudioData(ByteBuf pcmBuffer) {
+        rtpProcessor.putData(pcmBuffer);
     }
 
     /**

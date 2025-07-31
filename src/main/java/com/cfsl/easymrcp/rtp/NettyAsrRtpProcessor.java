@@ -39,7 +39,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     Callback sendEof;
 
     // 音频缓冲区，在构造时创建
-    private NettyCircularAudioBuffer audioBuffer;
+    private NettyAudioRingBuffer ringBuffer;
     private final int SEND_CHUNK_SIZE = 2048;
     private volatile boolean isReconnecting = false;
     // 防止出现vad结束时asr还没连接成功而导致无法发送eof问题
@@ -49,10 +49,10 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
      * 初始化音频缓冲区
      */
     public void initializeBuffer(ByteBufAllocator allocator) {
-        if (audioBuffer == null) {
+        if (ringBuffer == null) {
             int sampleRate = (reSample != null && reSample.equals("upsample8kTo16k")) ? 16000 : 8000;
             // 固定3秒缓冲容量
-            audioBuffer = new NettyCircularAudioBuffer(allocator, sampleRate);
+            ringBuffer = new NettyAudioRingBuffer(allocator, sampleRate);
             log.info("初始化音频缓冲区，采样率: {}Hz, 固定缓冲: 3秒", sampleRate);
         }
     }
@@ -92,7 +92,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
             try {
                 // 确保缓冲区已初始化
-                if (audioBuffer == null) {
+                if (ringBuffer == null) {
                     initializeBuffer(ctx.alloc());
                 }
                 
@@ -118,7 +118,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
          */
         private void handleVadMode(ChannelHandlerContext ctx, ByteBuf msg) {
             // 所有音频数据都先写入主缓冲区
-            audioBuffer.write(msg);
+            ringBuffer.write(msg);
             
             // 将数据添加到VAD缓冲区进行聚合
             vadBuffer.writeBytes(msg);
@@ -139,7 +139,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                     if (!isSpeakingBefore && !isReconnecting) {
                         // 语音开始，移动读指针到500ms前，然后异步连接ASR
                         log.info("VAD检测到语音开始，移动读指针到500ms前");
-                        audioBuffer.moveReadPointerBack(500);
+                        ringBuffer.moveReadPointerBack(500);
                         asyncReconnectAsr();
                     }
                     
@@ -179,7 +179,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                     }
                 } catch (Exception e) {
                     log.error("ASR连接失败", e);
-                    audioBuffer.clear();
+                    ringBuffer.clear();
                     isReconnecting = false;
                 }
             });
@@ -190,8 +190,8 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
          */
         private void sendBufferedAudio() {
             // 只发送一个块，通过接收PCM的节奏来驱动发送时序
-            if (audioBuffer.getSize() >= SEND_CHUNK_SIZE) {
-                ByteBuf chunk = audioBuffer.read(SEND_CHUNK_SIZE);
+            if (ringBuffer.getSize() >= SEND_CHUNK_SIZE) {
+                ByteBuf chunk = ringBuffer.read(SEND_CHUNK_SIZE);
                 if (chunk.readableBytes() > 0) {
                     sendAudioData(chunk);
                 }
@@ -204,7 +204,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
          */
         private void sendRemainingAudio() {
             // 语音结束时，发送所有剩余数据
-            ByteBuf remaining = audioBuffer.readAll();
+            ByteBuf remaining = ringBuffer.readAll();
             if (remaining.readableBytes() > 0) {
                 log.info("发送剩余音频数据: {}字节", remaining.readableBytes());
                 // 按块发送剩余数据
@@ -219,7 +219,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 }
             }
             remaining.release();
-            audioBuffer.clear();
+            ringBuffer.clear();
         }
 
 
@@ -234,9 +234,9 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
 
         @Override
         public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-            if (audioBuffer != null) {
-                log.info("释放音频缓冲区: {}", audioBuffer.getStatusInfo());
-                audioBuffer.release();
+            if (ringBuffer != null) {
+                log.info("释放音频缓冲区: {}", ringBuffer.getStatusInfo());
+                ringBuffer.release();
             }
             if (vadBuffer != null) {
                 vadBuffer.release();

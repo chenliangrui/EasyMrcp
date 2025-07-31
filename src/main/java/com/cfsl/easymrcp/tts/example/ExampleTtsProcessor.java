@@ -37,7 +37,7 @@ public class ExampleTtsProcessor extends TtsHandler {
                     putAudioData(audioChunk, bytesRead);
                 }
                 // 发送结束标志
-                putAudioData(TTSConstant.TTS_END_FLAG, bytesRead);
+                putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
             } catch (Exception e) {
                 log.error("发送失败: " + e.getMessage(), e);
             }

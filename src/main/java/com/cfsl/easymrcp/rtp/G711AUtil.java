@@ -1,5 +1,8 @@
 package com.cfsl.easymrcp.rtp;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+
 /**
  * G.711A编码解码工具类
  */
@@ -32,6 +35,30 @@ public class G711AUtil {
         return res;
     }
 
+    /**
+     * 编码 PCM to G711 a-law (ByteBuf版本，避免内存拷贝)
+     * @param input PCM数据的ByteBuf
+     * @return G711编码后的ByteBuf
+     */
+    public static ByteBuf encode(ByteBuf input) {
+        if (input == null || input.readableBytes() == 0) {
+            return ByteBufAllocator.DEFAULT.buffer(0);
+        }
+        
+        int count = input.readableBytes() / 2;
+        ByteBuf output = ByteBufAllocator.DEFAULT.buffer(count);
+        
+        for (int i = 0; i < count; i++) {
+            // 保持与旧版一致的字节序：小端序读取
+            byte lowByte = input.readByte();
+            byte highByte = input.readByte();
+            short sample = (short) ((lowByte & 0xff) | (highByte << 8));
+            output.writeByte(linearToALawSample(sample));
+        }
+        
+        return output;
+    }
+
 
     /**
      * 解码
@@ -50,7 +77,28 @@ public class G711AUtil {
         return res;
     }
 
-
+    /**
+     * 解码 G711 a-law to PCM (ByteBuf版本，避免内存拷贝)
+     * @param input G711编码数据的ByteBuf
+     * @return PCM解码后的ByteBuf
+     */
+    public static ByteBuf decode(ByteBuf input) {
+        if (input == null || input.readableBytes() == 0) {
+            return ByteBufAllocator.DEFAULT.buffer(0);
+        }
+        
+        int length = input.readableBytes();
+        ByteBuf output = ByteBufAllocator.DEFAULT.buffer(length * 2);
+        
+        for (int i = 0; i < length; i++) {
+            short s = aLawDecompressTable[input.readByte() & 0xff];
+            // 保持与旧版一致的字节序：小端序写入
+            output.writeByte((byte) s);
+            output.writeByte((byte) (s >> 8));
+        }
+        
+        return output;
+    }
 
 
     private static byte linearToALawSample( short sample ){

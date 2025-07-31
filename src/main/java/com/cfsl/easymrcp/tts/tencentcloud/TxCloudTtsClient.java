@@ -55,7 +55,7 @@ public class TxCloudTtsClient {
                 // tts语音合成结束，写入结束标志
                 try {
                     // 直接使用TtsHandler的putAudioData方法
-                    ttsHandler.putAudioData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+                    ttsHandler.putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
