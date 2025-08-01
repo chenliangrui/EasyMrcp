@@ -63,6 +63,10 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
 //                    asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
                     log.info("Setting Speech-Complete-Timeout ({} ms) for VAD initialization", speechCompleteTimeout);
                 }
+                Boolean automaticInterruption = asrParams.getBoolean(ASRConstant.AutomaticInterruption);
+                if (automaticInterruption != null) {
+                    asrHandler.setAutomaticInterruption(automaticInterruption);
+                }
             } else {
                 // 关闭超时计时器
                 timeoutManager.setStartInputTimers(false);
@@ -76,7 +80,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
             @Override
             public void apply(String action, String msg) {
                 // TODO 放到vad和实时语音识别中进行处理，并且重置定时器
-                if (action.equals(ASRConstant.Interrupt)) {
+                if (asrHandler.getAutomaticInterruption() && action.equals(ASRConstant.Interrupt)) {
                     mrcpManage.clearAllSpeakTaskAndInterrupt(id);
                     asrHandler.cancelTimeouts();
                 }

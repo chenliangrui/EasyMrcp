@@ -12,6 +12,8 @@ public class ASRConstant {
     public static final String NoInputTimeout = "NoInputTimeout";
     // 检测到语音后，静音持续多长时间被视为说话结束(数字类型，毫秒值)
     public static final String SpeechCompleteTimeout = "SpeechCompleteTimeout";
+    // 开启ASR识别后自动打断(布尔类型)
+    public static final String AutomaticInterruption = "AutomaticInterruption";
 
     // 一句话语音识别或实时语音识别需要的action(打断)
     public static final String Interrupt = "Interrupt";

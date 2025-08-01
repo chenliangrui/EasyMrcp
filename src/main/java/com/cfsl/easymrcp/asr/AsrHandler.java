@@ -34,6 +34,8 @@ public abstract class AsrHandler implements MrcpConnection {
     private String callId;
     @Setter
     private MrcpTimeoutManager timeoutManager;
+    @Setter
+    private Boolean automaticInterruption;
     
     // 保存Speech-Complete-Timeout参数值
     private Long speechCompleteTimeout;
