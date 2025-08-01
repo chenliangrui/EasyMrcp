@@ -2,12 +2,14 @@ package com.cfsl.easymrcp.utils;
 
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
+import io.netty.util.HashedWheelTimer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
 import java.util.Random;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class SipUtils {
@@ -15,6 +17,9 @@ public class SipUtils {
     @Autowired
     SipContext sipContext;
     private static MrcpManage mrcpManage;
+
+    // Netty时间轮 单例模式
+    public static final HashedWheelTimer wheelTimer = new HashedWheelTimer(50, TimeUnit.MILLISECONDS);
 
     @Autowired
     public void setMrcpManage(MrcpManage mrcpManage) {

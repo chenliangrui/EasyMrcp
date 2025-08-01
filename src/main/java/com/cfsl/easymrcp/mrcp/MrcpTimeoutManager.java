@@ -1,8 +1,7 @@
 package com.cfsl.easymrcp.mrcp;
 
-import io.netty.util.HashedWheelTimer;
+import com.cfsl.easymrcp.utils.SipUtils;
 import io.netty.util.Timeout;
-import io.netty.util.TimerTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
@@ -20,9 +19,6 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class MrcpTimeoutManager {
-    // 单例模式
-    private static final HashedWheelTimer wheelTimer = new HashedWheelTimer(50, TimeUnit.MILLISECONDS);
-
     // 超时相关字段
     private Long noInputTimeout;           // 无输入超时
     // 实际应用中不太有用，已注释
@@ -81,9 +77,11 @@ public class MrcpTimeoutManager {
             if (noInputTimeoutTask != null) {
                 cancelAllTimers();
             }
-            noInputTimeoutTask = wheelTimer.newTimeout(timeout -> {
-                log.info("No input timeout triggered");
-                timeoutCallback.onNoInputTimeout();
+            noInputTimeoutTask = SipUtils.wheelTimer.newTimeout(timeout -> {
+                SipUtils.executeTask(() -> {
+                    log.info("No input timeout triggered");
+                    timeoutCallback.onNoInputTimeout();
+                });
             }, noInputTimeout, TimeUnit.MILLISECONDS);
         }
     }

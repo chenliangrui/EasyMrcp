@@ -1,11 +1,15 @@
 package com.cfsl.easymrcp.vad;
 
 import ai.onnxruntime.OrtException;
+import com.cfsl.easymrcp.utils.SipUtils;
+import io.netty.util.HashedWheelTimer;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class VadHandle {
@@ -25,9 +29,10 @@ public class VadHandle {
     public VadHandle() {
         initVad();
     }
-    
+
     /**
      * 使用指定的静音超时时长初始化VAD
+     *
      * @param speechCompleteTimeoutMs Speech-Complete-Timeout参数值（毫秒）
      */
     public VadHandle(Long speechCompleteTimeoutMs) {
@@ -37,21 +42,22 @@ public class VadHandle {
         }
         initVad();
     }
-    
+
     /**
      * 设置Speech-Complete-Timeout参数并重新初始化VAD
+     *
      * @param speechCompleteTimeoutMs 静音超时时长（毫秒）
      */
     public void setSpeechCompleteTimeout(Long speechCompleteTimeoutMs) {
-        if (speechCompleteTimeoutMs != null && speechCompleteTimeoutMs > 0 
+        if (speechCompleteTimeoutMs != null && speechCompleteTimeoutMs > 0
                 && speechCompleteTimeoutMs.intValue() != MIN_SILENCE_DURATION_MS) {
             MIN_SILENCE_DURATION_MS = speechCompleteTimeoutMs.intValue();
             log.info("Updating Speech-Complete-Timeout value for VAD: {} ms", MIN_SILENCE_DURATION_MS);
-            
+
             // 重新初始化VAD检测器
             try {
                 if (vadDetector != null) {
-                    vadDetector.close();
+                    release();
                 }
                 initVad();
             } catch (Exception e) {
@@ -59,7 +65,7 @@ public class VadHandle {
             }
         }
     }
-    
+
     private void initVad() {
         // Initialize the Voice Activity Detector
         try {
@@ -103,11 +109,19 @@ public class VadHandle {
         }
     }
 
+    /**
+     * 延时释放vad，防止出现执行onnxruntime原生空指针错误从而导致jvm崩溃
+     */
     public void release() {
-        try {
-            vadDetector.close();
-        } catch (OrtException e) {
-            log.error("Error closing VAD detector: {}", e.getMessage());
-        }
+        SipUtils.wheelTimer.newTimeout(timeout -> {
+            SipUtils.executeTask(() -> {
+                try {
+                    log.info("VAD released");
+                    vadDetector.close();
+                } catch (OrtException e) {
+                    log.error("Error closing VAD detector: {}", e.getMessage());
+                }
+            });
+        }, 2000, TimeUnit.MILLISECONDS);
     }
 }
