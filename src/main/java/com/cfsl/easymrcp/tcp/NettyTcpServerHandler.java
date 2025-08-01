@@ -56,7 +56,7 @@ public class NettyTcpServerHandler extends ChannelInboundHandlerAdapter {
         
         if (clientId != null) {
             // 通知MRCP管理器移除相关资源
-            mrcpManage.removeMrcpCallData(clientId);
+//            mrcpManage.removeMrcpCallData(clientId);
             
             // 从连接管理器中注销客户端
             connectionManager.unregisterClient(clientId);
@@ -113,7 +113,7 @@ public class NettyTcpServerHandler extends ChannelInboundHandlerAdapter {
                     log.info("客户端 {} 空闲超时，关闭连接", clientId);
                     
                     // 移除相关资源
-                    mrcpManage.removeMrcpCallData(clientId);
+//                    mrcpManage.removeMrcpCallData(clientId);
                     connectionManager.unregisterClient(clientId);
                 }
                 

@@ -107,6 +107,7 @@ public abstract class AsrHandler implements MrcpConnection {
         }
         // 取消所有超时定时器
         cancelTimeouts();
+        timeoutManager = null;
     }
     
     /**

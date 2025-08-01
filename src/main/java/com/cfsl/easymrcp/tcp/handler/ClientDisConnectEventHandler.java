@@ -18,7 +18,7 @@ public class ClientDisConnectEventHandler implements MrcpEventHandler {
     @Override
     public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
-        mrcpManage.removeMrcpCallData(id);
+//        mrcpManage.removeMrcpCallData(id);
         return TcpResponse.success(id, "success");
     }
 }

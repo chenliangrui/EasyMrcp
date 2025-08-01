@@ -88,10 +88,10 @@ public class MrcpTimeoutManager {
 
     // 取消所有定时器
     public void cancelAllTimers() {
-        log.debug("Cancelling all timers");
         if (noInputTimeoutTask != null) {
             noInputTimeoutTask.cancel();
             noInputTimeoutTask = null;
+            log.info("Cancelling all timers");
         }
     }
 

@@ -108,6 +108,7 @@ public class MrcpManage {
         }
     }
 
+    // 暂时在mrcp会话关闭时不做处理
     public void removeMrcpCallData(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.warn("removeMrcpCallData error, callId:{} not exist", callId);
@@ -124,6 +125,7 @@ public class MrcpManage {
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(uuid);
         mrcpCallData.getAsrHandler().close();
         mrcpCallData.getTtsHandler().close();
+        mrcpCallDataConcurrentHashMap.remove(uuid);
     }
 
 
