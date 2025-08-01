@@ -178,6 +178,13 @@ public class MrcpManage {
         mrcpEventQueue.clear();
     }
 
+    public void clearAllSpeakTaskAndInterrupt(String callId) {
+        // 清除speak队列中未完成的任务
+        clearAllSpeakTask(callId);
+        // 中断当前TTS
+        interrupt(callId);
+    }
+
     public void executeTask(Runnable runnable) {
         mrcpEventThreadPool.execute(runnable);
     }

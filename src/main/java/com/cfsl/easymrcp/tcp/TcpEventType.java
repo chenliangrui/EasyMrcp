@@ -40,6 +40,11 @@ public enum TcpEventType {
     Speak,
 
     /**
+     * 进行打断事件
+     */
+    Interrupt,
+
+    /**
      * TTS合成被打断事件
      */
     SpeakInterrupted,

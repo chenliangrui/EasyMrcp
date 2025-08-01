@@ -28,10 +28,7 @@ public class SpeakEventHandler implements MrcpEventHandler {
             return null;
         }
         if (event.getEvent().equals(TcpEventType.InterruptAndSpeak.name())) {
-            // 清除speak队列中未完成的任务
-            mrcpManage.clearAllSpeakTask(id);
-            // 中断当前TTS
-            mrcpManage.interrupt(id);
+            mrcpManage.clearAllSpeakTaskAndInterrupt(id);
         }
         MrcpEventWithCallback mrcpEventWithCallback = new MrcpEventWithCallback();
         mrcpEventWithCallback.setRunnable(new Runnable() {

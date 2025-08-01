@@ -209,7 +209,8 @@ public class NettyTcpServerHandler extends ChannelInboundHandlerAdapter {
                 case InterruptAndSpeak:
                 case Silence:
                     return new SpeakEventHandler(mrcpManage);
-//                    return new InterruptAndSpeakCommandHandler(mrcpManage);
+                case Interrupt:
+                    return new InterruptEventHandler(mrcpManage);
                 case ClientConnect:
                     return new ClientConnectEventHandler(mrcpManage);
                 case ClientDisConnect:

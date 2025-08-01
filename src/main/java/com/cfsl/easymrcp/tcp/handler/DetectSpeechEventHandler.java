@@ -77,10 +77,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
             public void apply(String action, String msg) {
                 // TODO 放到vad和实时语音识别中进行处理，并且重置定时器
                 if (action.equals(ASRConstant.Interrupt)) {
-                    // 清除speak队列中未完成的任务
-                    mrcpManage.clearAllSpeakTask(id);
-                    // 打断
-                    mrcpManage.interrupt(id);
+                    mrcpManage.clearAllSpeakTaskAndInterrupt(id);
                     asrHandler.cancelTimeouts();
                 }
                 if (action.equals(ASRConstant.Result)) {
