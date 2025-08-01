@@ -91,6 +91,26 @@ public class NettyAudioRingBuffer {
     }
     
     /**
+     * 构造函数 - 直接按字节数分配容量（用于VAD等特殊场景）
+     * 
+     * @param allocator ByteBuf分配器
+     * @param capacityBytes 直接指定的缓冲区容量（字节）
+     * @param enableAutoExpand 是否启用自动扩容
+     */
+    public NettyAudioRingBuffer(ByteBufAllocator allocator, int capacityBytes, boolean enableAutoExpand) {
+        this.allocator = allocator;
+        this.sampleRate = 16000; // 默认采样率，仅用于日志显示
+        this.capacity = Math.max(1024, capacityBytes); // 最少1KB
+        this.bufferSeconds = capacity / (sampleRate * 2); // 计算等效时长
+        this.enableAutoExpand = enableAutoExpand;
+        this.circularBuffer = allocator.buffer(capacity);
+        
+        String mode = enableAutoExpand ? "TTS模式(支持扩容)" : "ASR模式(固定容量)";
+        log.debug("创建环形缓冲区(按字节) - 容量: {}字节({:.1f}KB), 等效时长: {}秒, {}", 
+                capacity, capacity / 1024.0, bufferSeconds, mode);
+    }
+    
+    /**
      * 计算缓冲区容量
      * 
      * @param sampleRate 采样率

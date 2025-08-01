@@ -93,9 +93,7 @@ public abstract class TtsHandler implements MrcpConnection {
      * @param bytesRead
      */
     public void putAudioData(byte[] pcmBuffer, int bytesRead) {
-        byte[] data = new byte[bytesRead];
-        System.arraycopy(pcmBuffer, 0, data, 0, bytesRead);
-        rtpProcessor.putData(data);
+        rtpProcessor.putData(pcmBuffer, bytesRead);
     }
     
     /**

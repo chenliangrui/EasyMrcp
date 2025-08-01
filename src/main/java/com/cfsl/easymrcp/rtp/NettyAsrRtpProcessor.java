@@ -84,9 +84,11 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
      * 业务处理Handler，直接处理PCM数据
      */
     private class AsrBusinessHandler extends SimpleChannelInboundHandler<ByteBuf> {
-        // VAD检测需要的聚合缓冲区（2048字节帧）
-        private ByteBuf vadBuffer;
+        // VAD检测需要的环形缓冲区（固定容量，防止内存泄漏）
+        private NettyAudioRingBuffer vadBuffer;
         private final int VAD_FRAME_SIZE = 2048;
+        // VAD缓冲区容量：能容纳2-3个VAD帧，防止数据积压
+        private final int VAD_BUFFER_CAPACITY = VAD_FRAME_SIZE * 3;
         
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
@@ -96,9 +98,10 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                     initializeBuffer(ctx.alloc());
                 }
                 
-                // 初始化VAD缓冲区
+                // 初始化VAD缓冲区（环形缓冲区，固定容量）
                 if (vadBuffer == null) {
-                    vadBuffer = ctx.alloc().buffer(VAD_FRAME_SIZE * 2);
+                    vadBuffer = new NettyAudioRingBuffer(ctx.alloc(), VAD_BUFFER_CAPACITY, false);
+                    log.debug("初始化VAD环形缓冲区，容量: {}字节", VAD_BUFFER_CAPACITY);
                 }
 
                 if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
@@ -120,14 +123,16 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             // 所有音频数据都先写入主缓冲区
             ringBuffer.write(msg);
             
-            // 将数据添加到VAD缓冲区进行聚合
-            vadBuffer.writeBytes(msg);
+            // 将数据添加到VAD环形缓冲区（自动覆盖旧数据，防止内存泄漏）
+            vadBuffer.write(msg);
             
             // 只处理一个VAD帧，保持与PCM接收的自然节奏
-            if (vadBuffer.readableBytes() >= VAD_FRAME_SIZE) {
+            if (vadBuffer.getSize() >= VAD_FRAME_SIZE) {
                 // 读取一个2048字节的音频帧
+                ByteBuf vadFrameBuf = vadBuffer.read(VAD_FRAME_SIZE);
                 byte[] vadFrame = new byte[VAD_FRAME_SIZE];
-                vadBuffer.readBytes(vadFrame);
+                vadFrameBuf.readBytes(vadFrame);
+                vadFrameBuf.release();
                 
                 // 进行VAD检测
                 boolean isSpeakingBefore = vadHandle.getIsSpeaking();
@@ -239,8 +244,8 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 ringBuffer.release();
             }
             if (vadBuffer != null) {
+                log.debug("释放VAD环形缓冲区: {}", vadBuffer.getStatusInfo());
                 vadBuffer.release();
-                log.debug("释放VAD缓冲区");
             }
             super.handlerRemoved(ctx);
         }

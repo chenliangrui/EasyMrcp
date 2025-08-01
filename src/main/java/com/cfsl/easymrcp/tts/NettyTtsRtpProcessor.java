@@ -8,7 +8,6 @@ import com.cfsl.easymrcp.rtp.NettyRtpSender;
 import com.cfsl.easymrcp.utils.SipUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -222,17 +221,19 @@ public class NettyTtsRtpProcessor {
     /**
      * 向输入缓冲区写入数据
      *
-     * @param data 输入数据
+     * @param data      输入数据
+     * @param bytesRead
      */
-    public void putData(byte[] data) {
+    public void putData(byte[] data, int bytesRead) {
         if (data == null || data.length == 0) {
             return;
         }
 
         // 直接创建ByteBuf并写入数据，避免额外的内存拷贝
-        ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(data.length);
-        byteBuf.writeBytes(data);
+        ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(bytesRead);
+        byteBuf.writeBytes(data, 0 , bytesRead);
         inputRingBuffer.write(byteBuf);
+        byteBuf.release();
     }
 
     /**
@@ -364,29 +365,6 @@ public class NettyTtsRtpProcessor {
     }
 
     /**
-     * 辅助方法：从NettyCircularAudioBuffer读取数据
-     */
-    private byte[] takeData(NettyAudioRingBuffer buffer, int maxLength) {
-        if (buffer.getSize() == 0) {
-            return null;
-        }
-
-        int actualLength = Math.min(maxLength, buffer.getSize());
-        ByteBuf byteBuf = buffer.read(actualLength);
-
-        if (byteBuf.readableBytes() == 0) {
-            byteBuf.release();
-            return null;
-        }
-
-        byte[] result = new byte[byteBuf.readableBytes()];
-        byteBuf.readBytes(result);
-        byteBuf.release();
-
-        return result;
-    }
-
-    /**
      * 辅助方法：从NettyCircularAudioBuffer读取数据，返回ByteBuf
      */
     private ByteBuf takeDataAsByteBuf(NettyAudioRingBuffer buffer, int maxLength) {
@@ -403,20 +381,6 @@ public class NettyTtsRtpProcessor {
         }
 
         return byteBuf;
-    }
-
-    /**
-     * 辅助方法：向NettyCircularAudioBuffer写入数据
-     */
-    private void putData(NettyAudioRingBuffer buffer, byte[] data) {
-        if (data == null || data.length == 0) {
-            return;
-        }
-
-        // 直接创建ByteBuf并写入数据，避免额外的内存拷贝
-        ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(data.length);
-        byteBuf.writeBytes(data);
-        buffer.write(byteBuf);
     }
 
     /**
