@@ -3,7 +3,7 @@ server:
   port: 8080
 sip:
   # EasyMrcp要监听的sip服务器地址，填写项目运行的ip地址
-  sipServer: 172.16.2.155
+  sipServer: 192.168.31.29
   # sip服务器端口
   sipPort: 5060
   # mrcp服务器端口
@@ -12,7 +12,7 @@ mrcp:
   # 选择一个asr服务，目前已经集成：xfyun、funasr、tencent-cloud
   asrMode: xfyun
   # 选择一个tts服务，目前已经集成：xfyun、kokoro、tencent-cloud
-  ttsMode: kokoro
+  ttsMode: xfyun
 rtp:
   # Netty线程池大小，默认为CPU核心数的2倍
   nettyThreads: 8
@@ -28,7 +28,7 @@ fs:
     # 是否启用FreeSWITCH注册
     enabled: true
     # FreeSWITCH服务器IP
-    server: 172.16.2.119
+    server: 192.168.31.100
     # FreeSWITCH SIP端口
     port: 5060
     # 注册用户名
@@ -36,7 +36,7 @@ fs:
     # 注册密码
     password: 1020
     # 注册域
-    domain: 172.16.2.119
+    domain: 192.168.31.100
     # 注册间隔(秒)
     interval: 1800
 # TCP服务器配置
