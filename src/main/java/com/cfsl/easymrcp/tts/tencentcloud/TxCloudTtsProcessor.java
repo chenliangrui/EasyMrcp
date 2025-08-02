@@ -1,6 +1,5 @@
 package com.cfsl.easymrcp.tts.tencentcloud;
 
-import com.cfsl.easymrcp.tts.RealTimeAudioProcessor;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,7 +14,8 @@ public class TxCloudTtsProcessor extends TtsHandler {
 
     @Override
     public void create() {
-        txCloudTtsClient = new TxCloudTtsClient(config, processor);
+        // 直接传递this，以便TxCloudTtsClient可以调用putAudioData方法
+        txCloudTtsClient = new TxCloudTtsClient(config, this);
         txCloudTtsClient.create();
     }
 

@@ -6,12 +6,13 @@ import com.cfsl.easymrcp.sip.SipManage;
 import com.cfsl.easymrcp.sip.SipSession;
 import com.cfsl.easymrcp.utils.SipUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.mrcp4j.MrcpResourceType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sdp.*;
 import javax.sip.*;
+import javax.sip.header.ExtensionHeader;
+import javax.sip.header.Header;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -25,19 +26,28 @@ public class HandleInvite {
     @Autowired
     SipManage sipManage;
     @Autowired
-    HandleReceiver handleReceiver;
-    @Autowired
-    HandleTransmitter handleTransmitter;
+    HandleSipInit handleSipInit;
     @Autowired
     HandleOk handleOk;
-
-    private long _channelID = System.currentTimeMillis();
 
     public void handleInvite(RequestEvent requestEvent) {
         SipProvider sipProvider = (SipProvider) requestEvent.getSource();
         Request request = requestEvent.getRequest();
         String guid = SipUtils.getGUID();
         SipSession sipSession = null;
+        
+        // 解析自定义头部 X-EasyMRCP
+        String customHeaderUUID = null;
+        Header customHeader = request.getHeader("X-EasyMRCP");
+        if (customHeader != null) {
+            if (customHeader instanceof ExtensionHeader) {
+                customHeaderUUID = ((ExtensionHeader) customHeader).getValue();
+            } else {
+                customHeaderUUID = customHeader.toString().substring(customHeader.toString().indexOf(":") + 1).trim();
+            }
+            log.info("Received X-EasyMRCP with value: {}", customHeaderUUID);
+        }
+        
         try {
             ServerTransaction st = requestEvent.getServerTransaction();
             if (st == null) {
@@ -49,7 +59,7 @@ public class HandleInvite {
             byte[] rawContent = request.getRawContent();
             SdpFactory sdpFactory = SdpFactory.getInstance();
             if (rawContent == null) {
-                log.warn("no offer in invite request");
+                log.warn("no offer in initAsrAndTts request");
             } else {
                 Dialog dialog = requestEvent.getDialog();
                 if (dialog == null) {
@@ -65,8 +75,8 @@ public class HandleInvite {
                     }
                     dialog = st.getDialog();
                     if (dialog != null && sipManage.hasSipSession(dialog.getDialogId())) {
-                        // TODO handle re-invite
-                        log.info("Receive re-invite, please consider handling it");
+                        // TODO handle re-initAsrAndTts
+                        log.info("Receive re-initAsrAndTts, please consider handling it");
                     } else {
                         sipSession = new SipSession();
                         sipSession.setDialog(dialog);
@@ -78,7 +88,7 @@ public class HandleInvite {
                 String contentString = new String(rawContent);
                 SessionDescription sessionDescription = sdpFactory.createSessionDescription(contentString);
                 SdpMessage sdpSessionMessage = SdpMessage.createSdpSessionMessage(sessionDescription);
-                SdpMessage invite = invite(sdpSessionMessage, sipSession);
+                SdpMessage invite = invite(sdpSessionMessage, sipSession, customHeaderUUID);
                 try {
                     handleOk.sendResponse(sipSession, invite);
                 } catch (SipException e) {
@@ -96,49 +106,9 @@ public class HandleInvite {
 
     }
 
-    private SdpMessage invite(SdpMessage sdpMessage, SipSession session) throws SdpException {
-        boolean receiver = false;
-        boolean transmitter = false;
-        try {
-            for (MediaDescription md : sdpMessage.getMrcpReceiverChannels()) {
-                String channelID = getNextChannelID();
-                String chanid = channelID + '@' + MrcpResourceType.SPEECHRECOG.toString();
-                md.setAttribute("channel", chanid);
-                md.setAttribute("setup", "passive");
-                receiver = true;
-            }
-            for (MediaDescription md : sdpMessage.getMrcpRecorderChannels()) {
-                String channelID = getNextChannelID();
-                String chanid = channelID + '@' + MrcpResourceType.RECORDER.toString();
-                md.setAttribute("channel", chanid);
-                md.setAttribute("setup", "passive");
-                receiver = true;
-            }
-            for (MediaDescription md : sdpMessage.getMrcpTransmitterChannels()) {
-                String channelID = getNextChannelID();
-                String chanid = channelID + '@' + MrcpResourceType.SPEECHSYNTH.toString();
-                md.setAttribute("channel", chanid);
-                md.setAttribute("setup", "passive");
-                transmitter = true;
-            }
-        } catch (SdpException e) {
-            log.warn(e.getMessage(), e);
-        }
-        if (transmitter) {
-            sdpMessage = handleTransmitter.invite(sdpMessage, session);
-        }
-        if (receiver) {
-            sdpMessage = handleReceiver.invite(sdpMessage, session);
-        }
-        for (MediaDescription md : sdpMessage.getMrcpChannels()) {
-            md.removeAttribute("resource");
-        }
+    private SdpMessage invite(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) throws SdpException {
+        sdpMessage = handleSipInit.initAsrAndTts(sdpMessage, session, customHeaderUUID);
         sdpMessage.getSessionDescription().getConnection().setAddress(sipContext.getSipServerIp());
         return sdpMessage;
-    }
-
-
-    private synchronized String getNextChannelID() { // TODO: convert from synchronized to atomic
-        return Long.toHexString(_channelID++);
     }
 }

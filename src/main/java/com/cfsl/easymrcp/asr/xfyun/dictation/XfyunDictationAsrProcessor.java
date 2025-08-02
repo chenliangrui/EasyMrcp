@@ -20,7 +20,7 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
     private String appid; //在控制台-我的应用获取
     private String apiSecret; //在控制台-我的应用-语音听写（流式版）获取
     private String apiKey; //在控制台-我的应用-语音听写（流式版）获取
-    AsrCallback funasrCallback;
+    AsrCallback xfyunCallback;
     XfyunDictationWsClient xfyunWsClient;
     WebSocket webSocket;
     private OkHttpClient client;
@@ -52,13 +52,13 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
         Request request = new Request.Builder().url(url).build();
         // System.out.println(client.newCall(request).execute());
         //System.out.println("url===>" + url);
-        funasrCallback = new AsrCallback() {
+        xfyunCallback = new AsrCallback() {
             @Override
-            public void apply(String msg) {
-                getCallback().apply(msg);
+            public void apply(String action, String msg) {
+                getCallback().apply(action, msg);
             }
         };
-        xfyunWsClient = new XfyunDictationWsClient(funasrCallback, stop, getCountDownLatch());
+        xfyunWsClient = new XfyunDictationWsClient(xfyunCallback, stop, getCountDownLatch());
         xfyunWsClient.setHostUrl(hostUrl);
         xfyunWsClient.setAppid(appid);
         xfyunWsClient.setApiSecret(apiSecret);

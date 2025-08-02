@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.asr.funasr;
 
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.utils.SipUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +32,8 @@ public class FunAsrProcessor extends AsrHandler {
             String wsAddress = "ws://" + srvIp + ":" + srvPort;
             funasrCallback = new AsrCallback() {
                 @Override
-                public void apply(String msg) {
-                    getCallback().apply(msg);
+                public void apply(String action, String msg) {
+                    getCallback().apply(action, msg);
                 }
             };
             funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop, getCountDownLatch());

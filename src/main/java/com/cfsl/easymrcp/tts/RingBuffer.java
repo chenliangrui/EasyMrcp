@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.tts;
 
 import lombok.Getter;
+import java.util.Arrays;
 
 /**
  * TODO 解决RingBuffer覆盖问题
@@ -21,7 +22,7 @@ public class RingBuffer {
         this.available = 0;
     }
 
-    public synchronized void put(byte[] data) {
+    public void put(byte[] data) {
         int bytesToWrite = Math.min(data.length, capacity - available);
         if (bytesToWrite <= 0) return;
 
@@ -38,7 +39,7 @@ public class RingBuffer {
         available += bytesToWrite;
     }
 
-    public synchronized byte[] take(int maxLength) {
+    public byte[] take(int maxLength) {
         if (available <= 0) return null;
 
         int bytesToRead = Math.min(maxLength, available);
@@ -58,7 +59,7 @@ public class RingBuffer {
         return result;
     }
 
-    public synchronized byte[] peek(int maxLength) {
+    public byte[] peek(int maxLength) {
         if (available <= 0) return null;
 
         int bytesToRead = Math.min(maxLength, available);
@@ -72,5 +73,14 @@ public class RingBuffer {
         }
 
         return result;
+    }
+    
+    /**
+     * 清空RingBuffer，恢复至初始状态
+     */
+    public synchronized void clear() {
+        writePos = 0;
+        readPos = 0;
+        available = 0;
     }
 }
