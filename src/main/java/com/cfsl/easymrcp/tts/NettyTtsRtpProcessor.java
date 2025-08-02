@@ -56,7 +56,7 @@ public class NettyTtsRtpProcessor {
         this.inputRingBuffer = new NettyAudioRingBuffer(allocator, SAMPLE_RATE, TTS_INPUT_BUFFER_SECONDS, true);  // TTS模式
         this.outputRingBuffer = new NettyAudioRingBuffer(allocator, SAMPLE_RATE, TTS_OUTPUT_BUFFER_SECONDS, true); // TTS模式
 
-        log.info("TTS缓冲区初始化完成");
+        log.debug("TTS缓冲区初始化完成");
 
         try {
             // 创建RTP发送器
@@ -94,7 +94,7 @@ public class NettyTtsRtpProcessor {
                         }
                         Thread.sleep(200);
                         if (stop.get()) {
-                            log.info("音频处理线程已停止");
+                            log.debug("音频处理线程已停止");
                             return;
                         }
                     }
@@ -314,12 +314,12 @@ public class NettyTtsRtpProcessor {
                                 if (endByte1 == TTSConstant.TTS_END_BYTE && endByte2 == TTSConstant.TTS_END_BYTE) {
                                     sendSilence = true;
                                     SipUtils.executeTask(() -> callback.apply("completed"));
-                                    log.info("TTS播放完成，已触发回调");
+                                    log.info("tts播放完成");
                                 }
                                 if (endByte1 == TTSConstant.TTS_INTERRUPT_BYTE && endByte2 == TTSConstant.TTS_INTERRUPT_BYTE) {
                                     sendSilence = true;
                                     SipUtils.executeTask(() -> callback.apply("interrupt"));
-                                    log.info("语音流已经打断！！！");
+                                    log.info("tts语音流已经被打断");
                                 }
                             }
                             payload.release();
@@ -358,7 +358,7 @@ public class NettyTtsRtpProcessor {
             }
             // 直接使用ByteBuf常量
             putData(outputRingBuffer, TTSConstant.TTS_INTERRUPT_FLAG.retainedDuplicate());
-            log.info("已中断TTS播放");
+            log.debug("已中断TTS播放");
         } catch (Exception e) {
             log.error("中断TTS播放时出现异常", e);
         }
@@ -402,11 +402,11 @@ public class NettyTtsRtpProcessor {
         try {
             if (inputRingBuffer != null && !inputRingBuffer.isClosed()) {
                 inputRingBuffer.release();
-                log.info("已释放输入缓冲区资源");
+                log.debug("已释放输入缓冲区资源");
             }
             if (outputRingBuffer != null && !outputRingBuffer.isClosed()) {
                 outputRingBuffer.release();
-                log.info("已释放输出缓冲区资源");
+                log.debug("已释放输出缓冲区资源");
             }
         } catch (Exception e) {
             log.warn("释放缓冲区资源时出现异常", e);

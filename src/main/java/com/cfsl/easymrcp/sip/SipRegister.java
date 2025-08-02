@@ -1,12 +1,11 @@
 package com.cfsl.easymrcp.sip;
 
 import com.cfsl.easymrcp.common.SipContext;
-import com.cfsl.easymrcp.common.SipServerStartedEvent;
-import gov.nist.javax.sip.stack.SIPClientTransactionImpl;
+import com.cfsl.easymrcp.utils.SipUtils;
+import io.netty.util.Timeout;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -21,17 +20,16 @@ import javax.sip.message.Response;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * FreeSWITCH注册客户端
+ * SIP注册客户端
  * 使用现有的SIP基础设施，实现向FreeSWITCH的注册功能
  */
 @Slf4j
 @Service
-public class FSRegistrationClient {
+public class SipRegister {
 
     @Autowired
     private SipContext sipContext;
@@ -57,7 +55,7 @@ public class FSRegistrationClient {
     @Value("${fs.register.interval:60}")
     private int registerInterval;
     
-    private Timer timer;
+    private Timeout reRegisterTimeout;
     private AtomicInteger cseq = new AtomicInteger(1);
     private String callId;
     private String fromTag;
@@ -73,41 +71,7 @@ public class FSRegistrationClient {
             return;
         }
         
-        log.info("FreeSWITCH Registration Client initialized, waiting for SIP server to start");
-    }
-    
-    /**
-     * 监听SIP服务器启动事件
-     * 当SIP服务器启动成功后，开始注册
-     */
-//    @EventListener
-    public void onSipServerStarted(SipServerStartedEvent event) {
-        if (!registerEnabled) {
-            return;
-        }
-        
-        try {
-            log.info("SIP服务器已启动，开始FreeSWITCH注册");
-            
-            // 启动注册
-            register();
-            
-            // 设置定期注册
-            timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        register();
-                    } catch (Exception e) {
-                        log.error("Error during scheduled registration", e);
-                    }
-                }
-            }, registerInterval * 1000, registerInterval * 1000);
-            
-        } catch (Exception e) {
-            log.error("Failed to register with FreeSWITCH after SIP server started", e);
-        }
+        log.info("SIP注册客户端已初始化");
     }
     
     public void register() {
@@ -211,59 +175,6 @@ public class FSRegistrationClient {
     }
     
     /**
-     * 处理401认证响应
-     */
-    public void handleAuthChallenge(Response response, ClientTransaction transaction) {
-        try {
-            log.info("处理FreeSWITCH认证挑战");
-            
-            // 获取WWW-Authenticate头部
-            WWWAuthenticateHeader wwwAuthenticateHeader = (WWWAuthenticateHeader) response.getHeader(WWWAuthenticateHeader.NAME);
-            if (wwwAuthenticateHeader == null) {
-                log.error("401响应中没有WWW-Authenticate头部");
-                return;
-            }
-            
-            log.info("收到认证挑战: realm={}, nonce={}", 
-                     wwwAuthenticateHeader.getRealm(),
-                     wwwAuthenticateHeader.getNonce());
-            
-            // 保存认证信息，用于后续请求
-            lastNonce = wwwAuthenticateHeader.getNonce();
-            lastRealm = wwwAuthenticateHeader.getRealm();
-            
-            // 获取原始请求
-            Request originalRequest = transaction.getRequest();
-            
-            // 创建新请求
-            Request registerRequest = (Request) originalRequest.clone();
-            
-            // 增加CSeq
-            CSeqHeader cseqHeader = (CSeqHeader) registerRequest.getHeader(CSeqHeader.NAME);
-            cseqHeader.setSeqNumber(invco++);
-            
-            // 生成Authorization头部
-            AuthorizationHeader authorizationHeader = createAuthorizationHeader(
-                    lastRealm,
-                    lastNonce,
-                    wwwAuthenticateHeader.getScheme(), 
-                    registerRequest.getMethod(), 
-                    registerRequest.getRequestURI().toString());
-            
-            registerRequest.addHeader(authorizationHeader);
-            
-            log.info("发送带认证信息的REGISTER请求");
-            
-            // 发送带有认证的请求
-            ClientTransaction newClientTransaction = sipContext.sipProvider.getNewClientTransaction(registerRequest);
-            newClientTransaction.sendRequest();
-            log.info("已发送带认证的REGISTER请求到FreeSWITCH");
-        } catch (Exception e) {
-            log.error("处理认证失败", e);
-        }
-    }
-    
-    /**
      * 处理注册响应
      */
     public void handleRegisterResponse(Response response) {
@@ -276,68 +187,31 @@ public class FSRegistrationClient {
             ExpiresHeader expiresHeader = (ExpiresHeader) response.getHeader(ExpiresHeader.NAME);
             int expires = expiresHeader != null ? expiresHeader.getExpires() : registerInterval;
             
-            log.info("注册有效期为{}秒，将在{}秒后自动更新", expires, expires > 10 ? expires - 10 : expires / 2);
+            // 注册刷新时间为过期时间的一半
+            int refreshTime = expires / 2;
+            log.info("注册有效期为{}秒，将在{}秒后自动更新", expires, refreshTime);
             
-            // 设置定期注册更新
-            if (timer != null) {
-                timer.cancel();
+            // 使用时间轮设置定期注册更新
+            if (reRegisterTimeout != null) {
+                reRegisterTimeout.cancel();
             }
-            timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
+            
+            reRegisterTimeout = SipUtils.wheelTimer.newTimeout(timeout -> {
+                SipUtils.executeTask(() -> {
                     try {
                         log.info("执行注册更新");
                         register();
                     } catch (Exception e) {
                         log.error("注册更新失败", e);
                     }
-                }
-            }, (expires > 10 ? expires - 10 : expires / 2) * 1000);
+                });
+            }, refreshTime, TimeUnit.SECONDS);
             
         } else if (status == Response.UNAUTHORIZED || status == Response.PROXY_AUTHENTICATION_REQUIRED) {
             // 认证处理已在handleAuthChallenge中完成
             log.debug("收到认证请求，已在handleAuthChallenge中处理");
         } else {
             log.warn("注册失败，状态码: {}, 原因: {}", status, response.getReasonPhrase());
-        }
-    }
-    
-    private AuthorizationHeader createAuthorizationHeader(String realm, String nonce, String scheme, 
-                                                         String method, String uri) 
-            throws ParseException, InvalidArgumentException {
-        // 创建Authorization头部
-        AuthorizationHeader authHeader = sipContext.headerFactory.createAuthorizationHeader(scheme);
-        authHeader.setUsername(username);
-        authHeader.setRealm(realm);
-        authHeader.setNonce(nonce);
-        authHeader.setURI(sipContext.addressFactory.createURI(uri));
-        
-        // 计算digest响应
-        String a1 = username + ":" + realm + ":" + password;
-        String a2 = method + ":" + uri;
-        
-        // 计算MD5哈希
-        String ha1 = getMD5(a1);
-        String ha2 = getMD5(a2);
-        String responseVal = getMD5(ha1 + ":" + nonce + ":" + ha2);
-        
-        authHeader.setResponse(responseVal);
-        return authHeader;
-    }
-    
-    private String getMD5(String input) {
-        try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
-            byte[] messageDigest = md.digest(input.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : messageDigest) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            log.error("MD5 algorithm not found", e);
-            return "";
         }
     }
     
@@ -348,40 +222,9 @@ public class FSRegistrationClient {
     
     @PreDestroy
     public void shutdown() {
-        if (timer != null) {
-            timer.cancel();
+        if (reRegisterTimeout != null) {
+            reRegisterTimeout.cancel();
         }
-        log.info("FreeSWITCH Registration Client shutdown");
-    }
-    
-    /**
-     * 包装ClientTransaction，用于处理REGISTER响应
-     */
-    public static class FSRegisterClientTransaction {
-        private final ClientTransaction clientTransaction;
-        private final FSRegistrationClient registrationClient;
-        
-        public FSRegisterClientTransaction(ClientTransaction clientTransaction, FSRegistrationClient registrationClient) {
-            this.clientTransaction = clientTransaction;
-            this.registrationClient = registrationClient;
-            
-            // 设置响应处理
-            clientTransaction.setApplicationData(this);
-        }
-        
-        public ClientTransaction getClientTransaction() {
-            return clientTransaction;
-        }
-        
-        public void handleResponse(ResponseEvent responseEvent) {
-            Response response = responseEvent.getResponse();
-            int status = response.getStatusCode();
-            
-            if (status == Response.UNAUTHORIZED || status == Response.PROXY_AUTHENTICATION_REQUIRED) {
-                registrationClient.handleAuthChallenge(response, responseEvent.getClientTransaction());
-            } else {
-                registrationClient.handleRegisterResponse(response);
-            }
-        }
+        log.info("SIP注册客户端已关闭");
     }
 }

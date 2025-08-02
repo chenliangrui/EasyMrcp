@@ -143,7 +143,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 if (isSpeakingNow) {
                     if (!isSpeakingBefore && !isReconnecting) {
                         // 语音开始，移动读指针到500ms前，然后异步连接ASR
-                        log.info("VAD检测到语音开始，移动读指针到500ms前");
+                        log.debug("VAD检测到语音开始，移动读指针到500ms前");
                         ringBuffer.moveReadPointerBack(500);
                         asyncReconnectAsr();
                     }
@@ -153,7 +153,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                         sendBufferedAudio();
                     }
                 } else if (isSpeakingBefore) {
-                    log.info("VAD检测到语音结束");
+                    log.debug("VAD检测到语音结束");
                     if (isReconnecting) {
                         connectedAndSendRemain = true;
                     } else {
@@ -211,7 +211,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             // 语音结束时，发送所有剩余数据
             ByteBuf remaining = ringBuffer.readAll();
             if (remaining.readableBytes() > 0) {
-                log.info("发送剩余音频数据: {}字节", remaining.readableBytes());
+                log.debug("发送剩余音频数据: {}字节", remaining.readableBytes());
                 // 按块发送剩余数据
                 int offset = 0;
                 int totalSize = remaining.readableBytes();
@@ -240,7 +240,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         @Override
         public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
             if (ringBuffer != null) {
-                log.info("释放音频缓冲区: {}", ringBuffer.getStatusInfo());
+                log.debug("释放音频缓冲区: {}", ringBuffer.getStatusInfo());
                 ringBuffer.release();
             }
             if (vadBuffer != null) {

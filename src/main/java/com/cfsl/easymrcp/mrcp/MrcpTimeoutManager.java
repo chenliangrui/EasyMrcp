@@ -71,7 +71,7 @@ public class MrcpTimeoutManager {
             log.info("Start-Input-Timers is false, waiting for explicit start");
             return;
         }
-        log.info("Starting timers: no-input={}", noInputTimeout);
+        log.debug("Starting timers: no-input={}", noInputTimeout);
         // 启动无输入超时定时器
         if (noInputTimeout > 0) {
             if (noInputTimeoutTask != null) {
@@ -91,13 +91,13 @@ public class MrcpTimeoutManager {
         if (noInputTimeoutTask != null) {
             noInputTimeoutTask.cancel();
             noInputTimeoutTask = null;
-            log.info("Cancelling all timers");
+            log.debug("Cancelling all timers");
         }
     }
 
     // 启动输入计时器的方法(响应START_INPUT_TIMERS请求)
     public void startInputTimers() {
-        log.info("Explicitly starting input timers");
+        log.debug("Explicitly starting input timers");
         startTimers();
     }
 } 

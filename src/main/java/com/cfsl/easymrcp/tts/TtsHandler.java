@@ -112,7 +112,7 @@ public abstract class TtsHandler implements MrcpConnection {
         if (rtpProcessor != null) {
             rtpProcessor.interrupt();
         }
-        log.info("TTS播放已中断");
+        log.debug("TTS播放已中断");
     }
 
     public abstract void create();

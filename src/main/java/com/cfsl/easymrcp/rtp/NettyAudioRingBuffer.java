@@ -286,7 +286,7 @@ public class NettyAudioRingBuffer {
             dataSize = bytesToKeep;
         }
         
-        log.info("移动读指针到{}ms前，保留数据: {}字节", milliseconds, dataSize);
+        log.debug("移动读指针到{}ms前，保留数据: {}字节", milliseconds, dataSize);
     }
     
     /**

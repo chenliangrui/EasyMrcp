@@ -116,7 +116,7 @@ public class VadHandle {
         SipUtils.wheelTimer.newTimeout(timeout -> {
             SipUtils.executeTask(() -> {
                 try {
-                    log.info("VAD released");
+                    log.debug("VAD released");
                     vadDetector.close();
                 } catch (OrtException e) {
                     log.error("Error closing VAD detector: {}", e.getMessage());

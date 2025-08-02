@@ -4,9 +4,9 @@ import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.sip.handle.HandleAck;
 import com.cfsl.easymrcp.sip.handle.HandleBye;
 import com.cfsl.easymrcp.sip.handle.HandleInvite;
-import gov.nist.javax.sip.SipStackExt;
-import gov.nist.javax.sip.clientauthutils.AuthenticationHelper;
-import gov.nist.javax.sip.header.From;
+import com.cfsl.easymrcp.sip.handle.HandleOptions;
+import com.cfsl.easymrcp.sip.handle.HandleRegister;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,19 +27,26 @@ public class SipListenerImpl implements SipListener {
     private HandleAck handleAck;
     @Autowired
     private HandleBye handleBye;
-    
     @Autowired
-    private FSRegistrationClient fsRegistrationClient;
+    private HandleOptions handleOptions;
+    @Autowired
+    private HandleRegister handleRegister;
+    @Autowired
+    private SipOptions sipOptions;
 
     @Override
     public void processRequest(RequestEvent requestEvent) {
         Request request = requestEvent.getRequest();
         if (request.getMethod().equals(Request.INVITE)) {
             handleInvite.handleInvite(requestEvent);
-        } if (request.getMethod().equals(Request.ACK)) {
+        } else if (request.getMethod().equals(Request.ACK)) {
             handleAck.processAck(requestEvent);
-        }   else if (request.getMethod().equals(Request.BYE)) {
+        } else if (request.getMethod().equals(Request.BYE)) {
             handleBye.processBye(requestEvent);
+        } else if (request.getMethod().equals(Request.OPTIONS)) {
+            handleOptions.handleOptions(requestEvent);
+        } else {
+            log.warn("收到不支持的SIP请求方法: {}", request.getMethod());
         }
     }
 
@@ -51,46 +58,32 @@ public class SipListenerImpl implements SipListener {
         // 记录所有收到的响应
         CSeqHeader cseqHeader = (CSeqHeader) response.getHeader(CSeqHeader.NAME);
         if (cseqHeader != null) {
-            log.info("收到响应: {} {} for {}", 
+            log.debug("收到响应: {} {} for {}",
                     response.getStatusCode(),
                     response.getReasonPhrase(),
                     cseqHeader.getMethod());
         } else {
-            log.info("收到响应: {} {}", 
+            log.debug("收到响应: {} {}",
                     response.getStatusCode(),
                     response.getReasonPhrase());
         }
         
-        // 处理REGISTER响应
+        // 处理各种响应
         if (clientTransaction != null) {
             Request request = clientTransaction.getRequest();
-            if (request != null && request.getMethod().equals(Request.REGISTER)) {
-                log.info("收到REGISTER响应: {} {}", response.getStatusCode(), response.getReasonPhrase());
-                ClientTransaction tid = responseEvent.getClientTransaction();
+            if (request != null) {
+                String method = request.getMethod();
                 
-                // 转发到FSRegistrationClient进行处理
-                if (fsRegistrationClient != null) {
-                    int status = response.getStatusCode();
-                    if (status == Response.UNAUTHORIZED || status == Response.PROXY_AUTHENTICATION_REQUIRED) {
-//                        fsRegistrationClient.handleAuthChallenge(response, clientTransaction);
-                        String displayName = ((From) responseEvent.getClientTransaction().getRequest().getHeader("From")).getAddress().getDisplayName();
-                        ClientTransaction inviteTid;
-                        AuthenticationHelper authenticationHelper =
-                                ((SipStackExt) sipContext.sipStack).getAuthenticationHelper(new AccountManagerImpl(displayName, displayName), sipContext.headerFactory);
-
-                        try {
-                            inviteTid = authenticationHelper.handleChallenge(response, tid, sipContext.sipProvider, 5);
-                        } catch (SipException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        try {
-                            inviteTid.sendRequest();
-                        } catch (SipException e) {
-                            throw new RuntimeException(e);
-                        }
-                    } else {
-                        fsRegistrationClient.handleRegisterResponse(response);
+                if (method.equals(Request.REGISTER)) {
+                    // 处理REGISTER响应
+                    if (handleRegister != null) {
+                        handleRegister.handleRegisterResponse(responseEvent);
+                    }
+                } else if (method.equals(Request.OPTIONS)) {
+                    // 处理OPTIONS响应
+                    log.debug("收到OPTIONS响应: {} {}", response.getStatusCode(), response.getReasonPhrase());
+                    if (sipOptions != null) {
+                        sipOptions.handleOptionsResponse(response, clientTransaction);
                     }
                 }
             }

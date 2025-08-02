@@ -34,7 +34,7 @@ public class SpeakEventHandler implements MrcpEventHandler {
         mrcpEventWithCallback.setRunnable(new Runnable() {
             @Override
             public void run() {
-                log.info("tts开始，设置true");
+                log.info("tts开始");
                 mrcpManage.setSpeaking(id,true);
                 ttsHandler.setCallback(new TtsCallback() {
                     @Override
@@ -43,7 +43,6 @@ public class SpeakEventHandler implements MrcpEventHandler {
                             tcpClientNotifier.sendEvent(id, TcpEventType.SpeakComplete, msg);
                             asrHandler.startInputTimers();
                             mrcpManage.setSpeaking(id,false);
-                            log.info("tts结束，设置false");
                             // 继续speak
                             mrcpManage.runNextSpeak(id);
                         } else {
@@ -56,7 +55,6 @@ public class SpeakEventHandler implements MrcpEventHandler {
                 } else {
                     ttsHandler.transmit(event.getData());
                 }
-                log.info("speak event received");
             }
         });
         mrcpManage.addEvent(id, mrcpEventWithCallback);

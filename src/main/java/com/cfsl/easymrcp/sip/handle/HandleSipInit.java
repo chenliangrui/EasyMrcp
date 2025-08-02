@@ -41,8 +41,8 @@ public class HandleSipInit {
 
     public SdpMessage initAsrAndTts(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) {
         String dialogId = session.getDialog().getDialogId();
-        log.info(dialogId + " is a dialog");
-        log.info("description: " + sdpMessage.getSessionDescription());
+        log.debug("{} is a dialog", dialogId);
+        log.debug("description: {}", sdpMessage.getSessionDescription());
         try {
             List<MediaDescription> channels = sdpMessage.getRtpChannels();
             if (!channels.isEmpty()) {
@@ -55,7 +55,7 @@ public class HandleSipInit {
                     
                     // 获取初始RTP端口
                     int rtpPort = sipContext.getAsrRtpPort();
-                    log.info("获取初始RTP端口: {}", rtpPort);
+                    log.debug("获取初始RTP端口: {}", rtpPort);
                     
                     try {
                         // 更新SDP媒体描述中的端口
@@ -102,7 +102,7 @@ public class HandleSipInit {
     private TtsHandler initTts(int localPort, String remoteHost, int remotePort, String customHeaderUUID) {
         try {
             TtsHandler ttsHandler = asrChose.getTtsHandler();
-            log.info("初始化TTS，本地端口: {}, 远程地址: {}:{}", localPort, remoteHost, remotePort);
+            log.debug("初始化TTS，本地端口: {}, 远程地址: {}:{}", localPort, remoteHost, remotePort);
             ttsHandler.create(remoteHost, remotePort);
             ttsHandler.setChannelId("222222");
             mrcpManage.addNewTts(customHeaderUUID, ttsHandler);

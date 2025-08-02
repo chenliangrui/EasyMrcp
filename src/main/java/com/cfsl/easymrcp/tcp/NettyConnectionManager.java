@@ -54,7 +54,7 @@ public class NettyConnectionManager {
                 unregisterClient(clientId);
             });
             
-            log.info("客户端已注册, ID: {}, 地址: {}", clientId, channel.remoteAddress());
+            log.info("客户端注册, ID: {}, 地址: {}", clientId, channel.remoteAddress());
         }
     }
     
@@ -85,7 +85,7 @@ public class NettyConnectionManager {
             // 使用Netty的写入方法
             channel.writeAndFlush(jsonData);
             
-            log.info("成功发送数据到客户端 {}: {}", clientId, jsonData);
+            log.debug("发送数据到客户端 {}: {}", clientId, jsonData);
             return true;
         } catch (Exception e) {
             log.error("发送数据到客户端失败: {}", clientId, e);

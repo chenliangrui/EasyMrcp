@@ -1,7 +1,6 @@
 package com.cfsl.easymrcp.sip;
 
 import com.cfsl.easymrcp.common.SipContext;
-import com.cfsl.easymrcp.common.SipServerStartedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -19,8 +18,7 @@ public class SipServer implements ApplicationRunner {
     SipContext sipContext;
     SipListenerImpl sipListener;
     private final ApplicationEventPublisher eventPublisher;
-    @Autowired
-    FSRegistrationClient fsRegistrationClient;
+
 
     public SipServer(SipContext sipContext, SipListenerImpl sipListener, ApplicationEventPublisher eventPublisher) {
         this.sipContext = sipContext;
@@ -62,9 +60,22 @@ public class SipServer implements ApplicationRunner {
         }
     }
 
+    @Autowired
+    private SipOptions sipOptions;
+    @Autowired
+    private SipRegister sipRegister;
+    
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        log.info("SIP栈初始化完成，开始FreeSWITCH注册");
-        fsRegistrationClient.register();
+        log.info("SIP栈初始化完成");
+        
+        // 立即尝试注册
+        log.info("开始FreeSWITCH注册");
+        sipRegister.register();
+        
+        // 启动OPTIONS定时器进行连通性检测
+        sipOptions.start();
+        
+        log.info("注册请求已发送，OPTIONS心跳已启动");
     }
 }

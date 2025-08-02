@@ -148,7 +148,7 @@ public class NettyTcpServerHandler extends ChannelInboundHandlerAdapter {
         // 如果客户端不存在，则注册新连接
         if (!isExistingClient) {
             connectionManager.registerClient(clientId, channel);
-            log.info("注册新客户端连接: {}", clientId);
+            log.info("已注册新客户端连接: {}", clientId);
         }
         
         // 根据事件类型处理请求
