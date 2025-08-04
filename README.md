@@ -197,7 +197,8 @@ xfyun-tts.VCN=xiaoyan
 ### 脚本配置
 下面以Freeswitch为例进行配置，目的是演示EasyMrcp的使用，实际情况可根据自己的项目配置进行更改。注意要安装python tcp的`gevent`库。
 
-1. 配置拨号计划
+1. 配置拨号计划  
+   在/usr/local/freeswitch/conf/dialplan/default.xml里新增如下配置：
 
 ```plain
 <?xml version="1.0" encoding="utf-8"?>
