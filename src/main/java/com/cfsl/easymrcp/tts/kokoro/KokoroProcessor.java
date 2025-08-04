@@ -4,6 +4,7 @@ import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,6 +18,7 @@ public class KokoroProcessor extends TtsHandler {
     private final String model;
     private final String voice;
     private HttpClient httpClient;
+    private InputStream inputStream;
 
     public KokoroProcessor(KokoroConfig kokoroConfig) {
         this.apiUrl = kokoroConfig.getApiUrl();
@@ -67,14 +69,16 @@ public class KokoroProcessor extends TtsHandler {
     private void processAudioStream(InputStream inputStream) {
         try {
             try (inputStream) {
+                this.inputStream = inputStream;
                 byte[] pcmBuffer = new byte[409600];
                 int bytesRead;
                 while ((bytesRead = inputStream.read(pcmBuffer)) != -1) {
-                    processor.putData(pcmBuffer, bytesRead);
+                    putAudioData(pcmBuffer, bytesRead);
                 }
             }
             // tts语音合成结束，写入结束标志
-            processor.putData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+            putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
+            log.info("Kokoro tts end");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -82,6 +86,13 @@ public class KokoroProcessor extends TtsHandler {
 
     @Override
     public void ttsClose() {
+        if (inputStream != null) {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
         log.info("Kokoro tts close");
     }
 

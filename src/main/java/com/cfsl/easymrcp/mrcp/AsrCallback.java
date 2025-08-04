@@ -8,7 +8,9 @@ package com.cfsl.easymrcp.mrcp;
 public interface AsrCallback {
     /**
      * 获得asr识别结果后回调，执行后mrcp会发送MrcpEventName.RECOGNITION_COMPLETE事件
-     * @param msg asr的识别结果
+     *
+     * @param action
+     * @param msg    asr的识别结果
      */
-    void apply(String msg);
+    void apply(String action, String msg);
 }

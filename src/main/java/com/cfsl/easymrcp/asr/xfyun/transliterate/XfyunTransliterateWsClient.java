@@ -111,7 +111,6 @@ public class XfyunTransliterateWsClient {
             } else if (Objects.equals("error", action)) {
                 // 连接发生错误
                 log.info("Error: " + msg);
-                System.exit(0);
             }
         }
 
@@ -119,7 +118,6 @@ public class XfyunTransliterateWsClient {
         public void onError(Exception e) {
             log.info(getCurrentTimeStr() + "\t连接发生错误：" + e.getMessage() + ", " + new Date());
             e.printStackTrace();
-            System.exit(0);
         }
 
         @Override

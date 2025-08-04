@@ -1,6 +1,8 @@
 package com.cfsl.easymrcp.asr.xfyun.dictation;
 
+import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
+import com.cfsl.easymrcp.utils.SipUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.Data;
@@ -28,6 +30,7 @@ import java.util.concurrent.CountDownLatch;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public class XfyunDictationWsClient extends WebSocketListener {
+    private boolean isParagraphOver = true;
     private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
     private String appid; //在控制台-我的应用获取
@@ -49,8 +52,8 @@ public class XfyunDictationWsClient extends WebSocketListener {
     Boolean stop;
     CountDownLatch countDownLatch;
 
-    public XfyunDictationWsClient(AsrCallback funasrCallback, Boolean stop, CountDownLatch countDownLatch) {
-        this.callback = funasrCallback;
+    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch) {
+        this.callback = xfyunCallback;
         this.stop = stop;
         this.countDownLatch = countDownLatch;
     }
@@ -84,6 +87,8 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     log.info(te.toString());
                     try {
                         decoder.decode(te);
+                        if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
+                        isParagraphOver = false;
                         log.info("中间识别结果 ==》" + decoder.toString());
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -99,7 +104,8 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     String result = decoder.toString();
                     log.info("最终识别结果 ==》" + result);
                     log.info("本次识别sid ==》" + resp.getSid());
-                    if (!stop && !result.isEmpty()) callback.apply(result);
+                    if (!stop && !result.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
+                    isParagraphOver = true;
                     decoder.discard();
                     webSocket.close(1000, "Normal closure after completion");
                 } else {

@@ -37,6 +37,7 @@ public class XfyunTtsProcessor extends TtsHandler {
     public Gson gson = new Gson();
     public boolean wsCloseFlag = false;
     String wsUrl;
+    WebSocketClient webSocketClient;
 
     public XfyunTtsProcessor(XfyunTtsConfig xfyunTtsConfig) {
         this.hostUrl = xfyunTtsConfig.hostUrl;
@@ -51,6 +52,7 @@ public class XfyunTtsProcessor extends TtsHandler {
     public void create() {
         try {
             wsUrl = getAuthUrl(hostUrl, APIKey, APISecret).replace("https://", "wss://");
+            wsCloseFlag = false;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -64,6 +66,7 @@ public class XfyunTtsProcessor extends TtsHandler {
 
     @Override
     public void ttsClose() {
+        if (webSocketClient != null) webSocketClient.close();
         log.info("xfyun tts close");
     }
 
@@ -71,7 +74,7 @@ public class XfyunTtsProcessor extends TtsHandler {
     public void websocketWork(String wsUrl) {
         try {
             URI uri = new URI(wsUrl);
-            WebSocketClient webSocketClient = new WebSocketClient(uri) {
+            webSocketClient = new WebSocketClient(uri) {
                 @Override
                 public void onOpen(ServerHandshake serverHandshake) {
                     log.info("ws建立连接成功...");
@@ -89,7 +92,8 @@ public class XfyunTtsProcessor extends TtsHandler {
                         try {
                             if (myJsonParse.data.audio != null) {
                                 byte[] textBase64Decode = Base64.getDecoder().decode(myJsonParse.data.audio);
-                                processor.putData(textBase64Decode, textBase64Decode.length);
+                                // 直接使用父类TtsHandler的putAudioData方法
+                                putAudioData(textBase64Decode, textBase64Decode.length);
                             }
                         } catch (Exception e) {
                             log.error(e.getMessage(), e);
@@ -162,7 +166,7 @@ public class XfyunTtsProcessor extends TtsHandler {
                 }
                 webSocketClient.close();
                 // tts语音合成结束，写入结束标志
-                processor.putData(TTSConstant.TTS_END_FLAG, TTSConstant.TTS_END_FLAG.length);
+                putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
             } catch (Exception e) {
                 e.printStackTrace();
             }
