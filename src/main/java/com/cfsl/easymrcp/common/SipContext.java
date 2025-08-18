@@ -37,8 +37,6 @@ public class SipContext {
     public String sipServerIp;
     @Value("${sip.sipPort}")
     public int sipPort;
-    @Value("${sip.mrcpServerPort}")
-    public int mrcpServerPort;
     public String displayName = "xiaohua";
     @Value("${rtp.asrStartPort}")
     public int asrStartPort;

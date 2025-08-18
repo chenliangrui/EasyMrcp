@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.sip;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.utils.SipUtils;
 import io.netty.util.Timeout;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,7 +46,8 @@ public class SipRegister {
     
     @Value("${fs.register.username:easymrcp}")
     private String username;
-    
+
+    @Getter
     @Value("${fs.register.password:easymrcp}")
     private String password;
     

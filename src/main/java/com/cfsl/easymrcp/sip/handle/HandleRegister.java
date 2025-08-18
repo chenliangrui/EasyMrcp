@@ -59,7 +59,7 @@ public class HandleRegister {
             String displayName = ((From) clientTransaction.getRequest().getHeader("From")).getAddress().getDisplayName();
             
             AuthenticationHelper authenticationHelper = ((SipStackExt) sipContext.sipStack)
-                    .getAuthenticationHelper(new AccountManagerImpl(displayName, displayName), sipContext.headerFactory);
+                    .getAuthenticationHelper(new AccountManagerImpl(displayName, sipRegister.getPassword()), sipContext.headerFactory);
 
             ClientTransaction inviteTid = authenticationHelper.handleChallenge(response, clientTransaction, sipContext.sipProvider, 5);
             inviteTid.sendRequest();
