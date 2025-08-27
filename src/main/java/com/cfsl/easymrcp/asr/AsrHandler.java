@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 管理一通电话中的asr相关的操作
@@ -45,6 +46,8 @@ public abstract class AsrHandler implements MrcpConnection {
     private RtpManager rtpManager;
 
     protected Boolean stop = false;
+    // tts参数，是否可以打断tts
+    protected AtomicBoolean interruptEnable;
     protected CountDownLatch countDownLatch = new CountDownLatch(1);
     private VadHandle vadHandle;
 

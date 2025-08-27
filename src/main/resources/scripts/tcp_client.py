@@ -34,6 +34,7 @@ class MrcpEventType:
     # 客户端发送的命令
     ClientConnect = "ClientConnect"
     Speak = "Speak"
+    SpeakWithNoInterrupt = "SpeakWithNoInterrupt"
     DetectSpeech = "DetectSpeech"
     Interrupt = "Interrupt"
     InterruptAndSpeak = "InterruptAndSpeak"

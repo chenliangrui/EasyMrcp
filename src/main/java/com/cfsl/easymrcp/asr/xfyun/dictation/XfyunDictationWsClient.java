@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 讯飞云实时语音听写（一句话语音识别）
@@ -51,11 +52,14 @@ public class XfyunDictationWsClient extends WebSocketListener {
     AsrCallback callback;
     Boolean stop;
     CountDownLatch countDownLatch;
+    // 是否可以打断tts
+    AtomicBoolean interruptEnable;
 
-    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch) {
+    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch, AtomicBoolean interruptEnable) {
         this.callback = xfyunCallback;
         this.stop = stop;
         this.countDownLatch = countDownLatch;
+        this.interruptEnable = interruptEnable;
     }
 
     @Override
@@ -87,7 +91,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     log.info(te.toString());
                     try {
                         decoder.decode(te);
-                        if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
+                        if (isParagraphOver && interruptEnable.get()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
                         isParagraphOver = false;
                         log.info("中间识别结果 ==》" + decoder.toString());
                     } catch (Exception e) {

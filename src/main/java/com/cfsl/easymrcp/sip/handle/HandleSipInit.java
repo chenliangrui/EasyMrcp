@@ -92,6 +92,7 @@ public class HandleSipInit {
             asrHandler.receive();
             // 向mrcp业务中写入asrHandler，此时已经明确callId，等待tcp连接发送uuid
             mrcpManage.addNewAsr(customHeaderUUID, asrHandler);
+            asrHandler.setInterruptEnable(mrcpManage.getInterruptEnable(customHeaderUUID));
             return asrHandler;
         } catch (Exception e) {
             log.error("初始化ASR失败", e);

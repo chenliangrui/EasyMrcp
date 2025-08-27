@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 业务层面全局管理mrcp通话
@@ -91,6 +92,27 @@ public class MrcpManage {
             log.error("setSpeaking error, callId:{} not exist", callId);
         }
         mrcpCallDataConcurrentHashMap.get(callId).setSpeaking(isSpeaking);
+    }
+
+    public boolean isInterruptEnable(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("isInterruptEnable error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).isInterruptEnable();
+    }
+
+    public AtomicBoolean getInterruptEnable(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getInterruptEnable error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getInterruptEnable();
+    }
+
+    public void setInterruptEnable(String callId, boolean interruptEnable) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setInterruptEnable error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
     }
 
     public void interrupt(String callId) {
