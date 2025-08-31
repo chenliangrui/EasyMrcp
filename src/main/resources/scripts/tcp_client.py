@@ -237,6 +237,9 @@ class EasyMrcpTcpClient:
         return self  # 支持链式调用
     
     def connect(self):
+        self.connect(None)
+
+    def connect(self, data):
         """连接到服务器"""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -244,15 +247,15 @@ class EasyMrcpTcpClient:
             self.message_reader = TcpMessageReader(self.socket)
             self.connected = True
             safe_log("INFO", "已连接到服务器 %s:%d" % (self.server_host, self.server_port))
-            
+
             # 启动接收线程
             receive_thread = threading.Thread(target=self.receive_messages)
             receive_thread.daemon = True
             receive_thread.start()
-            
+
             # 发送注册事件
-            self.send_event(MrcpEventType.ClientConnect, None)
-            
+            self.send_event(MrcpEventType.ClientConnect, data)
+
             return True
         except socket.error as e:
             safe_log("ERR", "连接EasyMrcp服务器失败: %s. address: %s:%d" % (str(e), self.server_host, self.server_port))

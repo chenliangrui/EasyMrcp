@@ -36,7 +36,7 @@ public abstract class AsrHandler implements MrcpConnection {
     @Setter
     private MrcpTimeoutManager timeoutManager;
     @Setter
-    private Boolean automaticInterruption;
+    private Boolean automaticInterruption = true;
     
     // 保存Speech-Complete-Timeout参数值
     private Long speechCompleteTimeout;
@@ -90,7 +90,7 @@ public abstract class AsrHandler implements MrcpConnection {
     }
 
     /**
-     * 启动ASR RTP接收
+     * 启动ASR RTP参数
      */
     public void receive() {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {

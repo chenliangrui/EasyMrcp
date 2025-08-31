@@ -29,7 +29,7 @@ public class RtpManager {
     @Getter
     private EventLoopGroup rtpEventLoopGroup;
 
-    // 已绑定的RTP通道
+    // TODO 没有remove 已绑定的RTP通道
     private final Map<String, Channel> rtpChannels = new ConcurrentHashMap<>();
 
     /**

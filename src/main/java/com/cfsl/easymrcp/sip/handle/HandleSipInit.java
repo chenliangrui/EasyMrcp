@@ -1,5 +1,6 @@
 package com.cfsl.easymrcp.sip.handle;
 
+import com.alibaba.fastjson.JSONObject;
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
@@ -70,7 +71,9 @@ public class HandleSipInit {
                         Channel rtpChannel = rtpManager.createRtpChannel(dialogId, rtpPort, asrHandler.getNettyAsrRtpProcessor());
                         ttsHandler.setRtpChannel(rtpChannel);
                         ttsHandler.startRtpSender();
-                        tcpClientNotifier.sendEvent(customHeaderUUID, TcpEventType.ClientConnect, "SipInitSuccess");
+                        JSONObject connectParams = new JSONObject();
+                        connectParams.put("msg", "SipInitSuccess");
+                        tcpClientNotifier.sendEvent(customHeaderUUID, TcpEventType.ClientConnect, connectParams.toJSONString());
                     } catch (Exception e) {
                         log.error("初始化RTP通道失败", e);
                         throw e;
@@ -84,7 +87,7 @@ public class HandleSipInit {
         return sdpMessage;
     }
 
-    private AsrHandler initAsr(String remoteHost, int remotePort, String customHeaderUUID) {
+    public AsrHandler initAsr(String remoteHost, int remotePort, String customHeaderUUID) {
         try {
             AsrHandler asrHandler = asrChose.getAsrHandler();
             asrHandler.setChannelId("11111");
