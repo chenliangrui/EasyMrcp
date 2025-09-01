@@ -90,6 +90,11 @@ TTS:`mrcp server -> mrcp client -> freeswtich`
 ## VAD
 [https://www.yuque.com/u2521223237/ribhhy/gwhi60g6w01heubu?singleDoc#](https://www.yuque.com/u2521223237/ribhhy/gwhi60g6w01heubu?singleDoc#) 《VAD模型参数》
 
+## 通话监听
+支持单独监听某一路的音轨。例如在坐席辅助场景中需要asr识别客户和客服人员之间的通话，那么使用`mod_easymrcp_spy`模块即可分别监听对应的语音流，并通过EasyMRCP进行识别。  
+具体使用参考代码中的`mod_easymrcp_spy`模块文档`README.md`。  
+提供了演示脚本`spy_handler.py`，使用电话A拨打电话B即可分别看到对应的asr识别结果。
+
 # 运行程序
 以下配置只是为了能够体验EasyMrcp，所以存在一些硬编码情况，在实际使用中可以根据自己的项目情况进行不同的配置。
 
