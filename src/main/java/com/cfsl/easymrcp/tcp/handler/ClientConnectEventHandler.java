@@ -27,19 +27,12 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
         String id = event.getId();
         mrcpManage.updateConnection(id);
         JSONObject connectParams = JSON.parseObject(event.getData());
-        if (connectParams.getString("Type") != null && connectParams.getString("Type").equals("spy")) {
-            // 测试
+        if (connectParams != null && connectParams.getString("Type") != null && connectParams.getString("Type").equals("spy")) {
+            // 启动spy模式，对某一路通话进行asr识别
             SipContext sipContext = SpringUtils.getBean(SipContext.class);
-            ProcessorCreator asrChose = SpringUtils.getBean(ProcessorCreator.class);
             RtpManager rtpManager = SpringUtils.getBean(RtpManager.class);
             SipOptions sipOptions = SpringUtils.getBean(SipOptions.class);
             HandleSipInit handleSipInit = SpringUtils.getBean(HandleSipInit.class);
-//            AsrHandler asrHandler = asrChose.getAsrHandler();
-//            asrHandler.setChannelId("11111");
-//            asrHandler.create(sipOptions.getFsServerIp(), 0);
-//            asrHandler.receive();
-//            mrcpManage.addNewAsr(id, asrHandler);
-//            asrHandler.setInterruptEnable(mrcpManage.getInterruptEnable(id));
             AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, id);
             int rtpPort = sipContext.getAsrRtpPort();
             Channel rtpChannel = rtpManager.createRtpChannel(id, rtpPort, asrHandler.getNettyAsrRtpProcessor());

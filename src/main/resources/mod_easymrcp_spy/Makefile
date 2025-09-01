@@ -1,8 +1,8 @@
 FREESWITCH_MOD_PATH=/usr/local/freeswitch/mod
 FREESWITCH_INCLUDE=/usr/local/freeswitch/include/freeswitch
 
-MODNAME = mod_mediabug_rtp.so
-MODOBJ = mod_mediabug_rtp.o
+MODNAME = mod_easymrcp_spy.so
+MODOBJ = mod_easymrcp_spy.o
 MODCFLAGS = -Wall -I$(FREESWITCH_INCLUDE)
 
 CC = gcc

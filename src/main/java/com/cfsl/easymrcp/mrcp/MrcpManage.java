@@ -145,8 +145,12 @@ public class MrcpManage {
             return;
         }
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(uuid);
-        mrcpCallData.getAsrHandler().close();
-        mrcpCallData.getTtsHandler().close();
+        if (mrcpCallData.getAsrHandler() != null) {
+            mrcpCallData.getAsrHandler().close();
+        }
+        if (mrcpCallData.getTtsHandler() != null) {
+            mrcpCallData.getTtsHandler().close();
+        }
         mrcpCallDataConcurrentHashMap.remove(uuid);
     }
 

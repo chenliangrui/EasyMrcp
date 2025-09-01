@@ -2,7 +2,7 @@
  * FreeSWITCH Modular Media Switching Software Library / Soft-Switch Application
  * Copyright (C) 2005/2012, Anthony Minessale II <anthm@freeswitch.org>
  *
- * mod_mediabug_rtp.c -- MediaBug RTP Stream Module
+ * mod_easymrcp_spy.c -- EasyMrcp Spy Module
  *
  */
 #include <switch.h>
@@ -36,16 +36,16 @@ typedef struct {
 } rtp_info_t;
 
 /* 模块函数声明 */
-SWITCH_MODULE_LOAD_FUNCTION(mod_mediabug_rtp_load);
-SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_mediabug_rtp_shutdown);
-SWITCH_MODULE_DEFINITION(mod_mediabug_rtp, mod_mediabug_rtp_load, mod_mediabug_rtp_shutdown, NULL);
+SWITCH_MODULE_LOAD_FUNCTION(mod_easymrcp_spy_load);
+SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_easymrcp_spy_shutdown);
+SWITCH_MODULE_DEFINITION(mod_easymrcp_spy, mod_easymrcp_spy_load, mod_easymrcp_spy_shutdown, NULL);
 
 /* 应用函数声明 */
-SWITCH_STANDARD_APP(mediabug_rtp_start_function);
-SWITCH_STANDARD_APP(mediabug_rtp_stop_function);
+SWITCH_STANDARD_APP(easymrcp_spy_start_function);
+SWITCH_STANDARD_APP(easymrcp_spy_stop_function);
 
 /* MediaBug回调函数 */
-static switch_bool_t mediabug_rtp_callback(switch_media_bug_t *bug, void *user_data, switch_abc_type_t type);
+static switch_bool_t easymrcp_spy_callback(switch_media_bug_t *bug, void *user_data, switch_abc_type_t type);
 
 /* RTP相关函数 */
 static int rtp_socket_init(rtp_info_t *rtp_info);
@@ -53,31 +53,31 @@ static void rtp_send_frame(rtp_info_t *rtp_info, switch_frame_t *frame);
 static void rtp_socket_close(rtp_info_t *rtp_info);
 
 /* 模块加载函数 */
-SWITCH_MODULE_LOAD_FUNCTION(mod_mediabug_rtp_load)
+SWITCH_MODULE_LOAD_FUNCTION(mod_easymrcp_spy_load)
 {
     switch_application_interface_t *app_interface;
     
     *module_interface = switch_loadable_module_create_module_interface(pool, modname);
     
-    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "MediaBug RTP module loaded.\n");
+    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "EasyMrcp Spy module loaded.\n");
     
-    SWITCH_ADD_APP(app_interface, "mediabug_rtp_start", "Start MediaBug RTP", 
-                   "Start MediaBug RTP", mediabug_rtp_start_function, "", SAF_NONE);
-    SWITCH_ADD_APP(app_interface, "mediabug_rtp_stop", "Stop MediaBug RTP", 
-                   "Stop MediaBug RTP", mediabug_rtp_stop_function, "", SAF_NONE);
+    SWITCH_ADD_APP(app_interface, "easymrcp_spy_start", "Start EasyMrcp Spy", 
+                   "Start EasyMrcp Spy", easymrcp_spy_start_function, "", SAF_NONE);
+    SWITCH_ADD_APP(app_interface, "easymrcp_spy_stop", "Stop EasyMrcp Spy", 
+                   "Stop EasyMrcp Spy", easymrcp_spy_stop_function, "", SAF_NONE);
     
     return SWITCH_STATUS_SUCCESS;
 }
 
 /* 模块卸载函数 */
-SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_mediabug_rtp_shutdown)
+SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_easymrcp_spy_shutdown)
 {
-    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "MediaBug RTP module shutdown.\n");
+    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "EasyMrcp Spy module shutdown.\n");
     return SWITCH_STATUS_SUCCESS;
 }
 
-/* 启动MediaBug RTP */
-SWITCH_STANDARD_APP(mediabug_rtp_start_function)
+/* 启动EasyMrcp Spy */
+SWITCH_STANDARD_APP(easymrcp_spy_start_function)
 {
     switch_media_bug_t *bug;
     switch_channel_t *channel;
@@ -86,10 +86,10 @@ SWITCH_STANDARD_APP(mediabug_rtp_start_function)
     
     channel = switch_core_session_get_channel(session);
     
-    /* 检查是否已经存在MediaBug */
-    if (switch_channel_get_private(channel, "mediabug_rtp")) {
+    /* 检查是否已经存在EasyMrcp Spy */
+    if (switch_channel_get_private(channel, "easymrcp_spy")) {
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, 
-                         "MediaBug RTP already running on this channel.\n");
+                         "EasyMrcp Spy already running on this channel.\n");
         return;
     }
     
@@ -148,63 +148,63 @@ SWITCH_STANDARD_APP(mediabug_rtp_start_function)
     }
     
     /* 添加MediaBug */
-    if (switch_core_media_bug_add(session, "mediabug_rtp", NULL,
-                                  mediabug_rtp_callback, rtp_info, 0, 
+    if (switch_core_media_bug_add(session, "easymrcp_spy", NULL,
+                                  easymrcp_spy_callback, rtp_info, 0, 
                                   SMBF_READ_STREAM | SMBF_READ_PING,
                                   &bug) != SWITCH_STATUS_SUCCESS) {
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, 
-                         "Failed to add MediaBug.\n");
+                         "Failed to add EasyMrcp Spy.\n");
         rtp_socket_close(rtp_info);
         free(rtp_info);
         return;
     }
     
     /* 保存信息到channel */
-    switch_channel_set_private(channel, "mediabug_rtp", rtp_info);
+    switch_channel_set_private(channel, "easymrcp_spy", rtp_info);
     
     switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, 
-                     "MediaBug RTP started for UUID: %s, target: %s:%d\n", 
+                     "EasyMrcp Spy started for UUID: %s, target: %s:%d\n", 
                      rtp_info->uuid, rtp_info->target_ip, rtp_info->dest_port);
 }
 
-/* 停止MediaBug RTP */
-SWITCH_STANDARD_APP(mediabug_rtp_stop_function)
+/* 停止EasyMrcp Spy */
+SWITCH_STANDARD_APP(easymrcp_spy_stop_function)
 {
     switch_channel_t *channel;
     rtp_info_t *rtp_info;
     
     channel = switch_core_session_get_channel(session);
-    rtp_info = (rtp_info_t *)switch_channel_get_private(channel, "mediabug_rtp");
+    rtp_info = (rtp_info_t *)switch_channel_get_private(channel, "easymrcp_spy");
     
     if (rtp_info) {
-        switch_core_media_bug_remove_all_function(session, "mediabug_rtp");
-        switch_channel_set_private(channel, "mediabug_rtp", NULL);
+        switch_core_media_bug_remove_all_function(session, "easymrcp_spy");
+        switch_channel_set_private(channel, "easymrcp_spy", NULL);
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, 
-                         "MediaBug RTP stopped for UUID: %s\n", rtp_info->uuid);
+                         "EasyMrcp Spy stopped for UUID: %s\n", rtp_info->uuid);
     }
 }
 
 /* MediaBug回调函数 */
-static switch_bool_t mediabug_rtp_callback(switch_media_bug_t *bug, void *user_data, switch_abc_type_t type)
+static switch_bool_t easymrcp_spy_callback(switch_media_bug_t *bug, void *user_data, switch_abc_type_t type)
 {
     rtp_info_t *rtp_info = (rtp_info_t *)user_data;
     
     switch (type) {
         case SWITCH_ABC_TYPE_INIT:
             switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, 
-                             "MediaBug RTP initialized for UUID: %s\n", rtp_info->uuid);
+                             "EasyMrcp Spy initialized for UUID: %s\n", rtp_info->uuid);
             break;
             
         case SWITCH_ABC_TYPE_CLOSE:
             switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, 
-                             "MediaBug RTP closing for UUID: %s\n", rtp_info->uuid);
+                             "EasyMrcp Spy closing for UUID: %s\n", rtp_info->uuid);
             rtp_socket_close(rtp_info);
             free(rtp_info);
             break;
             
         case SWITCH_ABC_TYPE_READ:
             switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, 
-                             "MediaBug READ event for UUID: %s\n", rtp_info->uuid);
+                             "EasyMrcp Spy READ event for UUID: %s\n", rtp_info->uuid);
             
             // 参考FreeSWITCH文档中的方法，使用switch_core_media_bug_read读取音频数据
             {
@@ -287,63 +287,87 @@ static int rtp_socket_init(rtp_info_t *rtp_info)
     return SWITCH_STATUS_SUCCESS;
 }
 
+
+
+/* 快速A-Law编码 - 高性能位操作实现 */
+static inline uint8_t pcm_to_alaw(int16_t pcm)
+{
+    uint8_t sign = 0x00;
+    uint16_t linear;
+    uint8_t aval;
+    
+    /* 处理符号位 */
+    if (pcm < 0) {
+        sign = 0x80;
+        linear = (~pcm) >> 3;  /* 负数转正并右移3位 */
+    } else {
+        linear = pcm >> 3;     /* 正数直接右移3位 */
+    }
+    
+    /* 限制到12位范围 */
+    if (linear > 4095) linear = 4095;
+    
+    /* 快速段查找和量化 - 使用位操作优化 */
+    if (linear < 32) {
+        /* 段0 */
+        aval = linear >> 1;
+    } else if (linear < 64) {
+        /* 段1 */
+        aval = 0x10 | ((linear >> 2) & 0x0F);
+    } else if (linear < 128) {
+        /* 段2 */
+        aval = 0x20 | ((linear >> 3) & 0x0F);
+    } else if (linear < 256) {
+        /* 段3 */
+        aval = 0x30 | ((linear >> 4) & 0x0F);
+    } else if (linear < 512) {
+        /* 段4 */
+        aval = 0x40 | ((linear >> 5) & 0x0F);
+    } else if (linear < 1024) {
+        /* 段5 */
+        aval = 0x50 | ((linear >> 6) & 0x0F);
+    } else if (linear < 2048) {
+        /* 段6 */
+        aval = 0x60 | ((linear >> 7) & 0x0F);
+    } else {
+        /* 段7 */
+        aval = 0x70 | ((linear >> 8) & 0x0F);
+    }
+    
+    return (aval ^ 0x55) | sign;
+}
+
 /* 发送RTP帧 */
 static void rtp_send_frame(rtp_info_t *rtp_info, switch_frame_t *frame)
 {
     rtp_header_t rtp_header;
     uint8_t rtp_packet[1024];
-    uint8_t encoded_data[512];
+    uint8_t *payload_data;
     int header_size = sizeof(rtp_header_t);
     int packet_size;
-    int encoded_size = 0;
-    int16_t *pcm_data;
-    int samples;
+    int payload_size = 0;
     
     if (!frame || !frame->data || frame->datalen == 0) {
         return;
     }
     
-    /* 检查音频格式并编码 */
-    if (frame->datalen == 160) {
-        /* 已经是G.711A格式，直接使用 */
-        memcpy(encoded_data, frame->data, frame->datalen);
-        encoded_size = frame->datalen;
-        samples = 160;
-    } else if (frame->datalen == 320) {
-        /* 16位PCM，需要转换为G.711A */
-        pcm_data = (int16_t*)frame->data;
-        samples = frame->datalen / 2;  /* 16位样本 */
-        
-        /* 转换为G.711A */
-        for (int i = 0; i < samples && i < 160; i++) {
-            /* 简单的线性PCM到A-law转换 */
-            int16_t pcm = pcm_data[i];
-            uint8_t alaw;
-            
-            /* 符号位 */
-            uint8_t sign = (pcm < 0) ? 0x80 : 0x00;
-            if (pcm < 0) pcm = -pcm;
-            
-            /* A-law编码 */
-            if (pcm >= 32635) alaw = 0x7F;
-            else if (pcm >= 16383) alaw = 0x70 | ((pcm >> 10) & 0x0F);
-            else if (pcm >= 8191) alaw = 0x60 | ((pcm >> 9) & 0x0F);
-            else if (pcm >= 4095) alaw = 0x50 | ((pcm >> 8) & 0x0F);
-            else if (pcm >= 2047) alaw = 0x40 | ((pcm >> 7) & 0x0F);
-            else if (pcm >= 1023) alaw = 0x30 | ((pcm >> 6) & 0x0F);
-            else if (pcm >= 511) alaw = 0x20 | ((pcm >> 5) & 0x0F);
-            else if (pcm >= 255) alaw = 0x10 | ((pcm >> 4) & 0x0F);
-            else alaw = (pcm >> 4) & 0x0F;
-            
-            encoded_data[i] = sign | (alaw ^ 0x55);  /* A-law反码 */
-        }
-        encoded_size = samples;
-    } else {
-        /* 未知格式，记录并跳过 */
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, 
-                         "Unknown audio format, frame size: %d\n", frame->datalen);
-        return;
+    /* MediaBug获取的音频数据都是PCM格式，直接转换为G.711A */
+    int16_t *pcm_data = (int16_t*)frame->data;
+    int samples = frame->datalen / 2;  /* 16位PCM，每个样本2字节 */
+    static uint8_t alaw_buffer[1024];
+    
+    /* 检查缓冲区大小 */
+    if (samples > sizeof(alaw_buffer)) {
+        samples = sizeof(alaw_buffer);
     }
+    
+    /* 转换PCM到G.711A */
+    for (int i = 0; i < samples; i++) {
+        alaw_buffer[i] = pcm_to_alaw(pcm_data[i]);
+    }
+    
+    payload_data = alaw_buffer;
+    payload_size = samples;
     
     /* 构造RTP头 */
     memset(&rtp_header, 0, sizeof(rtp_header));
@@ -357,12 +381,12 @@ static void rtp_send_frame(rtp_info_t *rtp_info, switch_frame_t *frame)
     memcpy(rtp_packet, &rtp_header, header_size);
     
     /* 确保不超过缓冲区 */
-    if (encoded_size > sizeof(rtp_packet) - header_size) {
-        encoded_size = sizeof(rtp_packet) - header_size;
+    if (payload_size > sizeof(rtp_packet) - header_size) {
+        payload_size = sizeof(rtp_packet) - header_size;
     }
     
-    memcpy(rtp_packet + header_size, encoded_data, encoded_size);
-    packet_size = header_size + encoded_size;
+    memcpy(rtp_packet + header_size, payload_data, payload_size);
+    packet_size = header_size + payload_size;
     
     /* 发送RTP包 */
     if (sendto(rtp_info->sock_fd, rtp_packet, packet_size, 0, 
@@ -376,8 +400,8 @@ static void rtp_send_frame(rtp_info_t *rtp_info, switch_frame_t *frame)
                          rtp_info->seq_num-1, rtp_info->timestamp, packet_size);
     }
     
-    /* 根据实际样本数更新时间戳 */
-    rtp_info->timestamp += samples;
+    /* 根据G.711A的样本数更新时间戳 (8KHz采样率) */
+    rtp_info->timestamp += payload_size;
 }
 
 /* 关闭RTP socket */

@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 通话处理脚本 - A拨打B，同时为A和B启动RTP推送和ASR识别
+整体思路是通过mod_easymrcp_spy模块将rtp流推送给EasyMrcp，进行asr识别并返回。
+初始化时在connect中加入"Type": "spy"，发送连接事件并等待EayMrcp返回监听的rtp端口。
+拿到端口后调用命令easymrcp_spy_start + EasyMrcp的ip:端口后即可推送rtp流
+后续就是正常的开启EasyMrcp的asr流程。
 """
 
 import freeswitch
@@ -21,8 +25,8 @@ except (NameError, AttributeError):
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from tcp_client import EasyMrcpTcpClient, MrcpEventType
 
-# MRCP服务器配置
-MRCP_SERVER_HOST = "192.168.31.30"
+# EasyMrcp服务器配置
+MRCP_SERVER_HOST = "172.16.2.155"
 MRCP_SERVER_PORT = 9090
 
 # 安全日志函数
@@ -33,7 +37,7 @@ def safe_log(level, message):
 
 # ASR处理线程
 def asr_thread(uuid, leg_name, session_obj, rtp_target_ip, port_event, port_container):
-    """为指定UUID的通话leg启动ASR识别，获取端口后通知handler"""
+    """为指定UUID的通话leg启动spy，获取端口后通知handler"""
     try:
         safe_log("INFO", "%s ASR线程启动，UUID: %s, MRCP服务器: %s:%s" %
                  (leg_name, uuid, MRCP_SERVER_HOST, MRCP_SERVER_PORT))
@@ -138,7 +142,7 @@ def handler(session, args):
             # 启动A-leg RTP推送
             rtp_target = "%s:%s" % (rtp_target_ip, a_port_container[0])
             safe_log("INFO", "A-leg 启动RTP推送到: %s" % rtp_target)
-            session.execute("mediabug_rtp_start", rtp_target)
+            session.execute("easymrcp_spy_start", rtp_target)
         else:
             safe_log("ERR", "A-leg ASR未返回有效端口")
     else:
@@ -172,7 +176,7 @@ def handler(session, args):
                 # 启动B-leg RTP推送
                 rtp_target = "%s:%s" % (rtp_target_ip, b_port_container[0])
                 safe_log("INFO", "B-leg 启动RTP推送到: %s" % rtp_target)
-                session2.execute("mediabug_rtp_start", rtp_target)
+                session2.execute("easymrcp_spy_start", rtp_target)
             else:
                 safe_log("ERR", "B-leg ASR未返回有效端口")
         else:
@@ -184,12 +188,12 @@ def handler(session, args):
         
         # 通话结束，停止B-leg RTP推送
         safe_log("INFO", "通话结束，停止B-leg RTP推送")
-        session2.execute("mediabug_rtp_stop")
+        session2.execute("easymrcp_spy_stop")
     else:
         safe_log("ERR", "B-leg session创建失败")
     
     # 通话结束，停止A-leg RTP推送
     safe_log("INFO", "通话结束，停止A-leg RTP推送")
-    session.execute("mediabug_rtp_stop")
+    session.execute("easymrcp_spy_stop")
     
     safe_log("INFO", "通话处理完成: %s -> %s" % (caller, callee)) 
