@@ -47,6 +47,20 @@ public class MrcpCallData {
     @Getter
     LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = new LinkedBlockingQueue<>();
 
+    /**
+     * 使用tts引擎名称
+     */
+    @Setter
+    @Getter
+    private String ttsEngine;
+
+    /**
+     * 使用tts声音名称
+     */
+    @Setter
+    @Getter
+    private String voice;
+
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);
     }

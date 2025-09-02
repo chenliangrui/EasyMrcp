@@ -57,7 +57,7 @@ public class SpeakEventHandler implements MrcpEventHandler {
                 if (event.getEvent().equals(TcpEventType.Silence.name())) {
                     ttsHandler.silence(Integer.parseInt(event.getData()));
                 } else {
-                    ttsHandler.transmit(event.getData());
+                    ttsHandler.transmit(id, event.getData());
                 }
             }
         });

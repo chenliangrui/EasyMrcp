@@ -87,6 +87,20 @@ public class MrcpManage {
         }
     }
 
+    public void setTtsEngine(String callId, String ttsEngine) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setTtsEngine error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setTtsEngine(ttsEngine);
+    }
+
+    public void setVoice(String callId, String voice) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setVoice error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setVoice(voice);
+    }
+
     public void setSpeaking(String callId, boolean isSpeaking) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("setSpeaking error, callId:{} not exist", callId);
@@ -115,6 +129,20 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
     }
 
+    public String getTtsEngine(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getTtsEngine error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getTtsEngine();
+    }
+
+    public String getVoice(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getVoice error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getVoice();
+    }
+
     public void interrupt(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("interrupt error, callId:{} not exist", callId);
@@ -123,7 +151,7 @@ public class MrcpManage {
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
         if (mrcpCallData.isSpeaking()) {
             // 1. 停止tts
-            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().ttsClose();
+            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().getTtsProcessor().ttsClose();
             // 2. 停止rtp数据发送
             mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().interrupt();
             setSpeaking(callId, false);

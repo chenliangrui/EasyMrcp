@@ -15,5 +15,4 @@ import org.springframework.context.annotation.PropertySource;
 public class KokoroConfig extends TtsConfig {
     private String apiUrl;
     private String model;
-    private String voice;
 }

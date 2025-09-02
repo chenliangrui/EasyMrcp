@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.tts.kokoro;
 
 import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.tts.TtsHandler;
+import com.cfsl.easymrcp.tts.TtsProcessor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -13,10 +14,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 @Slf4j
-public class KokoroProcessor extends TtsHandler {
+public class KokoroProcessor extends TtsProcessor {
     private final String apiUrl;
     private final String model;
-    private final String voice;
     private HttpClient httpClient;
     private InputStream inputStream;
 

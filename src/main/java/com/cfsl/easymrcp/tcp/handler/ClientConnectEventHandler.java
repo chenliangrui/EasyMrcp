@@ -27,6 +27,15 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
         String id = event.getId();
         mrcpManage.updateConnection(id);
         JSONObject connectParams = JSON.parseObject(event.getData());
+        if (connectParams != null && connectParams.getString("TtsEngine") != null) {
+            // 设置TTS引擎和发音人
+            String ttsEngine = connectParams.getString("TtsEngine");
+            mrcpManage.setTtsEngine(id, ttsEngine);
+            if (connectParams.getString("Voice") != null) {
+                String voice = connectParams.getString("Voice");
+                mrcpManage.setVoice(id, voice);
+            }
+        }
         if (connectParams != null && connectParams.getString("Type") != null && connectParams.getString("Type").equals("spy")) {
             // 启动spy模式，对某一路通话进行asr识别
             SipContext sipContext = SpringUtils.getBean(SipContext.class);

@@ -11,7 +11,9 @@ import com.cfsl.easymrcp.asr.tencentcloud.TxCloudAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
+import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.RtpManager;
+import com.cfsl.easymrcp.tts.TtsProcessor;
 import com.cfsl.easymrcp.tts.example.ExampleTtsConfig;
 import com.cfsl.easymrcp.tts.example.ExampleTtsProcessor;
 import com.cfsl.easymrcp.tts.kokoro.KokoroConfig;
@@ -53,6 +55,8 @@ public class ProcessorCreator {
     ExampleTtsConfig exampleTtsConfig;
     @Autowired
     RtpManager rtpManager;
+    @Autowired
+    MrcpManage mrcpManage;
 
     public AsrHandler getAsrHandler() {
         AsrHandler asrHandler = createAsrHandler();
@@ -93,23 +97,45 @@ public class ProcessorCreator {
     }
 
     public TtsHandler getTtsHandler() {
-        switch (ttsMode) {
-            case "kokoro":
-                KokoroProcessor kokoroProcessor = new KokoroProcessor(kokoroConfig);
-                kokoroProcessor.setConfig(kokoroConfig);
-                return kokoroProcessor;
-            case "xfyun":
-                XfyunTtsProcessor xfyunTtsProcessor = new XfyunTtsProcessor(xfyunTtsConfig);
-                return xfyunTtsProcessor;
-            case "tencent-cloud":
-                TxCloudTtsProcessor txCloudAsrProcessor = new TxCloudTtsProcessor(txCloudTtsConfig);
-                txCloudAsrProcessor.setConfig(txCloudTtsConfig);
-                return txCloudAsrProcessor;
-            case "example-tts":
-                ExampleTtsProcessor exampleTtsProcessor = new ExampleTtsProcessor(exampleTtsConfig);
-                exampleTtsProcessor.setConfig(exampleTtsConfig);
-                return exampleTtsProcessor;
+        return new TtsHandler();
+    }
+
+    /**
+     * 懒加载tts引擎，没有参数则使用配置文件中的默认值
+     * @param id uuid
+     * @return tts处理器
+     */
+    public TtsProcessor getTtsProcessor(String id) {
+        TtsHandler ttsHandler = mrcpManage.getTtsHandler(id);
+        String ttsEngine = mrcpManage.getTtsEngine(id);
+        String voice = mrcpManage.getVoice(id);
+        TtsProcessor ttsProcessor = null;
+        if (ttsEngine == null || ttsEngine.isEmpty()) {
+            ttsEngine = ttsMode;
         }
-        return null;
+        switch (ttsEngine) {
+            case "kokoro":
+                ttsProcessor = new KokoroProcessor(kokoroConfig);
+                ttsHandler.setConfig(kokoroConfig);
+                break;
+            case "xfyun":
+                ttsProcessor = new XfyunTtsProcessor(xfyunTtsConfig);
+                break;
+            case "tencent-cloud":
+                ttsProcessor = new TxCloudTtsProcessor(txCloudTtsConfig);
+                ttsHandler.setConfig(txCloudTtsConfig);
+                break;
+            case "example-tts":
+                ttsProcessor = new ExampleTtsProcessor(exampleTtsConfig);
+                ttsHandler.setConfig(exampleTtsConfig);
+                break;
+            default:
+                throw new RuntimeException("Unknown TTS mode: " + ttsMode);
+        }
+        if (voice != null && !voice.isEmpty()) {
+            ttsProcessor.setVoice(voice);
+        }
+        ttsProcessor.setTtsHandler(ttsHandler);
+        return ttsProcessor;
     }
 }

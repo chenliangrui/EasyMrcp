@@ -69,7 +69,7 @@ def handler(session, args):
         # 获取A-leg的UUID
         a_leg_uuid = session.getVariable("uuid")
         
-        # 创建MRCP处理线程
+        # 创建EasyMrcp client处理线程
         mrcp_thread = threading.Thread(target=mrcp_in_thread, args=(session, caller, callee))
         mrcp_thread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         mrcp_thread.start()
@@ -101,7 +101,7 @@ def start_easymrcp_client(session):
     # 设置自定义SIP头，传递UUID
     session.setVariable("sip_h_X-EasyMRCP", a_leg_uuid)
 
-    # 硬编码MRCP服务器信息
+    # 硬编码EasyMrcp服务器信息
     server_host = "192.168.31.29"
     server_port = 9090
 
@@ -148,7 +148,17 @@ def start_easymrcp_client(session):
     client.register_event_callback(MrcpEventType.NoInputTimeout, on_no_input_timeout)
     client.register_event_callback(MrcpEventType.SpeakComplete, on_speak_complete)
     client.register_event_callback(MrcpEventType.SpeakInterrupted, on_speak_interrupted)
+
+    # 使用的TTS引擎和发音人，如果不配置参数则使用配置文件中默认配置(可选)
+    # connect_params = {
+    #     "TtsEngine": "xfyun",
+    #     "Voice": "x4_yezi"
+    # }
+    # client.connect(connect_params)
+
+    # 使用默认值连接
     client.connect()
+
     # 简单的会话监控循环
     try:
         # 等待会话结束

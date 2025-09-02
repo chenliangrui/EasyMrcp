@@ -6,5 +6,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class TtsConfig extends BaseConfig{
-
+    // tts发音人名称
+    public String voice;
 }
