@@ -40,7 +40,7 @@ public class TtsHandler implements MrcpConnection {
     public void create(String remoteIp, int remotePort) {
         try {
             // 创建RTP处理器
-            rtpProcessor = new NettyTtsRtpProcessor(reSample, remoteIp, remotePort);
+            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort);
             // 启动处理器
             rtpProcessor.startProcessing();
         } catch (Exception e) {
@@ -57,10 +57,9 @@ public class TtsHandler implements MrcpConnection {
         rtpProcessor.setRtpChannel(channel);
     }
 
-    public void setConfig(TtsConfig ttsConfig) {
-        if (ttsConfig != null) {
-            reSample = ttsConfig.getReSample();
-        }
+    public void setReSample(String reSample) {
+        this.reSample = reSample;
+        rtpProcessor.setReSample(reSample);
     }
 
     public void transmit(String id, String text) {

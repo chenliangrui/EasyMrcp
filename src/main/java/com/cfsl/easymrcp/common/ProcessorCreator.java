@@ -116,18 +116,18 @@ public class ProcessorCreator {
         switch (ttsEngine) {
             case "kokoro":
                 ttsProcessor = new KokoroProcessor(kokoroConfig);
-                ttsHandler.setConfig(kokoroConfig);
+                ttsHandler.setReSample(kokoroConfig.getReSample());
                 break;
             case "xfyun":
                 ttsProcessor = new XfyunTtsProcessor(xfyunTtsConfig);
                 break;
             case "tencent-cloud":
                 ttsProcessor = new TxCloudTtsProcessor(txCloudTtsConfig);
-                ttsHandler.setConfig(txCloudTtsConfig);
+                ttsHandler.setReSample(txCloudTtsConfig.getReSample());
                 break;
             case "example-tts":
                 ttsProcessor = new ExampleTtsProcessor(exampleTtsConfig);
-                ttsHandler.setConfig(exampleTtsConfig);
+                ttsHandler.setReSample(exampleTtsConfig.getReSample());
                 break;
             default:
                 throw new RuntimeException("Unknown TTS mode: " + ttsMode);

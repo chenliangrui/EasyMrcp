@@ -25,6 +25,7 @@ public class NettyTtsRtpProcessor {
     private NettyRtpSender sender;
     @Setter
     private TtsCallback callback;
+    @Setter
     private String reSample;
 
     // 缓冲区配置：支持大容量TTS音频数据
@@ -44,13 +45,10 @@ public class NettyTtsRtpProcessor {
     /**
      * 构造函数 - 使用RtpManager
      *
-     * @param reSample   重采样配置
      * @param remoteIp   远程IP地址
      * @param remotePort 远程端口
      */
-    public NettyTtsRtpProcessor(String reSample, String remoteIp, int remotePort) {
-        this.reSample = reSample;
-
+    public NettyTtsRtpProcessor(String remoteIp, int remotePort) {
         // 初始化高性能环形缓冲区，TTS模式支持自动扩容
         ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
         this.inputRingBuffer = new NettyAudioRingBuffer(allocator, SAMPLE_RATE, TTS_INPUT_BUFFER_SECONDS, true);  // TTS模式
