@@ -73,7 +73,7 @@ public class HandleSipInit {
                         ttsHandler.startRtpSender();
                         JSONObject connectParams = new JSONObject();
                         connectParams.put("msg", "SipInitSuccess");
-                        tcpClientNotifier.sendEvent(customHeaderUUID, TcpEventType.ClientConnect, connectParams.toJSONString());
+                        tcpClientNotifier.sendEvent(customHeaderUUID, null,TcpEventType.ClientConnect, connectParams.toJSONString());
                     } catch (Exception e) {
                         log.error("初始化RTP通道失败", e);
                         throw e;

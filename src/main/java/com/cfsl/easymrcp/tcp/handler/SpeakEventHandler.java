@@ -44,13 +44,13 @@ public class SpeakEventHandler implements MrcpEventHandler {
                     public void apply(String msg) {
                         if (msg.equals("completed")) {
                             if (!mrcpManage.isInterruptEnable(id)) mrcpManage.setInterruptEnable(id, true);
-                            tcpClientNotifier.sendEvent(id, TcpEventType.SpeakComplete, msg);
+                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakComplete, msg);
                             asrHandler.startInputTimers();
                             mrcpManage.setSpeaking(id,false);
                             // 继续speak
                             mrcpManage.runNextSpeak(id);
                         } else {
-                            tcpClientNotifier.sendEvent(id, TcpEventType.SpeakInterrupted, msg);
+                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakInterrupted, msg);
                         }
                     }
                 });

@@ -8,6 +8,7 @@ import time
 import sys
 import struct
 import freeswitch
+import uuid
 
 # 设置默认编码为utf-8（Python 2特有）
 try:
@@ -51,9 +52,10 @@ class MrcpEventType:
 
 class MrcpEvent:
     """EasyMrcp事件类"""
-    def __init__(self, client_id, event_type, data=None):
+    def __init__(self, client_id, event_type, event_id=None, data=None):
         self.id = client_id
         self.event = event_type
+        self.eventId = event_id
         
         # 确保data是字符串类型
         if data is not None:
@@ -73,6 +75,11 @@ class MrcpEvent:
             "event": self.event,
             "data": self.data
         }
+        
+        # 只有当eventId不为None时才添加到JSON中
+        if self.eventId is not None:
+            event_dict["eventId"] = self.eventId
+            
         return json.dumps(event_dict, ensure_ascii=False)
 
 class TcpMessagePacket:
@@ -236,10 +243,7 @@ class EasyMrcpTcpClient:
         self.response_callback = callback_func
         return self  # 支持链式调用
     
-    def connect(self):
-        self.connect(None)
-
-    def connect(self, data):
+    def connect(self, data=None):
         """连接到服务器"""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -286,14 +290,22 @@ class EasyMrcpTcpClient:
                 safe_log("INFO", "已断开与服务器的tcp连接")
     
     def send_event(self, event_type, data):
-        """发送事件"""
+        """发送事件（正常发送，不带eventId）"""
+        self._send_event_internal(event_type, data, None)
+    
+    def send_event_with_eventId(self, event_id, event_type, data):
+        """发送带eventId的事件（专门用于Speak事件）"""
+        self._send_event_internal(event_type, data, event_id)
+    
+    def _send_event_internal(self, event_type, data, event_id):
+        """内部发送事件的通用方法"""
         if not self.connected or not self.socket:
             safe_log("ERR", "未连接到服务器")
             return
         
         try:
             # 创建事件对象
-            event = MrcpEvent(self.client_id, event_type, data)
+            event = MrcpEvent(self.client_id, event_type, event_id, data)
             
             # 转换为JSON
             json_event = event.to_json()
@@ -338,7 +350,8 @@ class EasyMrcpTcpClient:
                                 # 事件消息
                                 event_name = json_obj.get("event")
                                 data = json_obj.get("data")
-                                self.handle_event(event_name, data)
+                                event_id = json_obj.get("eventId")  # 提取eventId
+                                self.handle_event(event_name, data, event_id)
                             elif "code" in json_obj:
                                 # 响应消息
                                 code = json_obj.get("code")
@@ -362,12 +375,12 @@ class EasyMrcpTcpClient:
                 error_msg = traceback.format_exc()
                 safe_log("ERR", error_msg)
     
-    def handle_event(self, event_name, data):
+    def handle_event(self, event_name, data, event_id=None):
         """处理事件消息"""
         # 如果注册了该事件的回调，则调用回调函数
         if event_name in self.event_callbacks:
             try:
-                self.event_callbacks[event_name](data)
+                self.event_callbacks[event_name](data, event_id)
             except Exception as e:
                 safe_log("ERR", "调用事件回调异常: %s, %s" % (event_name, str(e)))
         else:

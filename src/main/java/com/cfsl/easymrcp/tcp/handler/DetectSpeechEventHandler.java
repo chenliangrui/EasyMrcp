@@ -33,7 +33,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
         MrcpTimeoutManager.TimeoutCallback timeoutCallback = new MrcpTimeoutManager.TimeoutCallback() {
             @Override
             public void onNoInputTimeout() {
-                tcpClientNotifier.sendEvent(id, TcpEventType.NoInputTimeout, "no-input-timeout");
+                tcpClientNotifier.sendEvent(id, null,TcpEventType.NoInputTimeout, "no-input-timeout");
                 // 取消所有计时器
                 asrHandler.cancelTimeouts();
                 asrHandler.startInputTimers();
@@ -85,7 +85,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
                 }
                 if (action.equals(ASRConstant.Result)) {
                     if (!msg.isEmpty()) {
-                        tcpClientNotifier.sendEvent(id, TcpEventType.RecognitionComplete, msg);
+                        tcpClientNotifier.sendEvent(id, null, TcpEventType.RecognitionComplete, msg);
                     }
                     asrHandler.startInputTimers();
                 }

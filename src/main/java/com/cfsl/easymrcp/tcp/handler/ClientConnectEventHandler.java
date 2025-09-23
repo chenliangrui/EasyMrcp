@@ -47,7 +47,7 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
             Channel rtpChannel = rtpManager.createRtpChannel(id, rtpPort, asrHandler.getNettyAsrRtpProcessor());
             JSONObject connectParamsRes = new JSONObject();
             connectParamsRes.put("rtpPort", rtpPort);
-            tcpClientNotifier.sendEvent(id, TcpEventType.ClientConnect, connectParamsRes.toJSONString());
+            tcpClientNotifier.sendEvent(id, null,TcpEventType.ClientConnect, connectParamsRes.toJSONString());
         }
         return TcpResponse.success(id, "success");
     }

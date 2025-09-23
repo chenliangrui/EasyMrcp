@@ -130,7 +130,7 @@ public class NettyTcpClient {
         
         try {
             // 创建TcpEvent对象
-            MrcpEvent event = new MrcpEvent(clientId, eventType, data);
+            MrcpEvent event = new MrcpEvent(clientId, null,eventType, data);
             
             // 转换为JSON
             String jsonEvent = JSON.toJSONString(event);
