@@ -148,7 +148,7 @@ public class FunasrWsClient extends WebSocketClient {
             log.info("text: " + result);
             if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
             isParagraphOver = false;
-            if (!stop && !result.isEmpty() && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
+            if (!stop && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
                 SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                 isParagraphOver = true;
             }

@@ -99,7 +99,6 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     }
                 }
                 if (resp.getData().getStatus() == 2) {
-                    // todo  resp.data.status ==2 说明数据全部返回完毕，可以关闭连接，释放资源
                     log.info("session end ");
                     dateEnd = new Date();
                     log.info(sdf.format(dateBegin) + "开始");
@@ -108,7 +107,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     String result = decoder.toString();
                     log.info("最终识别结果 ==》" + result);
                     log.info("本次识别sid ==》" + resp.getSid());
-                    if (!stop && !result.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
+                    if (!stop) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                     isParagraphOver = true;
                     decoder.discard();
                     webSocket.close(1000, "Normal closure after completion");
