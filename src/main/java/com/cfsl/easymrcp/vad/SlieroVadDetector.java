@@ -19,7 +19,7 @@ public class SlieroVadDetector {
     // Sampling rate
     private final int samplingRate;
     // Minimum number of silence samples to determine the end threshold of speech
-    private final float minSilenceSamples;
+    private float minSilenceSamples;
     // Additional number of samples for speech start or end to calculate speech start or end time
     private final float speechPadSamples;
     // Whether in the triggered state (i.e. whether speech is being detected)
@@ -136,6 +136,10 @@ public class SlieroVadDetector {
 
         // If the above conditions are not met, return null by default
         return Collections.emptyMap();
+    }
+
+    public void setMinSilenceSamples(int minSilenceDurationMs) {
+        this.minSilenceSamples = samplingRate * minSilenceDurationMs / 1000f;
     }
 
     public void close() throws OrtException {

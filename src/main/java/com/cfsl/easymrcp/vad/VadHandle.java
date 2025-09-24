@@ -53,16 +53,7 @@ public class VadHandle {
                 && speechCompleteTimeoutMs.intValue() != MIN_SILENCE_DURATION_MS) {
             MIN_SILENCE_DURATION_MS = speechCompleteTimeoutMs.intValue();
             log.info("Updating Speech-Complete-Timeout value for VAD: {} ms", MIN_SILENCE_DURATION_MS);
-
-            // 重新初始化VAD检测器
-            try {
-                if (vadDetector != null) {
-                    release();
-                }
-                initVad();
-            } catch (Exception e) {
-                log.error("Error reinitializing VAD with new timeout: {}", e.getMessage());
-            }
+            vadDetector.setMinSilenceSamples(Math.toIntExact(speechCompleteTimeoutMs));
         }
     }
 
