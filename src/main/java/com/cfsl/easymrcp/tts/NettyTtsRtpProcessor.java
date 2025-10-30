@@ -25,6 +25,7 @@ public class NettyTtsRtpProcessor {
     private NettyRtpSender sender;
     @Setter
     private TtsCallback callback;
+    @Setter
     private String reSample;
 
     // 缓冲区配置：支持大容量TTS音频数据
@@ -44,13 +45,10 @@ public class NettyTtsRtpProcessor {
     /**
      * 构造函数 - 使用RtpManager
      *
-     * @param reSample   重采样配置
      * @param remoteIp   远程IP地址
      * @param remotePort 远程端口
      */
-    public NettyTtsRtpProcessor(String reSample, String remoteIp, int remotePort) {
-        this.reSample = reSample;
-
+    public NettyTtsRtpProcessor(String remoteIp, int remotePort) {
         // 初始化高性能环形缓冲区，TTS模式支持自动扩容
         ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
         this.inputRingBuffer = new NettyAudioRingBuffer(allocator, SAMPLE_RATE, TTS_INPUT_BUFFER_SECONDS, true);  // TTS模式
@@ -101,23 +99,32 @@ public class NettyTtsRtpProcessor {
 
                     // 从输入缓冲区读取数据
                     ByteBuf pcmData = takeDataAsByteBuf(inputRingBuffer, receiveTakeBytes);
-                    ByteBuf duplicate = pcmData.duplicate();
                     if (pcmData != null && pcmData.readableBytes() > 0) {
+                        // 先检查是否有结束标记，避免结束标记被编码产生噪音
+                        boolean hasEndFlag = false;
+                        if (pcmData.readableBytes() >= 2 &&
+                                pcmData.getByte(pcmData.readableBytes() - 2) == TTSConstant.TTS_END_BYTE &&
+                                pcmData.getByte(pcmData.readableBytes() - 1) == TTSConstant.TTS_END_BYTE) {
+                            hasEndFlag = true;
+                            // 去除结束标记，避免被编码为噪音
+                            pcmData.writerIndex(pcmData.writerIndex() - 2);
+                        }
+
+                        // 处理音频数据（重采样）
                         ByteBuf processedData;
                         if (reSample != null && reSample.equals("downsample24kTo8k")) {
                             processedData = downsample24kTo8k(pcmData);
                         } else {
                             processedData = pcmData;
                         }
+                        
+                        // G.711A编码
                         ByteBuf g711Data = G711AUtil.encode(processedData);
                         putData(outputRingBuffer, g711Data);
                         g711Data.release();
 
-                        // 检查结束标记
-                        if (duplicate.readableBytes() >= 2 &&
-                                duplicate.getByte(duplicate.readableBytes() - 2) == TTSConstant.TTS_END_BYTE &&
-                                duplicate.getByte(duplicate.readableBytes() - 1) == TTSConstant.TTS_END_BYTE) {
-                            // 结束标记
+                        // 如果有结束标记，在编码后的数据之后添加未编码的结束标记
+                        if (hasEndFlag) {
                             putData(outputRingBuffer, TTSConstant.TTS_END_FLAG.retainedDuplicate());
                         }
 
@@ -303,25 +310,44 @@ public class NettyTtsRtpProcessor {
                         // 使用ByteBuf版本避免内存拷贝
                         ByteBuf payload = takeDataAsByteBuf(outputRingBuffer, EMConstant.VOIP_SAMPLES_PER_FRAME * packageCount);
                         if (payload != null && payload.readableBytes() > 0) {
-                            log.trace("发送 {} 字节的RTP数据", payload.readableBytes());
-                            sender.sendFrame(payload);
-
-                            // 检查结束标记 - 直接使用ByteBuf的getByte方法
+                            // 先检查是否有结束/中断标记，避免标记被发送出去产生噪音
+                            boolean hasEndFlag = false;
+                            boolean hasInterruptFlag = false;
+                            
                             if (payload.readableBytes() >= 2) {
                                 byte endByte1 = payload.getByte(payload.readableBytes() - 2);
                                 byte endByte2 = payload.getByte(payload.readableBytes() - 1);
 
                                 if (endByte1 == TTSConstant.TTS_END_BYTE && endByte2 == TTSConstant.TTS_END_BYTE) {
-                                    sendSilence = true;
-                                    SipUtils.executeTask(() -> callback.apply("completed"));
-                                    log.info("tts播放完成");
-                                }
-                                if (endByte1 == TTSConstant.TTS_INTERRUPT_BYTE && endByte2 == TTSConstant.TTS_INTERRUPT_BYTE) {
-                                    sendSilence = true;
-                                    SipUtils.executeTask(() -> callback.apply("interrupt"));
-                                    log.info("tts语音流已经被打断");
+                                    hasEndFlag = true;
+                                    // 去除结束标记，避免作为音频数据发送
+                                    payload.writerIndex(payload.writerIndex() - 2);
+                                } else if (endByte1 == TTSConstant.TTS_INTERRUPT_BYTE && endByte2 == TTSConstant.TTS_INTERRUPT_BYTE) {
+                                    hasInterruptFlag = true;
+                                    // 去除中断标记，避免作为音频数据发送
+                                    payload.writerIndex(payload.writerIndex() - 2);
                                 }
                             }
+
+                            // 只发送音频数据（不包含标记）
+                            if (payload.readableBytes() > 0) {
+                                sender.sendFrame(payload);
+                            }
+
+                            // 处理结束标记
+                            if (hasEndFlag) {
+                                sendSilence = true;
+                                SipUtils.executeTask(() -> callback.apply("completed"));
+                                log.info("tts播放完成");
+                            }
+                            
+                            // 处理中断标记
+                            if (hasInterruptFlag) {
+                                sendSilence = true;
+                                SipUtils.executeTask(() -> callback.apply("interrupt"));
+                                log.info("tts语音流已经被打断");
+                            }
+                            
                             payload.release();
                         }
                     } else if (sendSilence) {

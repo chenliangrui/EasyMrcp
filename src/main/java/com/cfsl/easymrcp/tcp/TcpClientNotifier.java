@@ -19,7 +19,7 @@ public class TcpClientNotifier {
     public TcpClientNotifier(NettyConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
     }
-    
+
     /**
      * 向客户端发送事件通知
      *
@@ -27,7 +27,7 @@ public class TcpClientNotifier {
      * @param eventType 事件类型
      * @param data      事件数据
      */
-    public void sendEvent(String clientId, TcpEventType eventType, String data) {
+    public void sendEvent(String clientId, String eventId, TcpEventType eventType, String data) {
         if (clientId == null || clientId.isEmpty()) {
             log.warn("客户端ID为空，无法发送事件通知");
             return;
@@ -40,7 +40,7 @@ public class TcpClientNotifier {
         }
         
         try {
-            MrcpEvent event = new MrcpEvent(clientId, eventType, data);
+            MrcpEvent event = new MrcpEvent(clientId, eventId, eventType, data);
             connectionManager.sendToClient(clientId, event);
         } catch (Exception e) {
             log.error("发送事件通知异常: {}", eventType, e);

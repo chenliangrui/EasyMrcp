@@ -29,7 +29,6 @@ public class RtpManager {
     @Getter
     private EventLoopGroup rtpEventLoopGroup;
 
-    // 已绑定的RTP通道
     private final Map<String, Channel> rtpChannels = new ConcurrentHashMap<>();
 
     /**
@@ -81,7 +80,18 @@ public class RtpManager {
         }
     }
 
+    /**
+     * mrcp关闭时根据通话id判断下是否有rtp，如果有则证明是spy功能。
+     * 正常情况下是sip的dialogId，返回是null
+     * @param uuid 通话id
+     * @return 是否是spy功能
+     */
+    public boolean isSpy(String uuid) {
+        return rtpChannels.get(uuid) != null;
+    }
+
     public void close(String dialogId) {
         rtpChannels.get(dialogId).close();
+        rtpChannels.remove(dialogId);
     }
 } 

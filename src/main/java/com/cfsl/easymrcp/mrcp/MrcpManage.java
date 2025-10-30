@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 业务层面全局管理mrcp通话
@@ -86,11 +87,60 @@ public class MrcpManage {
         }
     }
 
+    public void setTtsEngine(String callId, String ttsEngine) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setTtsEngine error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setTtsEngine(ttsEngine);
+    }
+
+    public void setVoice(String callId, String voice) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setVoice error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setVoice(voice);
+    }
+
     public void setSpeaking(String callId, boolean isSpeaking) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("setSpeaking error, callId:{} not exist", callId);
         }
         mrcpCallDataConcurrentHashMap.get(callId).setSpeaking(isSpeaking);
+    }
+
+    public boolean isInterruptEnable(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("isInterruptEnable error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).isInterruptEnable();
+    }
+
+    public AtomicBoolean getInterruptEnable(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getInterruptEnable error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getInterruptEnable();
+    }
+
+    public void setInterruptEnable(String callId, boolean interruptEnable) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setInterruptEnable error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
+    }
+
+    public String getTtsEngine(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getTtsEngine error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getTtsEngine();
+    }
+
+    public String getVoice(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getVoice error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getVoice();
     }
 
     public void interrupt(String callId) {
@@ -101,7 +151,7 @@ public class MrcpManage {
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
         if (mrcpCallData.isSpeaking()) {
             // 1. 停止tts
-            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().ttsClose();
+            mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().getTtsProcessor().ttsClose();
             // 2. 停止rtp数据发送
             mrcpCallDataConcurrentHashMap.get(callId).getTtsHandler().interrupt();
             setSpeaking(callId, false);
@@ -123,8 +173,12 @@ public class MrcpManage {
             return;
         }
         MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(uuid);
-        mrcpCallData.getAsrHandler().close();
-        mrcpCallData.getTtsHandler().close();
+        if (mrcpCallData.getAsrHandler() != null) {
+            mrcpCallData.getAsrHandler().close();
+        }
+        if (mrcpCallData.getTtsHandler() != null) {
+            mrcpCallData.getTtsHandler().close();
+        }
         mrcpCallDataConcurrentHashMap.remove(uuid);
     }
 

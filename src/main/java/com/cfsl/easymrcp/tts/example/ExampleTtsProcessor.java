@@ -2,13 +2,15 @@ package com.cfsl.easymrcp.tts.example;
 
 import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.tts.TtsHandler;
+import com.cfsl.easymrcp.tts.TtsProcessor;
+import io.netty.buffer.ByteBuf;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * 压测示例代码
  */
 @Slf4j
-public class ExampleTtsProcessor extends TtsHandler {
+public class ExampleTtsProcessor extends TtsProcessor {
     private ExampleTtsConfig exampleTtsConfig;
 
     public ExampleTtsProcessor(ExampleTtsConfig exampleTtsConfig) {

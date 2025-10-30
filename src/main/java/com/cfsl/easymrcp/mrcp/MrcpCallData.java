@@ -26,6 +26,13 @@ public class MrcpCallData {
      */
     private AtomicBoolean speaking = new AtomicBoolean(false);
 
+    /**
+     * 是否可以打断
+     * 某些tts可以设置为不可打断
+     */
+    @Getter
+    private AtomicBoolean interruptEnable = new AtomicBoolean(true);
+
     @Getter
     @Setter
     AsrHandler asrHandler;
@@ -40,8 +47,30 @@ public class MrcpCallData {
     @Getter
     LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = new LinkedBlockingQueue<>();
 
+    /**
+     * 使用tts引擎名称
+     */
+    @Setter
+    @Getter
+    private String ttsEngine;
+
+    /**
+     * 使用tts声音名称
+     */
+    @Setter
+    @Getter
+    private String voice;
+
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);
+    }
+
+    public boolean isInterruptEnable() {
+        return this.interruptEnable.get();
+    }
+
+    public void setInterruptEnable(Boolean interruptEnable) {
+        this.interruptEnable.set(interruptEnable);
     }
 
     public boolean isSpeaking() {

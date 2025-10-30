@@ -21,6 +21,4 @@ public class XfyunTtsConfig extends TtsConfig {
     public String APIKey;
     // 小语种必须使用UNICODE编码作为值
     public String TTE;
-    // 发音人参数。到控制台-我的应用-语音合成-添加试用或购买发音人，添加后即显示该发音人参数值，若试用未添加的发音人会报错11200
-    public String VCN;
 }

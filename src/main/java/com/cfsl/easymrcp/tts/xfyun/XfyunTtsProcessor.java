@@ -2,6 +2,7 @@ package com.cfsl.easymrcp.tts.xfyun;
 
 import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.tts.TtsHandler;
+import com.cfsl.easymrcp.tts.TtsProcessor;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -18,7 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Slf4j
-public class XfyunTtsProcessor extends TtsHandler {
+public class XfyunTtsProcessor extends TtsProcessor {
     // 地址与鉴权信息
     public String hostUrl;
     // 均到控制台-语音合成页面获取
@@ -29,8 +30,6 @@ public class XfyunTtsProcessor extends TtsHandler {
     public String text;
     // 合成文本编码格式
     public String TTE; // 小语种必须使用UNICODE编码作为值
-    // 发音人参数。到控制台-我的应用-语音合成-添加试用或购买发音人，添加后即显示该发音人参数值，若试用未添加的发音人会报错11200
-    public String VCN;
     // 合成文件存储地址以及名称
     public String OUTPUT_FILE_PATH = "src/main/resources/" + System.currentTimeMillis() + ".pcm";
     // json
@@ -40,12 +39,12 @@ public class XfyunTtsProcessor extends TtsHandler {
     WebSocketClient webSocketClient;
 
     public XfyunTtsProcessor(XfyunTtsConfig xfyunTtsConfig) {
-        this.hostUrl = xfyunTtsConfig.hostUrl;
-        this.APPID = xfyunTtsConfig.APPID;
-        this.APIKey = xfyunTtsConfig.APIKey;
-        this.APISecret = xfyunTtsConfig.APISecret;
-        this.TTE = xfyunTtsConfig.TTE;
-        this.VCN = xfyunTtsConfig.VCN;
+        this.hostUrl = xfyunTtsConfig.getHostUrl();
+        this.APPID = xfyunTtsConfig.getAPPID();
+        this.APIKey = xfyunTtsConfig.getAPIKey();
+        this.APISecret = xfyunTtsConfig.getAPISecret();
+        this.TTE = xfyunTtsConfig.getTTE();
+        this.voice = xfyunTtsConfig.getVoice();
     }
 
     @Override
@@ -149,7 +148,7 @@ public class XfyunTtsProcessor extends TtsHandler {
                         "    \"tte\": \"" + TTE + "\",\n" +
                         "    \"auf\": \"" + "audio/L16;rate=8000" + "\",\n" +
                         "    \"ent\": \"intp65\",\n" +
-                        "    \"vcn\": \"" + VCN + "\",\n" +
+                        "    \"vcn\": \"" + voice + "\",\n" +
                         "    \"pitch\": 50,\n" +
                         "    \"speed\": 50\n" +
                         "  },\n" +
@@ -198,8 +197,8 @@ public class XfyunTtsProcessor extends TtsHandler {
         // 拼接地址
         HttpUrl httpUrl = Objects.requireNonNull(HttpUrl.parse("https://" + url.getHost() + url.getPath())).newBuilder().//
                 addQueryParameter("authorization", Base64.getEncoder().encodeToString(authorization.getBytes(StandardCharsets.UTF_8))).//
-                addQueryParameter("date", date).//
-                addQueryParameter("host", url.getHost()).//
+                addQueryParameter("date", date).
+                addQueryParameter("host", url.getHost()).
                 build();
 
         return httpUrl.toString();

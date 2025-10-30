@@ -1,8 +1,10 @@
 package com.cfsl.easymrcp.tts;
 
+import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.domain.TtsConfig;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.MrcpConnection;
+import com.cfsl.easymrcp.utils.SpringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import lombok.Getter;
@@ -16,7 +18,7 @@ import java.util.Arrays;
  * 主要侧重于与不同厂家tts客户端的集成，处理音频流、控制tts客户端生命周期等操作
  */
 @Slf4j
-public abstract class TtsHandler implements MrcpConnection {
+public class TtsHandler implements MrcpConnection {
     @Getter
     @Setter
     private String channelId;
@@ -29,11 +31,16 @@ public abstract class TtsHandler implements MrcpConnection {
     // 音频处理器
     private NettyTtsRtpProcessor rtpProcessor;
 
+    // tts对接厂商处理器
+    @Setter
+    @Getter
+    private TtsProcessor ttsProcessor;
+
     @Override
     public void create(String remoteIp, int remotePort) {
         try {
             // 创建RTP处理器
-            rtpProcessor = new NettyTtsRtpProcessor(reSample, remoteIp, remotePort);
+            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort);
             // 启动处理器
             rtpProcessor.startProcessing();
         } catch (Exception e) {
@@ -50,16 +57,20 @@ public abstract class TtsHandler implements MrcpConnection {
         rtpProcessor.setRtpChannel(channel);
     }
 
-    public void setConfig(TtsConfig ttsConfig) {
-        if (ttsConfig != null) {
-            reSample = ttsConfig.getReSample();
-        }
+    public void setReSample(String reSample) {
+        this.reSample = reSample;
+        rtpProcessor.setReSample(reSample);
     }
 
-    public void transmit(String text) {
+    public void transmit(String id, String text) {
         rtpProcessor.setCallback(callback);
-        create();
-        speak(text);
+        if (ttsProcessor == null) {
+            // 懒加载tts引擎，没有参数则使用配置文件中的默认值
+            ProcessorCreator ttsChose = SpringUtils.getBean(ProcessorCreator.class);
+            ttsProcessor = ttsChose.getTtsProcessor(id);
+        }
+        ttsProcessor.create();
+        ttsProcessor.speak(text);
     }
 
     /**
@@ -83,7 +94,7 @@ public abstract class TtsHandler implements MrcpConnection {
     public void close() {
         stop = true;
         rtpProcessor.stopRtpSender();
-        ttsClose();
+        ttsProcessor.ttsClose();
     }
 
     /**
@@ -114,15 +125,6 @@ public abstract class TtsHandler implements MrcpConnection {
         }
         log.debug("TTS播放已中断");
     }
-
-    public abstract void create();
-
-    public abstract void speak(String text);
-
-    /**
-     * 关闭TTS资源
-     */
-    public abstract void ttsClose();
 
     public void stop() {
         stop = true;

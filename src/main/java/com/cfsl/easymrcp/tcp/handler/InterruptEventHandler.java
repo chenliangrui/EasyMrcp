@@ -14,7 +14,7 @@ public class InterruptEventHandler implements MrcpEventHandler {
     public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
         mrcpManage.clearAllSpeakTaskAndInterrupt(id);
-        tcpClientNotifier.sendEvent(id, TcpEventType.SpeakInterrupted, "interrupt");
+        tcpClientNotifier.sendEvent(id, null, TcpEventType.SpeakInterrupted, "interrupt");
         return TcpResponse.success(id, "success");
     }
 }

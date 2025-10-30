@@ -7,6 +7,7 @@ import time
 import sys
 import os
 import threading
+import uuid
 
 # 设置默认编码为utf-8（Python 2特有）
 try:
@@ -69,7 +70,7 @@ def handler(session, args):
         # 获取A-leg的UUID
         a_leg_uuid = session.getVariable("uuid")
         
-        # 创建MRCP处理线程
+        # 创建EasyMrcp client处理线程
         mrcp_thread = threading.Thread(target=mrcp_in_thread, args=(session, caller, callee))
         mrcp_thread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         mrcp_thread.start()
@@ -101,8 +102,8 @@ def start_easymrcp_client(session):
     # 设置自定义SIP头，传递UUID
     session.setVariable("sip_h_X-EasyMRCP", a_leg_uuid)
 
-    # 硬编码MRCP服务器信息
-    server_host = "192.168.31.29"
+    # 硬编码EasyMrcp服务器信息
+    server_host = "172.16.2.155"
     server_port = 9090
 
     safe_log("INFO", "连接EasyMRCP服务器 %s:%s" % (server_host, server_port))
@@ -111,12 +112,13 @@ def start_easymrcp_client(session):
     client = EasyMrcpTcpClient(server_host, int(server_port), a_leg_uuid)
 
     # 定义事件回调函数
-    def on_client_connected(data):
+    def on_client_connected(data, event_id):
         safe_log("INFO", "服务端sip模块连接成功，开始业务处理")
 
         # 发送欢迎语音
         welcome_msg = "您好，请您说一句话，我就会重复您的话哦~"
-        client.send_event(MrcpEventType.Speak, welcome_msg)
+        event_id = str(uuid.uuid4())
+        client.send_event_with_eventId(event_id, MrcpEventType.Speak, welcome_msg)
 
         # 开始语音识别
         detect_speech_params = {
@@ -127,20 +129,22 @@ def start_easymrcp_client(session):
         }
         client.send_event(MrcpEventType.DetectSpeech, json.dumps(detect_speech_params))
 
-    def on_recognition_complete(data):
+    def on_recognition_complete(data, event_id):
         # 这里可以调用大模型或其他服务处理识别结果，注意当前回调函数是单线程，耗时操作可以另开线程进行处理，直接处理耗时操作可能影响tcp的事件接收哦~
         safe_log("INFO", "语音识别完成: %s" % data)
-        client.send_event(MrcpEventType.Speak, data)
+        repeat_event_id = str(uuid.uuid4())
+        client.send_event_with_eventId(repeat_event_id, MrcpEventType.Speak, data)
 
-    def on_no_input_timeout(data):
+    def on_no_input_timeout(data, event_id):
         safe_log("INFO", "语音识别超时")
-        client.send_event(MrcpEventType.Speak, "您好，您还可以听得到吗？")
+        timeout_event_id = str(uuid.uuid4())
+        client.send_event_with_eventId(timeout_event_id, MrcpEventType.Speak, "您好，您还可以听得到吗？")
 
-    def on_speak_complete(data):
-        safe_log("INFO", "语音合成播放完成")
+    def on_speak_complete(data, event_id):
+        safe_log("INFO", "语音合成播放完成, eventId: %s" % event_id)
 
-    def on_speak_interrupted(data):
-        safe_log("INFO", "语音合成被打断")
+    def on_speak_interrupted(data, event_id):
+        safe_log("INFO", "语音合成被打断, eventId: %s" % event_id)
 
     # 注册事件回调
     client.register_event_callback(MrcpEventType.ClientConnect, on_client_connected)
@@ -148,7 +152,17 @@ def start_easymrcp_client(session):
     client.register_event_callback(MrcpEventType.NoInputTimeout, on_no_input_timeout)
     client.register_event_callback(MrcpEventType.SpeakComplete, on_speak_complete)
     client.register_event_callback(MrcpEventType.SpeakInterrupted, on_speak_interrupted)
-    client.connect()
+
+    # 使用的TTS引擎和发音人，如果不配置参数则使用配置文件中默认配置(可选)
+    connect_params = {
+        "TtsEngine": "xfyun",
+        "Voice": "x4_yezi"
+    }
+    client.connect(connect_params)
+
+    # 使用默认值连接
+    # client.connect()
+
     # 简单的会话监控循环
     try:
         # 等待会话结束

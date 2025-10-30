@@ -35,25 +35,29 @@ public class SpeakEventHandler implements MrcpEventHandler {
             @Override
             public void run() {
                 log.info("tts开始");
+                if (event.getEvent().equals(TcpEventType.SpeakWithNoInterrupt.name())) {
+                    mrcpManage.setInterruptEnable(id, false);
+                }
                 mrcpManage.setSpeaking(id,true);
                 ttsHandler.setCallback(new TtsCallback() {
                     @Override
                     public void apply(String msg) {
                         if (msg.equals("completed")) {
-                            tcpClientNotifier.sendEvent(id, TcpEventType.SpeakComplete, msg);
+                            if (!mrcpManage.isInterruptEnable(id)) mrcpManage.setInterruptEnable(id, true);
+                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakComplete, msg);
                             asrHandler.startInputTimers();
                             mrcpManage.setSpeaking(id,false);
                             // 继续speak
                             mrcpManage.runNextSpeak(id);
                         } else {
-                            tcpClientNotifier.sendEvent(id, TcpEventType.SpeakInterrupted, msg);
+                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakInterrupted, msg);
                         }
                     }
                 });
                 if (event.getEvent().equals(TcpEventType.Silence.name())) {
                     ttsHandler.silence(Integer.parseInt(event.getData()));
                 } else {
-                    ttsHandler.transmit(event.getData());
+                    ttsHandler.transmit(id, event.getData());
                 }
             }
         });

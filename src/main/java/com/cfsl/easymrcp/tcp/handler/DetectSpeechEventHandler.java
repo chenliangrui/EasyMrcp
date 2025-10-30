@@ -33,7 +33,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
         MrcpTimeoutManager.TimeoutCallback timeoutCallback = new MrcpTimeoutManager.TimeoutCallback() {
             @Override
             public void onNoInputTimeout() {
-                tcpClientNotifier.sendEvent(id, TcpEventType.NoInputTimeout, "no-input-timeout");
+                tcpClientNotifier.sendEvent(id, null,TcpEventType.NoInputTimeout, "no-input-timeout");
                 // 取消所有计时器
                 asrHandler.cancelTimeouts();
                 asrHandler.startInputTimers();
@@ -60,7 +60,7 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
                 }
                 Long speechCompleteTimeout = asrParams.getLong(ASRConstant.SpeechCompleteTimeout);
                 if (speechCompleteTimeout != null && speechCompleteTimeout > 0) {
-//                    asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
+                    asrHandler.setSpeechCompleteTimeout(speechCompleteTimeout);
                     log.info("Setting Speech-Complete-Timeout ({} ms) for VAD initialization", speechCompleteTimeout);
                 }
                 Boolean automaticInterruption = asrParams.getBoolean(ASRConstant.AutomaticInterruption);
@@ -79,13 +79,14 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
         asrHandler.setCallback(new AsrCallback() {
             @Override
             public void apply(String action, String msg) {
-                // TODO 放到vad和实时语音识别中进行处理，并且重置定时器
                 if (asrHandler.getAutomaticInterruption() && action.equals(ASRConstant.Interrupt)) {
                     mrcpManage.clearAllSpeakTaskAndInterrupt(id);
                     asrHandler.cancelTimeouts();
                 }
                 if (action.equals(ASRConstant.Result)) {
-                    tcpClientNotifier.sendEvent(id, TcpEventType.RecognitionComplete, msg);
+                    if (!msg.isEmpty()) {
+                        tcpClientNotifier.sendEvent(id, null, TcpEventType.RecognitionComplete, msg);
+                    }
                     asrHandler.startInputTimers();
                 }
             }

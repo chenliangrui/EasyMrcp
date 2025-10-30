@@ -58,4 +58,9 @@ public enum TcpEventType {
      * TTS静音事件
      */
     Silence,
+
+    /**
+     * 进行不可打断的TTS
+     */
+    SpeakWithNoInterrupt
 }
