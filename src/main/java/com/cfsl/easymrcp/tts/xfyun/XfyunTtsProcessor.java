@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.tts.xfyun;
 
 import com.cfsl.easymrcp.tts.TTSConstant;
+import com.cfsl.easymrcp.tts.TtsEngine;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.tts.TtsProcessor;
 import com.google.gson.Gson;
@@ -17,9 +18,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 @Slf4j
-public class XfyunTtsProcessor extends TtsProcessor {
+public class XfyunTtsProcessor extends TtsEngine {
     // 地址与鉴权信息
     public String hostUrl;
     // 均到控制台-语音合成页面获取
@@ -34,9 +36,9 @@ public class XfyunTtsProcessor extends TtsProcessor {
     public String OUTPUT_FILE_PATH = "src/main/resources/" + System.currentTimeMillis() + ".pcm";
     // json
     public Gson gson = new Gson();
-    public boolean wsCloseFlag = false;
     String wsUrl;
     WebSocketClient webSocketClient;
+    private CountDownLatch countDownLatch = new CountDownLatch(1);
 
     public XfyunTtsProcessor(XfyunTtsConfig xfyunTtsConfig) {
         this.hostUrl = xfyunTtsConfig.getHostUrl();
@@ -51,7 +53,6 @@ public class XfyunTtsProcessor extends TtsProcessor {
     public void create() {
         try {
             wsUrl = getAuthUrl(hostUrl, APIKey, APISecret).replace("https://", "wss://");
-            wsCloseFlag = false;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -77,6 +78,27 @@ public class XfyunTtsProcessor extends TtsProcessor {
                 @Override
                 public void onOpen(ServerHandshake serverHandshake) {
                     log.info("ws建立连接成功...");
+                    String requestJson;//请求参数json串
+                        requestJson = "{\n" +
+                                "  \"common\": {\n" +
+                                "    \"app_id\": \"" + APPID + "\"\n" +
+                                "  },\n" +
+                                "  \"business\": {\n" +
+                                "    \"aue\": \"raw\",\n" +
+                                "    \"tte\": \"" + TTE + "\",\n" +
+                                "    \"auf\": \"" + "audio/L16;rate=8000" + "\",\n" +
+                                "    \"ent\": \"intp65\",\n" +
+                                "    \"vcn\": \"" + voice + "\",\n" +
+                                "    \"pitch\": 50,\n" +
+                                "    \"speed\": 50\n" +
+                                "  },\n" +
+                                "  \"data\": {\n" +
+                                "    \"status\": 2,\n" +
+                                "    \"text\": \"" + Base64.getEncoder().encodeToString(text.getBytes(StandardCharsets.UTF_8)) + "\"\n" +
+                                //"    \"text\": \"" + Base64.getEncoder().encodeToString(TEXT.getBytes("UTF-16LE")) + "\"\n" +
+                                "  }\n" +
+                                "}";
+                        webSocketClient.send(requestJson);
                 }
 
                 @Override
@@ -84,8 +106,8 @@ public class XfyunTtsProcessor extends TtsProcessor {
                     //log.info(text);//打印响应参数到控制台
                     JsonParse myJsonParse = gson.fromJson(text, JsonParse.class);
                     if (myJsonParse.code != 0) {
-                        log.info("发生错误，错误码为：" + myJsonParse.code);
-                        log.info("本次请求的sid为：" + myJsonParse.sid);
+                        log.info("发生错误，错误码为: {}", myJsonParse.code);
+                        log.info("本次请求的sid为: {}", myJsonParse.sid);
                     }
                     if (myJsonParse.data != null) {
                         try {
@@ -100,7 +122,7 @@ public class XfyunTtsProcessor extends TtsProcessor {
                         if (myJsonParse.data.status == 2) {
                             log.info("本次请求的sid==>" + myJsonParse.sid);
                             // 可以关闭连接，释放资源
-                            wsCloseFlag = true;
+                            countDownLatch.countDown();
                         }
                     }
                 }
@@ -108,67 +130,28 @@ public class XfyunTtsProcessor extends TtsProcessor {
                 @Override
                 public void onClose(int i, String s, boolean b) {
                     log.info("ws链接已关闭，本次请求完成...");
+                    countDownLatch.countDown();
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    log.info("发生错误 " + e.getMessage());
+                    log.info("发生错误: {}", e.getMessage());
+                    countDownLatch.countDown();
                 }
             };
             // 建立连接
             webSocketClient.connect();
-            while (!webSocketClient.getReadyState().equals(ReadyState.OPEN)) {
-                //log.info("正在连接...");
-                Thread.sleep(100);
-            }
-            MyThread webSocketThread = new MyThread(webSocketClient);
-            webSocketThread.start();
-        } catch (Exception e) {
-            log.info(e.getMessage());
-        }
-    }
-
-    // 线程来发送音频与参数
-    class MyThread extends Thread {
-        WebSocketClient webSocketClient;
-
-        public MyThread(WebSocketClient webSocketClient) {
-            this.webSocketClient = webSocketClient;
-        }
-
-        public void run() {
-            String requestJson;//请求参数json串
             try {
-                requestJson = "{\n" +
-                        "  \"common\": {\n" +
-                        "    \"app_id\": \"" + APPID + "\"\n" +
-                        "  },\n" +
-                        "  \"business\": {\n" +
-                        "    \"aue\": \"raw\",\n" +
-                        "    \"tte\": \"" + TTE + "\",\n" +
-                        "    \"auf\": \"" + "audio/L16;rate=8000" + "\",\n" +
-                        "    \"ent\": \"intp65\",\n" +
-                        "    \"vcn\": \"" + voice + "\",\n" +
-                        "    \"pitch\": 50,\n" +
-                        "    \"speed\": 50\n" +
-                        "  },\n" +
-                        "  \"data\": {\n" +
-                        "    \"status\": 2,\n" +
-                        "    \"text\": \"" + Base64.getEncoder().encodeToString(text.getBytes(StandardCharsets.UTF_8)) + "\"\n" +
-                        //"    \"text\": \"" + Base64.getEncoder().encodeToString(TEXT.getBytes("UTF-16LE")) + "\"\n" +
-                        "  }\n" +
-                        "}";
-                webSocketClient.send(requestJson);
                 // 等待服务端返回完毕后关闭
-                while (!wsCloseFlag) {
-                    Thread.sleep(200);
-                }
+                countDownLatch.await();
                 webSocketClient.close();
                 // tts语音合成结束，写入结束标志
                 putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error(e.getMessage(), e);
             }
+        } catch (Exception e) {
+            log.info(e.getMessage());
         }
     }
 
@@ -184,7 +167,6 @@ public class XfyunTtsProcessor extends TtsProcessor {
         String preStr = "host: " + url.getHost() + "\n" +
                 "date: " + date + "\n" +
                 "GET " + url.getPath() + " HTTP/1.1";
-        //log.info(preStr);
         // SHA256加密
         Mac mac = Mac.getInstance("hmacsha256");
         SecretKeySpec spec = new SecretKeySpec(apiSecret.getBytes(StandardCharsets.UTF_8), "hmacsha256");

@@ -13,7 +13,10 @@ import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.RtpManager;
+import com.cfsl.easymrcp.tts.TtsEngine;
 import com.cfsl.easymrcp.tts.TtsProcessor;
+import com.cfsl.easymrcp.tts.aliyun.AliyunCosyVoiceEngine;
+import com.cfsl.easymrcp.tts.aliyun.AliyunTtsConfig;
 import com.cfsl.easymrcp.tts.example.ExampleTtsConfig;
 import com.cfsl.easymrcp.tts.example.ExampleTtsProcessor;
 import com.cfsl.easymrcp.tts.kokoro.KokoroConfig;
@@ -27,11 +30,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.*;
+
 /**
  * 根据配置决定加载某个asr或tts
  */
 @Component
 public class ProcessorCreator {
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
     @Value("${mrcp.asrMode}")
     String asrMode;
     @Value("${mrcp.ttsMode}")
@@ -39,6 +45,8 @@ public class ProcessorCreator {
     
     @Autowired
     FunasrConfig funasrConfig;
+    @Autowired
+    AliyunTtsConfig aliyunTtsConfig;
     @Autowired
     KokoroConfig kokoroConfig;
     @Autowired
@@ -107,35 +115,52 @@ public class ProcessorCreator {
      */
     public TtsProcessor getTtsProcessor(String id) {
         TtsHandler ttsHandler = mrcpManage.getTtsHandler(id);
-        String ttsEngine = mrcpManage.getTtsEngine(id);
+        TtsProcessor ttsProcessor = new TtsProcessor(executorService);
+        ttsProcessor.setTtsHandler(ttsHandler);
+        return ttsProcessor;
+    }
+
+    /**
+     * 设置与厂商对接的tts引擎
+     * @param id
+     * @param ttsProcessor
+     * @return
+     */
+    public TtsEngine setTtsEngine(String id, TtsProcessor ttsProcessor) {
+        TtsHandler ttsHandler = mrcpManage.getTtsHandler(id);
+        String ttsEngineName = mrcpManage.getTtsEngineName(id);
         String voice = mrcpManage.getVoice(id);
-        TtsProcessor ttsProcessor = null;
-        if (ttsEngine == null || ttsEngine.isEmpty()) {
-            ttsEngine = ttsMode;
+        if (ttsEngineName == null || ttsEngineName.isEmpty()) {
+            ttsEngineName = ttsMode;
         }
-        switch (ttsEngine) {
+        TtsEngine ttsEngine = null;
+        switch (ttsEngineName) {
+            case "aliyun":
+                ttsEngine = new AliyunCosyVoiceEngine(aliyunTtsConfig);
+                break;
             case "kokoro":
-                ttsProcessor = new KokoroProcessor(kokoroConfig);
+                ttsEngine = new KokoroProcessor(kokoroConfig);
                 ttsHandler.setReSample(kokoroConfig.getReSample());
                 break;
             case "xfyun":
-                ttsProcessor = new XfyunTtsProcessor(xfyunTtsConfig);
+                ttsEngine = new XfyunTtsProcessor(xfyunTtsConfig);
                 break;
             case "tencent-cloud":
-                ttsProcessor = new TxCloudTtsProcessor(txCloudTtsConfig);
+                ttsEngine = new TxCloudTtsProcessor(txCloudTtsConfig);
                 ttsHandler.setReSample(txCloudTtsConfig.getReSample());
                 break;
             case "example-tts":
-                ttsProcessor = new ExampleTtsProcessor(exampleTtsConfig);
+                ttsEngine = new ExampleTtsProcessor(exampleTtsConfig);
                 ttsHandler.setReSample(exampleTtsConfig.getReSample());
                 break;
             default:
                 throw new RuntimeException("Unknown TTS mode: " + ttsMode);
         }
+        ttsProcessor.setTtsEngine(ttsEngine);
+        ttsEngine.setTtsHandler(ttsHandler);
         if (voice != null && !voice.isEmpty()) {
-            ttsProcessor.setVoice(voice);
+            ttsEngine.setVoice(voice);
         }
-        ttsProcessor.setTtsHandler(ttsHandler);
-        return ttsProcessor;
+        return ttsEngine;
     }
 }

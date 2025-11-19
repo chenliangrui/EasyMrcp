@@ -1,11 +1,15 @@
 package com.cfsl.easymrcp.tts.tencentcloud;
 
+import com.cfsl.easymrcp.tts.TtsEngine;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.tts.TtsProcessor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 可以使用，但是有待优化
+ */
 @Slf4j
-public class TxCloudTtsProcessor extends TtsProcessor {
+public class TxCloudTtsProcessor extends TtsEngine {
     TxCloudTtsConfig config;
     TxCloudTtsClient txCloudTtsClient;
 

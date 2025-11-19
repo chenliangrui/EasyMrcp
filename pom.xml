@@ -153,6 +153,13 @@
             <artifactId>netty-all</artifactId>
             <version>4.1.94.Final</version>
         </dependency>
+
+        <!-- 阿里云dashscope https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>2.22.1</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

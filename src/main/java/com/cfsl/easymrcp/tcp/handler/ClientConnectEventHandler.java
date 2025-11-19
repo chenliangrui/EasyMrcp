@@ -3,7 +3,6 @@ package com.cfsl.easymrcp.tcp.handler;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.cfsl.easymrcp.asr.AsrHandler;
-import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.RtpManager;
@@ -29,8 +28,8 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
         JSONObject connectParams = JSON.parseObject(event.getData());
         if (connectParams != null && connectParams.getString("TtsEngine") != null) {
             // 设置TTS引擎和发音人
-            String ttsEngine = connectParams.getString("TtsEngine");
-            mrcpManage.setTtsEngine(id, ttsEngine);
+            String ttsEngineName = connectParams.getString("TtsEngine");
+            mrcpManage.setTtsEngineName(id, ttsEngineName);
             if (connectParams.getString("Voice") != null) {
                 String voice = connectParams.getString("Voice");
                 mrcpManage.setVoice(id, voice);

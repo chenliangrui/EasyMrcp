@@ -52,7 +52,7 @@ public class MrcpCallData {
      */
     @Setter
     @Getter
-    private String ttsEngine;
+    private String ttsEngineName;
 
     /**
      * 使用tts声音名称

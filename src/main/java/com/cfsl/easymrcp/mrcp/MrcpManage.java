@@ -87,11 +87,11 @@ public class MrcpManage {
         }
     }
 
-    public void setTtsEngine(String callId, String ttsEngine) {
+    public void setTtsEngineName(String callId, String ttsEngine) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-            log.error("setTtsEngine error, callId:{} not exist", callId);
+            log.error("setTtsEngineName error, callId:{} not exist", callId);
         }
-        mrcpCallDataConcurrentHashMap.get(callId).setTtsEngine(ttsEngine);
+        mrcpCallDataConcurrentHashMap.get(callId).setTtsEngineName(ttsEngine);
     }
 
     public void setVoice(String callId, String voice) {
@@ -129,11 +129,11 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
     }
 
-    public String getTtsEngine(String callId) {
+    public String getTtsEngineName(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("getTtsEngine error, callId:{} not exist", callId);
         }
-        return mrcpCallDataConcurrentHashMap.get(callId).getTtsEngine();
+        return mrcpCallDataConcurrentHashMap.get(callId).getTtsEngineName();
     }
 
     public String getVoice(String callId) {

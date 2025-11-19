@@ -64,13 +64,14 @@ public class TtsHandler implements MrcpConnection {
 
     public void transmit(String id, String text) {
         rtpProcessor.setCallback(callback);
+        ProcessorCreator ttsChose = SpringUtils.getBean(ProcessorCreator.class);
         if (ttsProcessor == null) {
             // 懒加载tts引擎，没有参数则使用配置文件中的默认值
-            ProcessorCreator ttsChose = SpringUtils.getBean(ProcessorCreator.class);
             ttsProcessor = ttsChose.getTtsProcessor(id);
         }
-        ttsProcessor.create();
-        ttsProcessor.speak(text);
+        // 设置对接的tts引擎
+        TtsEngine ttsEngine = ttsChose.setTtsEngine(id, ttsProcessor);
+        ttsProcessor.createAndSpeak(ttsEngine, text);
     }
 
     /**

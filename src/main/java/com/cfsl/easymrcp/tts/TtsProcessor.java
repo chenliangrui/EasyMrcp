@@ -1,29 +1,40 @@
 package com.cfsl.easymrcp.tts;
 
-import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
-public abstract class TtsProcessor {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
+public class TtsProcessor {
+    private ExecutorService executorService;
+
+    @Setter
     protected TtsHandler ttsHandler;
+
     @Getter
-    protected String voice;
+    List<TtsEngine> ttsEngines = new ArrayList<>();
 
-    public abstract void create();
-
-    public abstract void speak(String text);
-
-    /**
-     * 关闭TTS资源
-     */
-    public abstract void ttsClose();
-
-    protected void putAudioData(byte[] audioChunk, int bytesRead) {
-        this.ttsHandler.putAudioData(audioChunk, bytesRead);
+    public TtsProcessor(ExecutorService executorService) {
+        this.executorService = executorService;
     }
 
-    protected void putAudioData(ByteBuf byteBuf) {
-        this.ttsHandler.putAudioData(byteBuf);
+    public void setTtsEngine(TtsEngine ttsEngine) {
+        ttsEngines.add(ttsEngine);
+    }
+
+    public void createAndSpeak(TtsEngine ttsEngine, String text) {
+        executorService.execute(() -> {
+            ttsEngine.create();
+            ttsEngine.speak(text);
+            ttsEngines.clear();
+        });
+    }
+
+    public void ttsClose() {
+        for (TtsEngine ttsEngine : ttsEngines) {
+            ttsEngine.ttsClose();
+        }
     }
 }
