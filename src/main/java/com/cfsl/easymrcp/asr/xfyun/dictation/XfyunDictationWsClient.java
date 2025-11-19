@@ -91,9 +91,10 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     log.info(te.toString());
                     try {
                         decoder.decode(te);
-                        if (isParagraphOver && interruptEnable.get()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
+                        String midResult = decoder.toString();
+                        if (isParagraphOver && interruptEnable.get() && !midResult.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
                         isParagraphOver = false;
-                        log.info("中间识别结果 ==》" + decoder.toString());
+                        log.info("中间识别结果 ==》" + midResult);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -107,7 +108,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     String result = decoder.toString();
                     log.info("最终识别结果 ==》" + result);
                     log.info("本次识别sid ==》" + resp.getSid());
-                    if (!stop) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
+                    if (!stop && !result.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                     isParagraphOver = true;
                     decoder.discard();
                     webSocket.close(1000, "Normal closure after completion");
