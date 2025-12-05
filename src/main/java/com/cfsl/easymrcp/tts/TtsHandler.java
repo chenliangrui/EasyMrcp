@@ -21,7 +21,7 @@ import java.util.Arrays;
 public class TtsHandler implements MrcpConnection {
     @Getter
     @Setter
-    private String channelId;
+    private String callId;
     @Getter
     @Setter
     private TtsCallback callback;

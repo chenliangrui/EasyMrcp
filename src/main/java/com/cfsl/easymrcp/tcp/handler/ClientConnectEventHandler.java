@@ -34,6 +34,11 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
                 String voice = connectParams.getString("Voice");
                 mrcpManage.setVoice(id, voice);
             }
+            if (connectParams.getString("PushAsrRealtimeResult") != null) {
+                // 设置是否开启实时asr结果推送
+                boolean pushAsrRealtimeResult = connectParams.getBoolean("PushAsrRealtimeResult");
+                mrcpManage.setPushAsrRealtimeResult(id, pushAsrRealtimeResult);
+            }
         }
         if (connectParams != null && connectParams.getString("Type") != null && connectParams.getString("Type").equals("spy")) {
             // 启动spy模式，对某一路通话进行asr识别

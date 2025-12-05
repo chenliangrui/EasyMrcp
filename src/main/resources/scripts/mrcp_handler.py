@@ -146,17 +146,22 @@ def start_easymrcp_client(session):
     def on_speak_interrupted(data, event_id):
         safe_log("INFO", "语音合成被打断, eventId: %s" % event_id)
 
+    def on_asr_realTime_result(data, event_id):
+        safe_log("INFO", "ASR实时识别结果推送: %s" % data)
+
     # 注册事件回调
     client.register_event_callback(MrcpEventType.ClientConnect, on_client_connected)
     client.register_event_callback(MrcpEventType.RecognitionComplete, on_recognition_complete)
     client.register_event_callback(MrcpEventType.NoInputTimeout, on_no_input_timeout)
     client.register_event_callback(MrcpEventType.SpeakComplete, on_speak_complete)
     client.register_event_callback(MrcpEventType.SpeakInterrupted, on_speak_interrupted)
+    client.register_event_callback(MrcpEventType.AsrRealTimeResult, on_asr_realTime_result)
 
     # 使用的TTS引擎和发音人，如果不配置参数则使用配置文件中默认配置(可选)
     connect_params = {
         "TtsEngine": "xfyun",
-        "Voice": "x4_yezi"
+        "Voice": "x4_yezi",
+        "PushAsrRealtimeResult": True
     }
     client.connect(connect_params)
 

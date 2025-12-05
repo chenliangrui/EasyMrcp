@@ -129,6 +129,20 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
     }
 
+    public boolean getPushAsrRealtimeResult(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getPushAsrRealtimeResult error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).isPushAsrRealtimeResult();
+    }
+
+    public void setPushAsrRealtimeResult(String callId, boolean pushAsrRealtimeResult) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setPushAsrRealtimeResult error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setPushAsrRealtimeResult(pushAsrRealtimeResult);
+    }
+
     public String getTtsEngineName(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("getTtsEngine error, callId:{} not exist", callId);

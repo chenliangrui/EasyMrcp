@@ -76,11 +76,11 @@ public class ProcessorCreator {
     
     private AsrHandler createAsrHandler() {
         switch (asrMode) {
-            case "funasr":
+            case EMConstant.FUNASR:
                 FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);
                 funAsrProcessor.setConfig(funasrConfig);
                 return funAsrProcessor;
-            case "xfyun":
+            case EMConstant.XFYUN:
                 if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
                     XfyunDictationAsrProcessor xfyunDictationAsrProcessor = new XfyunDictationAsrProcessor(xfyunAsrConfig);
                     xfyunDictationAsrProcessor.setConfig(xfyunAsrConfig);
@@ -90,13 +90,13 @@ public class ProcessorCreator {
                     xfyunTransliterateAsrProcessor.setConfig(xfyunAsrConfig);
                     return xfyunTransliterateAsrProcessor;
                 }
-            case "tencent-cloud":
+            case EMConstant.TENCENT_CLOUD:
                 if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
                     TxCloudAsrProcessor txCloudProcessor = new TxCloudAsrProcessor(txCloudAsrConfig);
                     txCloudProcessor.setConfig(txCloudAsrConfig);
                     return txCloudProcessor;
                 }
-            case "example-asr":
+            case EMConstant.EXAMPLE_ASR:
                 ExampleAsrProcessor exampleProcessor = new ExampleAsrProcessor(exampleAsrConfig);
                 exampleProcessor.setConfig(exampleAsrConfig);
                 return exampleProcessor;
@@ -135,21 +135,21 @@ public class ProcessorCreator {
         }
         TtsEngine ttsEngine = null;
         switch (ttsEngineName) {
-            case "aliyun":
+            case EMConstant.ALIYUN:
                 ttsEngine = new AliyunCosyVoiceEngine(aliyunTtsConfig);
                 break;
-            case "kokoro":
+            case EMConstant.KOKORO:
                 ttsEngine = new KokoroProcessor(kokoroConfig);
                 ttsHandler.setReSample(kokoroConfig.getReSample());
                 break;
-            case "xfyun":
+            case EMConstant.XFYUN:
                 ttsEngine = new XfyunTtsProcessor(xfyunTtsConfig);
                 break;
-            case "tencent-cloud":
+            case EMConstant.TENCENT_CLOUD:
                 ttsEngine = new TxCloudTtsProcessor(txCloudTtsConfig);
                 ttsHandler.setReSample(txCloudTtsConfig.getReSample());
                 break;
-            case "example-tts":
+            case EMConstant.EXAMPLE_TTS:
                 ttsEngine = new ExampleTtsProcessor(exampleTtsConfig);
                 ttsHandler.setReSample(exampleTtsConfig.getReSample());
                 break;

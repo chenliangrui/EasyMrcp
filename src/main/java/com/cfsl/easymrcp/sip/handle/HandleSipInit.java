@@ -90,12 +90,13 @@ public class HandleSipInit {
     public AsrHandler initAsr(String remoteHost, int remotePort, String customHeaderUUID) {
         try {
             AsrHandler asrHandler = asrChose.getAsrHandler();
-            asrHandler.setChannelId("11111");
+            asrHandler.setCallId(customHeaderUUID);
             asrHandler.create(remoteHost, remotePort);
             asrHandler.receive();
             // 向mrcp业务中写入asrHandler，此时已经明确callId，等待tcp连接发送uuid
             mrcpManage.addNewAsr(customHeaderUUID, asrHandler);
             asrHandler.setInterruptEnable(mrcpManage.getInterruptEnable(customHeaderUUID));
+            asrHandler.setPushAsrRealtimeResult(mrcpManage.getPushAsrRealtimeResult(customHeaderUUID));
             return asrHandler;
         } catch (Exception e) {
             log.error("初始化ASR失败", e);
@@ -108,7 +109,7 @@ public class HandleSipInit {
             TtsHandler ttsHandler = asrChose.getTtsHandler();
             log.debug("初始化TTS，本地端口: {}, 远程地址: {}:{}", localPort, remoteHost, remotePort);
             ttsHandler.create(remoteHost, remotePort);
-            ttsHandler.setChannelId("222222");
+            ttsHandler.setCallId(customHeaderUUID);
             mrcpManage.addNewTts(customHeaderUUID, ttsHandler);
             return ttsHandler;
         } catch (Exception e) {

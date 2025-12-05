@@ -16,8 +16,4 @@ public interface MrcpConnection {
      * 处理asr、tts的关闭过程
      */
     void close();
-
-    String getChannelId();
-
-    void setChannelId(String channelId);
 }

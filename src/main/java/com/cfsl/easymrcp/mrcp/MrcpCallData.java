@@ -61,6 +61,13 @@ public class MrcpCallData {
     @Getter
     private String voice;
 
+    /**
+     * 是否实时推送asr识别结果
+     */
+    @Setter
+    @Getter
+    private boolean pushAsrRealtimeResult;
+
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);
     }
