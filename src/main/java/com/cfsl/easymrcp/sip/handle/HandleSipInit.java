@@ -54,6 +54,12 @@ public class HandleSipInit {
                     int remotePort = rtpmd.get(0).getMedia().getMediaPort();
                     Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
                     
+                    // 解析选定的编码类型
+                    int mediaType = 8; // 默认使用PCMA
+                    if (!useProtocol.isEmpty()) {
+                        mediaType = AudioCodecUtil.parsePayloadType(useProtocol.get(0));
+                    }
+                    
                     // 获取初始RTP端口
                     int rtpPort = sipContext.getAsrRtpPort();
                     log.debug("获取初始RTP端口: {}", rtpPort);
@@ -63,10 +69,10 @@ public class HandleSipInit {
                         rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                         rtpmd.get(0).getMedia().setMediaPort(rtpPort);
 
-                        // 初始化ASR
-                        AsrHandler asrHandler = initAsr(remoteHost.getHostAddress(), remotePort, customHeaderUUID);
-                        // 初始化TTS
-                        TtsHandler ttsHandler = initTts(rtpPort, remoteHost.getHostAddress(), remotePort, customHeaderUUID);
+                        // 初始化ASR，传递mediaType
+                        AsrHandler asrHandler = initAsr(remoteHost.getHostAddress(), remotePort, mediaType, customHeaderUUID);
+                        // 初始化TTS，传递mediaType
+                        TtsHandler ttsHandler = initTts(rtpPort, remoteHost.getHostAddress(), remotePort, mediaType, customHeaderUUID);
                         // 建立rtp连接
                         Channel rtpChannel = rtpManager.createRtpChannel(dialogId, rtpPort, asrHandler.getNettyAsrRtpProcessor());
                         ttsHandler.setRtpChannel(rtpChannel);
@@ -87,11 +93,11 @@ public class HandleSipInit {
         return sdpMessage;
     }
 
-    public AsrHandler initAsr(String remoteHost, int remotePort, String customHeaderUUID) {
+    public AsrHandler initAsr(String remoteHost, int remotePort, int mediaType, String customHeaderUUID) {
         try {
             AsrHandler asrHandler = asrChose.getAsrHandler();
             asrHandler.setCallId(customHeaderUUID);
-            asrHandler.create(remoteHost, remotePort);
+            asrHandler.create(remoteHost, remotePort, mediaType);
             asrHandler.receive();
             // 向mrcp业务中写入asrHandler，此时已经明确callId，等待tcp连接发送uuid
             mrcpManage.addNewAsr(customHeaderUUID, asrHandler);
@@ -104,11 +110,12 @@ public class HandleSipInit {
         }
     }
 
-    private TtsHandler initTts(int localPort, String remoteHost, int remotePort, String customHeaderUUID) {
+    private TtsHandler initTts(int localPort, String remoteHost, int remotePort, int mediaType, String customHeaderUUID) {
         try {
             TtsHandler ttsHandler = asrChose.getTtsHandler();
-            log.debug("初始化TTS，本地端口: {}, 远程地址: {}:{}", localPort, remoteHost, remotePort);
-            ttsHandler.create(remoteHost, remotePort);
+            log.debug("初始化TTS，本地端口: {}, 远程地址: {}:{}, 编码类型: {}", 
+                localPort, remoteHost, remotePort, AudioCodecUtil.getCodecName(mediaType));
+            ttsHandler.create(remoteHost, remotePort, mediaType);
             ttsHandler.setCallId(customHeaderUUID);
             mrcpManage.addNewTts(customHeaderUUID, ttsHandler);
             return ttsHandler;

@@ -46,7 +46,7 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
             RtpManager rtpManager = SpringUtils.getBean(RtpManager.class);
             SipOptions sipOptions = SpringUtils.getBean(SipOptions.class);
             HandleSipInit handleSipInit = SpringUtils.getBean(HandleSipInit.class);
-            AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, id);
+            AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, 8, id);
             int rtpPort = sipContext.getAsrRtpPort();
             Channel rtpChannel = rtpManager.createRtpChannel(id, rtpPort, asrHandler.getNettyAsrRtpProcessor());
             JSONObject connectParamsRes = new JSONObject();

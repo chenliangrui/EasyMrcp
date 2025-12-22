@@ -9,8 +9,9 @@ public interface MrcpConnection {
      *
      * @param remoteIp   rtp远端ip
      * @param remotePort rtp远端端口
+     * @param mediaType sdp使用的编码
      */
-    void create(String remoteIp, int remotePort);
+    void create(String remoteIp, int remotePort, int mediaType);
 
     /**
      * 处理asr、tts的关闭过程

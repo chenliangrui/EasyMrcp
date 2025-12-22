@@ -37,10 +37,10 @@ public class TtsHandler implements MrcpConnection {
     private TtsProcessor ttsProcessor;
 
     @Override
-    public void create(String remoteIp, int remotePort) {
+    public void create(String remoteIp, int remotePort, int mediaType) {
         try {
             // 创建RTP处理器
-            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort);
+            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort, mediaType);
             // 启动处理器
             rtpProcessor.startProcessing();
         } catch (Exception e) {
