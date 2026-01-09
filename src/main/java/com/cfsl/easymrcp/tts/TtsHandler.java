@@ -1,7 +1,6 @@
 package com.cfsl.easymrcp.tts;
 
 import com.cfsl.easymrcp.common.ProcessorCreator;
-import com.cfsl.easymrcp.domain.TtsConfig;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.MrcpConnection;
 import com.cfsl.easymrcp.utils.SpringUtils;
@@ -12,6 +11,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 管理一通电话中的tts相关的操作
@@ -35,6 +35,12 @@ public class TtsHandler implements MrcpConnection {
     @Setter
     @Getter
     private TtsProcessor ttsProcessor;
+
+    /**
+     * tts版本号，一通电话中每次调用tts都会递增，多次异步tts时会对版本进行比较，小于当前版本号的音频将会丢弃
+     * 避免多次tts时由于tts异步的网络问题导致多段音频混合
+     */
+    private AtomicInteger ttsVersion = new AtomicInteger(0);
 
     @Override
     public void create(String remoteIp, int remotePort, int mediaType) {
@@ -60,6 +66,14 @@ public class TtsHandler implements MrcpConnection {
     public void setReSample(String reSample) {
         this.reSample = reSample;
         rtpProcessor.setReSample(reSample);
+    }
+
+    public int newTtsVersion() {
+        return ttsVersion.addAndGet(1);
+    }
+
+    public int getTtsVersion() {
+        return ttsVersion.get();
     }
 
     public void transmit(String id, String text) {

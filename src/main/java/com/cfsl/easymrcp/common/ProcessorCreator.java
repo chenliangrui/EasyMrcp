@@ -156,6 +156,8 @@ public class ProcessorCreator {
             default:
                 throw new RuntimeException("Unknown TTS mode: " + ttsMode);
         }
+        int ttsVersion = ttsHandler.newTtsVersion();
+        ttsEngine.setTtsVersion(ttsVersion);
         ttsProcessor.setTtsEngine(ttsEngine);
         ttsEngine.setTtsHandler(ttsHandler);
         if (voice != null && !voice.isEmpty()) {
