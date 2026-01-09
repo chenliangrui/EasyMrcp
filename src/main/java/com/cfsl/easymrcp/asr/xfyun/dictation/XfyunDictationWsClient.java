@@ -56,9 +56,9 @@ public class XfyunDictationWsClient extends WebSocketListener {
     CountDownLatch countDownLatch;
     // 是否可以打断tts
     AtomicBoolean interruptEnable;
-    boolean pushAsrRealtimeResult;
+    AtomicBoolean pushAsrRealtimeResult;
 
-    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch, AtomicBoolean interruptEnable, String callId, boolean pushAsrRealtimeResult) {
+    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch, AtomicBoolean interruptEnable, String callId, AtomicBoolean pushAsrRealtimeResult) {
         this.callback = xfyunCallback;
         this.stop = stop;
         this.countDownLatch = countDownLatch;
@@ -100,7 +100,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                         if (isParagraphOver && interruptEnable.get() && !midResult.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
                         isParagraphOver = false;
                         log.info("中间识别结果 ==》" + midResult);
-                        if (pushAsrRealtimeResult && !midResult.isEmpty()) {
+                        if (pushAsrRealtimeResult.get() && !midResult.isEmpty()) {
                             // 实时推送asr识别结果
                             SipUtils.sendAsrRealTimeResultEvent(callId, EMConstant.XFYUN, midResult);
                         }

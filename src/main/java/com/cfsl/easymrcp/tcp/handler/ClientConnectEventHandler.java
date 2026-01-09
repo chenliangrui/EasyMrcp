@@ -36,7 +36,7 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
             }
             if (connectParams.getString("PushAsrRealtimeResult") != null) {
                 // 设置是否开启实时asr结果推送
-                boolean pushAsrRealtimeResult = connectParams.getBoolean("PushAsrRealtimeResult");
+                Boolean pushAsrRealtimeResult = connectParams.getBoolean("PushAsrRealtimeResult");
                 mrcpManage.setPushAsrRealtimeResult(id, pushAsrRealtimeResult);
             }
         }

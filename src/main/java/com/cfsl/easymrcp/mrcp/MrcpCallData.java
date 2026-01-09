@@ -66,7 +66,7 @@ public class MrcpCallData {
      */
     @Setter
     @Getter
-    private boolean pushAsrRealtimeResult;
+    private Boolean pushAsrRealtimeResult;
 
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);

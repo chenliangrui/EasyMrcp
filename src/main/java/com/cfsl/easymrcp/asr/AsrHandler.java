@@ -46,7 +46,7 @@ public abstract class AsrHandler implements MrcpConnection {
     // tts参数，是否可以打断tts
     protected AtomicBoolean interruptEnable;
     // 是否实时推送asr识别结果
-    protected boolean pushAsrRealtimeResult = false;
+    protected AtomicBoolean pushAsrRealtimeResult = new AtomicBoolean(false);
     protected CountDownLatch countDownLatch = new CountDownLatch(1);
     private VadHandle vadHandle;
 

@@ -129,14 +129,14 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
     }
 
-    public boolean getPushAsrRealtimeResult(String callId) {
+    public Boolean getPushAsrRealtimeResult(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("getPushAsrRealtimeResult error, callId:{} not exist", callId);
         }
-        return mrcpCallDataConcurrentHashMap.get(callId).isPushAsrRealtimeResult();
+        return mrcpCallDataConcurrentHashMap.get(callId).getPushAsrRealtimeResult();
     }
 
-    public void setPushAsrRealtimeResult(String callId, boolean pushAsrRealtimeResult) {
+    public void setPushAsrRealtimeResult(String callId, Boolean pushAsrRealtimeResult) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("setPushAsrRealtimeResult error, callId:{} not exist", callId);
         }

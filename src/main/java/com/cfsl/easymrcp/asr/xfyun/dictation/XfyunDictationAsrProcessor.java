@@ -58,7 +58,7 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
                 getCallback().apply(action, msg);
             }
         };
-        xfyunWsClient = new XfyunDictationWsClient(xfyunCallback, stop, getCountDownLatch(), getInterruptEnable(), getCallId(), isPushAsrRealtimeResult());
+        xfyunWsClient = new XfyunDictationWsClient(xfyunCallback, stop, getCountDownLatch(), getInterruptEnable(), getCallId(), getPushAsrRealtimeResult());
         xfyunWsClient.setHostUrl(hostUrl);
         xfyunWsClient.setAppid(appid);
         xfyunWsClient.setApiSecret(apiSecret);

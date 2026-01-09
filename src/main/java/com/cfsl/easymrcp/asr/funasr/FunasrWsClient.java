@@ -11,6 +11,7 @@
 package com.cfsl.easymrcp.asr.funasr;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
+import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.utils.SipUtils;
 import lombok.Setter;
@@ -23,12 +24,14 @@ import org.json.simple.parser.JSONParser;
 
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 /** This example demonstrates how to connect to websocket server. */
 public class FunasrWsClient extends WebSocketClient {
+    private String callId;
     private boolean isParagraphOver;
     private boolean iseof = true;
     @Setter
@@ -44,12 +47,16 @@ public class FunasrWsClient extends WebSocketClient {
     AsrCallback callback;
     Boolean stop;
     CountDownLatch countDownLatch;
+    // 是否实时推送asr内容
+    AtomicBoolean pushAsrRealtimeResult;
 
-    public FunasrWsClient(URI serverURI, AsrCallback callback, Boolean stop, CountDownLatch countDownLatch) {
+    public FunasrWsClient(URI serverURI, AsrCallback callback, Boolean stop, CountDownLatch countDownLatch, String callId, AtomicBoolean pushAsrRealtimeResult) {
         super(serverURI);
         this.callback = callback;
         this.stop = stop;
         this.countDownLatch = countDownLatch;
+        this.callId = callId;
+        this.pushAsrRealtimeResult = pushAsrRealtimeResult;
     }
 
     // send json at first time
@@ -148,6 +155,10 @@ public class FunasrWsClient extends WebSocketClient {
             log.info("text: " + result);
             if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
             isParagraphOver = false;
+            if (pushAsrRealtimeResult.get() && !result.isEmpty()) {
+                // 实时推送asr识别结果
+                SipUtils.sendAsrRealTimeResultEvent(callId, EMConstant.XFYUN, result);
+            }
             if (!stop && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
                 SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                 isParagraphOver = true;
