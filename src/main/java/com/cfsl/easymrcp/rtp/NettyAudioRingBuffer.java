@@ -204,7 +204,9 @@ public class NettyAudioRingBuffer {
      * 注意：设计为单线程使用（EventLoop线程），无需同步锁
      */
     public void write(ByteBuf data) {
-        checkNotClosed();
+        if (checkClosed()) {
+            return;
+        }
         
         if (data == null || !data.isReadable()) {
             return;
@@ -243,7 +245,9 @@ public class NettyAudioRingBuffer {
      * 读取指定长度的数据
      */
     public ByteBuf read(int length) {
-        checkNotClosed();
+        if (checkClosed()) {
+            return allocator.buffer(0);
+        }
         
         if (length <= 0 || dataSize == 0) {
             return allocator.buffer(0);
@@ -270,7 +274,9 @@ public class NettyAudioRingBuffer {
      * 将读指针向前移动指定时间
      */
     public void moveReadPointerBack(int milliseconds) {
-        checkNotClosed();
+        if (checkClosed()) {
+            return;
+        }
         
         if (dataSize == 0) {
             return;
@@ -293,7 +299,9 @@ public class NettyAudioRingBuffer {
      * 清空缓冲区
      */
     public void clear() {
-        checkNotClosed();
+        if (checkClosed()) {
+            return;
+        }
         writePos = 0;
         readPos = 0;
         dataSize = 0;
@@ -418,12 +426,11 @@ public class NettyAudioRingBuffer {
     }
     
     /**
-     * 检查是否未关闭
+     * 检查是否已关闭
+     * @return true-已关闭，false-未关闭可用
      */
-    private void checkNotClosed() {
-        if (closed) {
-            throw new IllegalStateException("环形缓冲区已关闭");
-        }
+    private boolean checkClosed() {
+        return closed;
     }
     
     /**
