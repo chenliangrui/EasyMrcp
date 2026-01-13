@@ -33,6 +33,9 @@ public class SipServer implements ApplicationRunner {
             properties.setProperty("javax.sip.STACK_NAME", "simpleSipServer");
             properties.setProperty("javax.sip.IP_ADDRESS", sipContext.getSipServerIp());
             properties.setProperty("javax.sip.OUTBOUND_PROXY", sipContext.getSipServerIp() + ":" + sipContext.getSipPort() + "/UDP");
+            // 启用多线程处理SIP事件
+            properties.setProperty("gov.nist.javax.sip.REENTRANT_LISTENER", "true");
+            properties.setProperty("gov.nist.javax.sip.THREAD_POOL_SIZE", "16");
 //            properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "32");
 //            properties.setProperty("gov.nist.javax.sip.DEBUG_LOG", "simpleSipServerDebug.txt");
 //            properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "simpleSipServerLog.txt");
