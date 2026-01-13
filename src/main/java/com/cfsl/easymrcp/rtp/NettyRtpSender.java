@@ -5,6 +5,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.CharsetUtil;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
@@ -24,7 +25,8 @@ public class NettyRtpSender {
     Channel channel;
     // RTP配置参数
     private static final int RTP_HEADER_SIZE = 12;
-    private static final int PAYLOAD_TYPE = 8;  // G.711u的RTP载荷类型
+    @Setter
+    private int payloadType;  // RTP Payload Type，由外部设置
     private long nextSendTime = 0;
 
     // RTP头部字段
@@ -102,7 +104,7 @@ public class NettyRtpSender {
 
         // RTP头部（RFC3550）
         rtpPacket.writeByte(0x80);  // Version 2, no padding/extension/CSRC
-        rtpPacket.writeByte(PAYLOAD_TYPE & 0x7F);
+        rtpPacket.writeByte(payloadType & 0x7F);  // 使用动态Payload Type
         rtpPacket.writeShort(sequenceNumber);
         rtpPacket.writeInt(timestamp);
         rtpPacket.writeInt(ssrc);

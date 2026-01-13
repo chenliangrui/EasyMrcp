@@ -62,5 +62,10 @@ public enum TcpEventType {
     /**
      * 进行不可打断的TTS
      */
-    SpeakWithNoInterrupt
+    SpeakWithNoInterrupt,
+
+    /**
+     * 实时推送asr识别结果
+     */
+    AsrRealTimeResult
 }

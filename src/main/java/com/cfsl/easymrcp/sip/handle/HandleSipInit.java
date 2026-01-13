@@ -21,6 +21,8 @@ import javax.sdp.MediaDescription;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -39,6 +41,8 @@ public class HandleSipInit {
     TcpClientNotifier tcpClientNotifier;
     @Autowired
     RtpManager rtpManager;
+    @Autowired
+    HandleError handleError;
 
     public SdpMessage initAsrAndTts(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) {
         String dialogId = session.getDialog().getDialogId();
@@ -54,19 +58,42 @@ public class HandleSipInit {
                     int remotePort = rtpmd.get(0).getMedia().getMediaPort();
                     Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
                     
+                    // 解析选定的编码类型
+                    int mediaType = 8; // 默认使用PCMA
+                    if (!useProtocol.isEmpty()) {
+                        mediaType = AudioCodecUtil.parsePayloadType(useProtocol.get(0));
+                    }
+                    
                     // 获取初始RTP端口
                     int rtpPort = sipContext.getAsrRtpPort();
                     log.debug("获取初始RTP端口: {}", rtpPort);
+
+                    // mrcpManage检查有没有连接，没有则等待easymrcp client的连接
+                    if (!mrcpManage.containsCallId(customHeaderUUID)) {
+                        try {
+                            CountDownLatch countDownLatch = new CountDownLatch(1);
+                            mrcpManage.updateConnection(customHeaderUUID, countDownLatch);
+                            boolean await = countDownLatch.await(30, TimeUnit.SECONDS);
+                            if (!await) {
+                                mrcpManage.removeMrcpCallData(customHeaderUUID);
+                                throw new RuntimeException();
+                            }
+                        } catch (Exception e) {
+                            mrcpManage.removeMrcpCallData(customHeaderUUID);
+                            handleError.send486(session);
+                            throw new RuntimeException("连接错误，超30秒EasyMrcp client仍然未连接，请检查client连接");
+                        }
+                    }
                     
                     try {
                         // 更新SDP媒体描述中的端口
                         rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                         rtpmd.get(0).getMedia().setMediaPort(rtpPort);
 
-                        // 初始化ASR
-                        AsrHandler asrHandler = initAsr(remoteHost.getHostAddress(), remotePort, customHeaderUUID);
-                        // 初始化TTS
-                        TtsHandler ttsHandler = initTts(rtpPort, remoteHost.getHostAddress(), remotePort, customHeaderUUID);
+                        // 初始化ASR，传递mediaType
+                        AsrHandler asrHandler = initAsr(remoteHost.getHostAddress(), remotePort, mediaType, customHeaderUUID);
+                        // 初始化TTS，传递mediaType
+                        TtsHandler ttsHandler = initTts(rtpPort, remoteHost.getHostAddress(), remotePort, mediaType, customHeaderUUID);
                         // 建立rtp连接
                         Channel rtpChannel = rtpManager.createRtpChannel(dialogId, rtpPort, asrHandler.getNettyAsrRtpProcessor());
                         ttsHandler.setRtpChannel(rtpChannel);
@@ -87,15 +114,16 @@ public class HandleSipInit {
         return sdpMessage;
     }
 
-    public AsrHandler initAsr(String remoteHost, int remotePort, String customHeaderUUID) {
+    public AsrHandler initAsr(String remoteHost, int remotePort, int mediaType, String customHeaderUUID) {
         try {
             AsrHandler asrHandler = asrChose.getAsrHandler();
-            asrHandler.setChannelId("11111");
-            asrHandler.create(remoteHost, remotePort);
+            asrHandler.setCallId(customHeaderUUID);
+            asrHandler.create(remoteHost, remotePort, mediaType);
             asrHandler.receive();
             // 向mrcp业务中写入asrHandler，此时已经明确callId，等待tcp连接发送uuid
             mrcpManage.addNewAsr(customHeaderUUID, asrHandler);
             asrHandler.setInterruptEnable(mrcpManage.getInterruptEnable(customHeaderUUID));
+            asrHandler.getPushAsrRealtimeResult().set(mrcpManage.getPushAsrRealtimeResult(customHeaderUUID) != null);
             return asrHandler;
         } catch (Exception e) {
             log.error("初始化ASR失败", e);
@@ -103,12 +131,13 @@ public class HandleSipInit {
         }
     }
 
-    private TtsHandler initTts(int localPort, String remoteHost, int remotePort, String customHeaderUUID) {
+    private TtsHandler initTts(int localPort, String remoteHost, int remotePort, int mediaType, String customHeaderUUID) {
         try {
             TtsHandler ttsHandler = asrChose.getTtsHandler();
-            log.debug("初始化TTS，本地端口: {}, 远程地址: {}:{}", localPort, remoteHost, remotePort);
-            ttsHandler.create(remoteHost, remotePort);
-            ttsHandler.setChannelId("222222");
+            log.debug("初始化TTS，本地端口: {}, 远程地址: {}:{}, 编码类型: {}", 
+                localPort, remoteHost, remotePort, AudioCodecUtil.getCodecName(mediaType));
+            ttsHandler.create(remoteHost, remotePort, mediaType);
+            ttsHandler.setCallId(customHeaderUUID);
             mrcpManage.addNewTts(customHeaderUUID, ttsHandler);
             return ttsHandler;
         } catch (Exception e) {

@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.tts;
 import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.G711AUtil;
+import com.cfsl.easymrcp.rtp.AudioCodecUtil;
 import com.cfsl.easymrcp.rtp.NettyAudioRingBuffer;
 import com.cfsl.easymrcp.rtp.NettyRtpSender;
 import com.cfsl.easymrcp.utils.SipUtils;
@@ -27,6 +28,7 @@ public class NettyTtsRtpProcessor {
     private TtsCallback callback;
     @Setter
     private String reSample;
+    private int mediaType;
 
     // 缓冲区配置：支持大容量TTS音频数据
     private static final int TTS_INPUT_BUFFER_SECONDS = 30;  // 输入缓冲区
@@ -47,8 +49,10 @@ public class NettyTtsRtpProcessor {
      *
      * @param remoteIp   远程IP地址
      * @param remotePort 远程端口
+     * @param mediaType sdp使用的编码
      */
-    public NettyTtsRtpProcessor(String remoteIp, int remotePort) {
+    public NettyTtsRtpProcessor(String remoteIp, int remotePort, int mediaType) {
+        this.mediaType = mediaType;
         // 初始化高性能环形缓冲区，TTS模式支持自动扩容
         ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
         this.inputRingBuffer = new NettyAudioRingBuffer(allocator, SAMPLE_RATE, TTS_INPUT_BUFFER_SECONDS, true);  // TTS模式
@@ -59,6 +63,8 @@ public class NettyTtsRtpProcessor {
         try {
             // 创建RTP发送器
             this.sender = new NettyRtpSender(remoteIp, remotePort);
+            // 设置Payload Type
+            this.sender.setPayloadType(mediaType);
         } catch (Exception e) {
             log.error("初始化NettyTtsRtpProcessor失败", e);
         }
@@ -118,8 +124,8 @@ public class NettyTtsRtpProcessor {
                             processedData = pcmData;
                         }
                         
-                        // G.711A编码
-                        ByteBuf g711Data = G711AUtil.encode(processedData);
+                        // 根据mediaType选择编码器
+                        ByteBuf g711Data = AudioCodecUtil.encode(processedData, mediaType);
                         putData(outputRingBuffer, g711Data);
                         g711Data.release();
 

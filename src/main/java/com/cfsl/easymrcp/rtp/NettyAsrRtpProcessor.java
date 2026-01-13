@@ -37,6 +37,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     Callback reCreate;
     @Setter
     Callback sendEof;
+    private int mediaType;
 
     // 音频缓冲区，在构造时创建
     private NettyAudioRingBuffer ringBuffer;
@@ -44,6 +45,10 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     private volatile boolean isReconnecting = false;
     // 防止出现vad结束时asr还没连接成功而导致无法发送eof问题
     private volatile boolean connectedAndSendRemain = false;
+
+    public NettyAsrRtpProcessor(int mediaType) {
+        this.mediaType = mediaType;
+    }
 
     /**
      * 初始化音频缓冲区
@@ -67,7 +72,9 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
 
             RtpPacket parsedPacket = RtpPacket.parseRtpHeader(rtpBytes, rtpBytes.length);
             byte[] g711Data = parsedPacket.getPayload();
-            byte[] pcmData = G711AUtil.decode(g711Data);
+            
+            // 根据mediaType选择解码器
+            byte[] pcmData = AudioCodecUtil.decode(g711Data, mediaType);
 
             if (reSample != null && reSample.equals("upsample8kTo16k")) {
                 pcmData = ReSample.resampleFrame(pcmData);

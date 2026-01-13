@@ -25,14 +25,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AsrHandler implements MrcpConnection {
     @Setter
     @Getter
-    private String channelId;
+    private String callId;
     @Setter
     private AsrCallback callback;
     protected String identifyPatterns;
     protected String reSample;
-    @Setter
-    @Getter
-    private String callId;
     @Setter
     private MrcpTimeoutManager timeoutManager;
     @Setter
@@ -48,6 +45,8 @@ public abstract class AsrHandler implements MrcpConnection {
     protected Boolean stop = false;
     // tts参数，是否可以打断tts
     protected AtomicBoolean interruptEnable;
+    // 是否实时推送asr识别结果
+    protected AtomicBoolean pushAsrRealtimeResult = new AtomicBoolean(false);
     protected CountDownLatch countDownLatch = new CountDownLatch(1);
     private VadHandle vadHandle;
 
@@ -61,8 +60,8 @@ public abstract class AsrHandler implements MrcpConnection {
     }
 
     @Override
-    public void create(String remoteIp, int remotePort) {
-        nettyAsrRtpProcessor = new NettyAsrRtpProcessor();
+    public void create(String remoteIp, int remotePort, int mediaType) {
+        nettyAsrRtpProcessor = new NettyAsrRtpProcessor(mediaType);
         nettyAsrRtpProcessor.setReceive(this::receive);
         nettyAsrRtpProcessor.setReCreate(this::reCreate);
         nettyAsrRtpProcessor.setSendEof(this::sendEof);

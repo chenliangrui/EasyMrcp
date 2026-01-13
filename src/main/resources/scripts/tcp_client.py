@@ -49,6 +49,7 @@ class MrcpEventType:
     SpeakComplete = "SpeakComplete"
     SpeakInterrupted = "SpeakInterrupted"
     NoInputTimeout = "NoInputTimeout"
+    AsrRealTimeResult = "AsrRealTimeResult"
 
 class MrcpEvent:
     """EasyMrcp事件类"""

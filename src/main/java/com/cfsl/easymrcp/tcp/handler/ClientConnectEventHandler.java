@@ -3,7 +3,6 @@ package com.cfsl.easymrcp.tcp.handler;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.cfsl.easymrcp.asr.AsrHandler;
-import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.RtpManager;
@@ -29,11 +28,16 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
         JSONObject connectParams = JSON.parseObject(event.getData());
         if (connectParams != null && connectParams.getString("TtsEngine") != null) {
             // 设置TTS引擎和发音人
-            String ttsEngine = connectParams.getString("TtsEngine");
-            mrcpManage.setTtsEngine(id, ttsEngine);
+            String ttsEngineName = connectParams.getString("TtsEngine");
+            mrcpManage.setTtsEngineName(id, ttsEngineName);
             if (connectParams.getString("Voice") != null) {
                 String voice = connectParams.getString("Voice");
                 mrcpManage.setVoice(id, voice);
+            }
+            if (connectParams.getString("PushAsrRealtimeResult") != null) {
+                // 设置是否开启实时asr结果推送
+                Boolean pushAsrRealtimeResult = connectParams.getBoolean("PushAsrRealtimeResult");
+                mrcpManage.setPushAsrRealtimeResult(id, pushAsrRealtimeResult);
             }
         }
         if (connectParams != null && connectParams.getString("Type") != null && connectParams.getString("Type").equals("spy")) {
@@ -42,7 +46,7 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
             RtpManager rtpManager = SpringUtils.getBean(RtpManager.class);
             SipOptions sipOptions = SpringUtils.getBean(SipOptions.class);
             HandleSipInit handleSipInit = SpringUtils.getBean(HandleSipInit.class);
-            AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, id);
+            AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, 8, id);
             int rtpPort = sipContext.getAsrRtpPort();
             Channel rtpChannel = rtpManager.createRtpChannel(id, rtpPort, asrHandler.getNettyAsrRtpProcessor());
             JSONObject connectParamsRes = new JSONObject();

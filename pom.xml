@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.example</groupId>
     <artifactId>EasyMrcp</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.0</version>
     <name>EasyMRCP</name>
     <description>EasyMrcp</description>
     <properties>
@@ -153,6 +153,13 @@
             <artifactId>netty-all</artifactId>
             <version>4.1.94.Final</version>
         </dependency>
+
+        <!-- 阿里云dashscope https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>2.22.1</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
@@ -167,6 +174,19 @@
     </dependencyManagement>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <!-- 排除配置示例文件，这些应该由用户在jar外部配置 -->
+                    <exclude>asr/**</exclude>
+                    <exclude>tts/**</exclude>
+                    <!-- 排除FreeSWITCH模块源码和脚本 -->
+                    <exclude>mod_easymrcp_spy/**</exclude>
+                    <exclude>scripts/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

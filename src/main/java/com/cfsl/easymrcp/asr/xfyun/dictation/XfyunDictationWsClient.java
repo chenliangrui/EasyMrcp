@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.asr.xfyun.dictation;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
+import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.utils.SipUtils;
 import com.google.gson.Gson;
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public class XfyunDictationWsClient extends WebSocketListener {
+    private String callId;
     private boolean isParagraphOver = true;
     private String hostUrl; //中英文，http url 不支持解析 ws/wss schema
     // private static final String hostUrl = "https://iat-niche-api.xfyun.cn/v2/iat";//小语种
@@ -54,12 +56,15 @@ public class XfyunDictationWsClient extends WebSocketListener {
     CountDownLatch countDownLatch;
     // 是否可以打断tts
     AtomicBoolean interruptEnable;
+    AtomicBoolean pushAsrRealtimeResult;
 
-    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch, AtomicBoolean interruptEnable) {
+    public XfyunDictationWsClient(AsrCallback xfyunCallback, Boolean stop, CountDownLatch countDownLatch, AtomicBoolean interruptEnable, String callId, AtomicBoolean pushAsrRealtimeResult) {
         this.callback = xfyunCallback;
         this.stop = stop;
         this.countDownLatch = countDownLatch;
         this.interruptEnable = interruptEnable;
+        this.callId = callId;
+        this.pushAsrRealtimeResult = pushAsrRealtimeResult;
     }
 
     @Override
@@ -91,11 +96,16 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     log.info(te.toString());
                     try {
                         decoder.decode(te);
-                        if (isParagraphOver && interruptEnable.get()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
+                        String midResult = decoder.toString();
+                        if (isParagraphOver && interruptEnable.get() && !midResult.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
                         isParagraphOver = false;
-                        log.info("中间识别结果 ==》" + decoder.toString());
+                        log.info("中间识别结果 ==》" + midResult);
+                        if (pushAsrRealtimeResult.get() && !midResult.isEmpty()) {
+                            // 实时推送asr识别结果
+                            SipUtils.sendAsrRealTimeResultEvent(callId, EMConstant.XFYUN, midResult);
+                        }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error(e.getMessage(), e);
                     }
                 }
                 if (resp.getData().getStatus() == 2) {
@@ -107,7 +117,7 @@ public class XfyunDictationWsClient extends WebSocketListener {
                     String result = decoder.toString();
                     log.info("最终识别结果 ==》" + result);
                     log.info("本次识别sid ==》" + resp.getSid());
-                    if (!stop) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
+                    if (!stop && !result.isEmpty()) SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
                     isParagraphOver = true;
                     decoder.discard();
                     webSocket.close(1000, "Normal closure after completion");

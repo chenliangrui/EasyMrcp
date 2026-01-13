@@ -26,11 +26,26 @@ public class MrcpManage {
     private ConcurrentHashMap<String, MrcpCallData> mrcpCallDataConcurrentHashMap = new ConcurrentHashMap<>();
 
     public void updateConnection(String callId) {
+        updateConnection(callId, null);
+    }
+
+    public void updateConnection(String callId, CountDownLatch countDownLatch) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             MrcpCallData mrcpCallData = new MrcpCallData();
             mrcpCallData.setCallId(callId);
+            mrcpCallData.setSipLatch(countDownLatch);
             mrcpCallDataConcurrentHashMap.put(callId, mrcpCallData);
+        } else {
+            // sip等待client连接情况，放行等待
+            MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+            if (mrcpCallData.getSipLatch() != null) {
+                mrcpCallData.getSipLatch().countDown();
+            }
         }
+    }
+
+    public boolean containsCallId(String callId) {
+        return mrcpCallDataConcurrentHashMap.containsKey(callId);
     }
 
     /**
@@ -87,11 +102,11 @@ public class MrcpManage {
         }
     }
 
-    public void setTtsEngine(String callId, String ttsEngine) {
+    public void setTtsEngineName(String callId, String ttsEngine) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
-            log.error("setTtsEngine error, callId:{} not exist", callId);
+            log.error("setTtsEngineName error, callId:{} not exist", callId);
         }
-        mrcpCallDataConcurrentHashMap.get(callId).setTtsEngine(ttsEngine);
+        mrcpCallDataConcurrentHashMap.get(callId).setTtsEngineName(ttsEngine);
     }
 
     public void setVoice(String callId, String voice) {
@@ -129,11 +144,25 @@ public class MrcpManage {
         mrcpCallDataConcurrentHashMap.get(callId).setInterruptEnable(interruptEnable);
     }
 
-    public String getTtsEngine(String callId) {
+    public Boolean getPushAsrRealtimeResult(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getPushAsrRealtimeResult error, callId:{} not exist", callId);
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getPushAsrRealtimeResult();
+    }
+
+    public void setPushAsrRealtimeResult(String callId, Boolean pushAsrRealtimeResult) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("setPushAsrRealtimeResult error, callId:{} not exist", callId);
+        }
+        mrcpCallDataConcurrentHashMap.get(callId).setPushAsrRealtimeResult(pushAsrRealtimeResult);
+    }
+
+    public String getTtsEngineName(String callId) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             log.error("getTtsEngine error, callId:{} not exist", callId);
         }
-        return mrcpCallDataConcurrentHashMap.get(callId).getTtsEngine();
+        return mrcpCallDataConcurrentHashMap.get(callId).getTtsEngineName();
     }
 
     public String getVoice(String callId) {

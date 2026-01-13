@@ -94,6 +94,8 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
 
         // 启动超时计时
         timeoutManager.startTimers();
+        // 再次更新实时推送参数，用于兜底异步连接
+        asrHandler.getPushAsrRealtimeResult().set(mrcpManage.getPushAsrRealtimeResult(id));
         return TcpResponse.success(id, "success");
     }
 }

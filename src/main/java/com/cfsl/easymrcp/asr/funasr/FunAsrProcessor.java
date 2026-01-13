@@ -36,17 +36,16 @@ public class FunAsrProcessor extends AsrHandler {
                     getCallback().apply(action, msg);
                 }
             };
-            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop, getCountDownLatch());
+            funasrWsClient = new FunasrWsClient(new URI(wsAddress), funasrCallback, stop, getCountDownLatch(), getCallId(), getPushAsrRealtimeResult());
             funasrWsClient.setMode(funasrConfig.getMode());
             funasrWsClient.setHotwords(funasrConfig.getHotwords());
             funasrWsClient.setFsthotwords(funasrConfig.getFsthotwords());
             funasrWsClient.setStrChunkSize(funasrConfig.getStrChunkSize());
             funasrWsClient.setChunkInterval(funasrConfig.getChunkInterval());
             funasrWsClient.connect();
-            System.out.println("wsAddress:" + wsAddress);
+            log.info("wsAddress:{}", wsAddress);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("e:" + e);
+            log.error(e.getMessage(), e);
         }
     }
 
