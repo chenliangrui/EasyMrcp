@@ -26,11 +26,26 @@ public class MrcpManage {
     private ConcurrentHashMap<String, MrcpCallData> mrcpCallDataConcurrentHashMap = new ConcurrentHashMap<>();
 
     public void updateConnection(String callId) {
+        updateConnection(callId, null);
+    }
+
+    public void updateConnection(String callId, CountDownLatch countDownLatch) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             MrcpCallData mrcpCallData = new MrcpCallData();
             mrcpCallData.setCallId(callId);
+            mrcpCallData.setSipLatch(countDownLatch);
             mrcpCallDataConcurrentHashMap.put(callId, mrcpCallData);
+        } else {
+            // sip等待client连接情况，放行等待
+            MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+            if (mrcpCallData.getSipLatch() != null) {
+                mrcpCallData.getSipLatch().countDown();
+            }
         }
+    }
+
+    public boolean containsCallId(String callId) {
+        return mrcpCallDataConcurrentHashMap.containsKey(callId);
     }
 
     /**

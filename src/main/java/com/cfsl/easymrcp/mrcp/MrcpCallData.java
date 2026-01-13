@@ -6,6 +6,7 @@ import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -67,6 +68,13 @@ public class MrcpCallData {
     @Setter
     @Getter
     private Boolean pushAsrRealtimeResult;
+
+    /**
+     * sip等待easymrcp client连接
+     */
+    @Setter
+    @Getter
+    private CountDownLatch sipLatch;
 
     public void setSpeaking(Boolean speaking) {
         this.speaking.set(speaking);

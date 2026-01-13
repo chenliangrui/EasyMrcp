@@ -21,6 +21,8 @@ import javax.sdp.MediaDescription;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -39,6 +41,8 @@ public class HandleSipInit {
     TcpClientNotifier tcpClientNotifier;
     @Autowired
     RtpManager rtpManager;
+    @Autowired
+    HandleError handleError;
 
     public SdpMessage initAsrAndTts(SdpMessage sdpMessage, SipSession session, String customHeaderUUID) {
         String dialogId = session.getDialog().getDialogId();
@@ -63,6 +67,23 @@ public class HandleSipInit {
                     // 获取初始RTP端口
                     int rtpPort = sipContext.getAsrRtpPort();
                     log.debug("获取初始RTP端口: {}", rtpPort);
+
+                    // mrcpManage检查有没有连接，没有则等待easymrcp client的连接
+                    if (!mrcpManage.containsCallId(customHeaderUUID)) {
+                        try {
+                            CountDownLatch countDownLatch = new CountDownLatch(1);
+                            mrcpManage.updateConnection(customHeaderUUID, countDownLatch);
+                            boolean await = countDownLatch.await(30, TimeUnit.SECONDS);
+                            if (!await) {
+                                mrcpManage.removeMrcpCallData(customHeaderUUID);
+                                throw new RuntimeException();
+                            }
+                        } catch (Exception e) {
+                            mrcpManage.removeMrcpCallData(customHeaderUUID);
+                            handleError.send486(session);
+                            throw new RuntimeException("连接错误，超30秒EasyMrcp client仍然未连接，请检查client连接");
+                        }
+                    }
                     
                     try {
                         // 更新SDP媒体描述中的端口
