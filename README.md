@@ -32,6 +32,7 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 | --- | --- | --- |
 | kokoro | 流式 | 离线的tts服务，开源免费，使用FastAPI项目：[https://github.com/remsky/Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) |
 | xfyun | 流式 | 科大讯飞在线tts服务，每天有免费额度。地址：[https://www.xfyun.cn/services/online_tts](https://www.xfyun.cn/services/online_tts) |
+| aliyun | 流式 | 70+种高品质音色，支持中英日韩及多种方言，应用场景广泛。地址：[https://bailian.console.aliyun.com/cn-beijing/?spm=5176.29597918.J_SEsSjsNv72yRuRFS2VknO.2.2e257b08viq2Gl&tab=api#/api/?type=model&url=2997333](https://bailian.console.aliyun.com/cn-beijing/?spm=5176.29597918.J_SEsSjsNv72yRuRFS2VknO.2.2e257b08viq2Gl&tab=api#/api/?type=model&url=2997333) |
 | ~~tencent-cloud~~ | ~~流式~~ | ~~实时语音合成：~~[~~https://cloud.tencent.com/document/product/1093/52554~~](https://cloud.tencent.com/document/product/1093/52554) |
 
 
