@@ -41,6 +41,9 @@
         <appender-ref ref="FILE"/>
     </root>
 
+    <!-- 屏蔽Spring配置文件解析的INFO日志（找不到可选配置文件时的提示） -->
+    <logger name="org.springframework.context.annotation.ConfigurationClassParser" level="WARN"/>
+
     <!-- 配合yml中指定的环境:和现有全局设置冲突时无效 -->
     <springProfile name="prod,test,dev">
 <!--        <logger name="org.mrcp4j" level="DEBUG" additivity="false">-->
