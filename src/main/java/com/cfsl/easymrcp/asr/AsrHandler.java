@@ -31,6 +31,7 @@ public abstract class AsrHandler implements MrcpConnection {
     protected String identifyPatterns;
     protected String reSample;
     @Setter
+    @Getter
     private MrcpTimeoutManager timeoutManager;
     @Setter
     private Boolean automaticInterruption = true;
@@ -130,6 +131,20 @@ public abstract class AsrHandler implements MrcpConnection {
         if (timeoutManager != null) {
             timeoutManager.startInputTimers();
         }
+    }
+
+    /**
+     * 暂停ASR识别
+     */
+    public void pauseAsr() {
+        nettyAsrRtpProcessor.setRun(false);
+    }
+
+    /**
+     * 恢复ASR识别
+     */
+    public void resumeAsr() {
+        nettyAsrRtpProcessor.setRun(true);
     }
 
     public abstract void create();

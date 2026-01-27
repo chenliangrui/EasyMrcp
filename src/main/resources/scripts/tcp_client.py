@@ -42,6 +42,8 @@ class MrcpEventType:
     Silence = "Silence"
     # 客户端断开连接事件
     ClientDisConnect = "ClientDisConnect"
+    PauseDetectSpeech = "PauseDetectSpeech"
+    ResumeDetectSpeech = "ResumeDetectSpeech"
     
     # 服务器发送的事件
     ClientConnect = "ClientConnect"
