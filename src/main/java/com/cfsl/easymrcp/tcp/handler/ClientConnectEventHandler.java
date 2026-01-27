@@ -41,6 +41,7 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
             }
         }
         if (connectParams != null && connectParams.getString("Type") != null && connectParams.getString("Type").equals("spy")) {
+            mrcpManage.setPushAsrRealtimeResult(id, false);
             // 启动spy模式，对某一路通话进行asr识别
             SipContext sipContext = SpringUtils.getBean(SipContext.class);
             RtpManager rtpManager = SpringUtils.getBean(RtpManager.class);
