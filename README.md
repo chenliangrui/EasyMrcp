@@ -13,6 +13,11 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 # 项目演示
 视频演示：【【EasyMrcp 2.0】VoIP中集成ASR/TTS的语音服务器】 [https://www.bilibili.com/video/BV1gGhhzeEf1/?share_source=copy_web&vd_source=5ff73fb9e66e524e8dde009d51927426](https://www.bilibili.com/video/BV1gGhhzeEf1/?share_source=copy_web&vd_source=5ff73fb9e66e524e8dde009d51927426)
 
+# 智声平台
+同时我们也自研了**智声AI联络中心**，一个完整的AI智能呼叫平台。底层使用EasyMrcp作为核心能力构建接入VoIP能力。您可以直接注册体验功能，也可以联系商务使用我们的智声平台产品，欢迎您注册体验。  
+官网地址：[https://www.hdtans.com](https://www.hdtans.com/)  
+平台地址：[https://www.platform.hdtans.com](https://www.platform.hdtans.com/)
+
 # 目前支持
 项目迭代中，后续会集成更多的asr和tts服务。划掉部分为旧版集成部分，现正逐步实现适配中，欢迎提出指正问题。
 
@@ -79,18 +84,18 @@ TTS:`mrcp server -> mrcp client -> freeswtich`
 # 更多文档支持
 更多文档正在完善中......
 
-地址：[https://www.yuque.com/u2521223237/ribhhy/zm88s62ykxcd1znr?singleDoc#](https://www.yuque.com/u2521223237/ribhhy/zm88s62ykxcd1znr?singleDoc#) 《EasyMrcp 2.0——VoIP中集成ASR/TTS的语音服务器》
+地址：[https://www.hdtans.com/easymrcp/](https://www.hdtans.com/easymrcp/)《EasyMrcp——VoIP中集成ASR/TTS的语音服务器》
 
 ## 交互事件
 目前尚未完全完善文档，后续将会补充完整设计。
 
-[https://www.yuque.com/u2521223237/ribhhy/funo3eogpgw7lg8b?singleDoc#](https://www.yuque.com/u2521223237/ribhhy/funo3eogpgw7lg8b?singleDoc#) 《EasyMrcp事件》
+[https://www.hdtans.com/easymrcp/detailed-documentation/emevent/emevent.html](https://www.hdtans.com/easymrcp/detailed-documentation/emevent/emevent.html)《EasyMrcp事件》
 
 ## 版本更新
-[https://www.yuque.com/u2521223237/ribhhy/elfdnvv06e8rha1b?singleDoc#](https://www.yuque.com/u2521223237/ribhhy/elfdnvv06e8rha1b?singleDoc#) 《版本更新》
+[https://www.hdtans.com/easymrcp/detailed-documentation/version/version.html](https://www.hdtans.com/easymrcp/detailed-documentation/version/version.html) 《版本更新》
 
 ## VAD
-[https://www.yuque.com/u2521223237/ribhhy/gwhi60g6w01heubu?singleDoc#](https://www.yuque.com/u2521223237/ribhhy/gwhi60g6w01heubu?singleDoc#) 《VAD模型参数》
+[https://www.hdtans.com/easymrcp/detailed-documentation/vad/vad.html](https://www.hdtans.com/easymrcp/detailed-documentation/vad/vad.html) 《VAD模型参数》
 
 ## 通话监听
 > [!IMPORTANT]  
