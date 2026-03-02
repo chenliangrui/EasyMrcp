@@ -137,7 +137,7 @@
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
-            <version>1.16.0-rc1</version>
+            <version>1.18.0</version>
         </dependency>
 
         <dependency>

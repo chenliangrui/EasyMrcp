@@ -1,16 +1,21 @@
 package com.cfsl.easymrcp.tts;
 
+import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.common.ProcessorCreator;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.MrcpConnection;
+import com.cfsl.easymrcp.rtp.NettyAudioRingBuffer;
 import com.cfsl.easymrcp.utils.SpringUtils;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -24,10 +29,11 @@ public class TtsHandler implements MrcpConnection {
     private String callId;
     @Getter
     @Setter
-    private TtsCallback callback;
+    private Map<String, TtsCallback> callbacks = new HashMap<>();
     @Getter
     boolean stop = false;
     protected String reSample;
+    protected int skipBytesInTheEndPacket;
     // 音频处理器
     private NettyTtsRtpProcessor rtpProcessor;
 
@@ -68,32 +74,71 @@ public class TtsHandler implements MrcpConnection {
         rtpProcessor.setReSample(reSample);
     }
 
-    public int newTtsVersion() {
-        return ttsVersion.addAndGet(1);
+    public void setSkipBytesInTheEndPacket(int skipBytesInTheEndPacket) {
+        this.skipBytesInTheEndPacket = skipBytesInTheEndPacket;
+        rtpProcessor.setSkipBytesInTheEndPacket(skipBytesInTheEndPacket);
+    }
+
+    public void addCallback(String ttsEngineId, TtsCallback callback) {
+        callbacks.put(ttsEngineId, callback);
+    }
+
+    public TtsCallback getCallback(String ttsEngineId) {
+        return callbacks.get(ttsEngineId);
+    }
+
+    public void removeCallback(String ttsEngineId) {
+        callbacks.remove(ttsEngineId);
+    }
+
+    /**
+     * 迭代tts版本
+     * @param pre 是否预加载
+     * @return
+     */
+    public int newTtsVersion(String pre) {
+        if (pre.equals("pre")) {
+            return ttsVersion.get() + 1;
+        } else {
+            return ttsVersion.addAndGet(1);
+        }
     }
 
     public int getTtsVersion() {
         return ttsVersion.get();
     }
 
-    public void transmit(String id, String text) {
-        rtpProcessor.setCallback(callback);
+    public void transmit(String id, String text, String pre, String ttsEngineId) {
+        if (!pre.equals("pre")) rtpProcessor.setCallback(getCallback(ttsEngineId));
         ProcessorCreator ttsChose = SpringUtils.getBean(ProcessorCreator.class);
-        if (ttsProcessor == null) {
-            // 懒加载tts引擎，没有参数则使用配置文件中的默认值
-            ttsProcessor = ttsChose.getTtsProcessor(id);
+        if (pre.equals("playPre")) {
+            log.debug("播放预加载");
+            newTtsVersion(pre);
+            ttsProcessor.playPreLoad(ttsEngineId);
+        } else {
+            if (ttsProcessor == null) {
+                // 懒加载tts引擎，没有参数则使用配置文件中的默认值
+                ttsProcessor = ttsChose.getTtsProcessor(id);
+            }
+            // 设置对接的tts引擎
+            TtsEngine ttsEngine = ttsChose.createTtsEngine(id, ttsProcessor, pre, ttsEngineId);
+            if (pre.equals("pre")) {
+                ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
+                NettyAudioRingBuffer nettyAudioRingBuffer = new NettyAudioRingBuffer(allocator, EMConstant.VOIP_SAMPLE_RATE, 30, true);// TTS模式
+                ttsEngine.setNettyAudioRingBuffer(nettyAudioRingBuffer);
+            }
+            ttsProcessor.createAndSpeak(ttsEngine, text);
         }
-        // 设置对接的tts引擎
-        TtsEngine ttsEngine = ttsChose.setTtsEngine(id, ttsProcessor);
-        ttsProcessor.createAndSpeak(ttsEngine, text);
     }
 
     /**
      * TTS播放静音
-     * @param duration 静音时长(毫秒ms)
+     *
+     * @param duration    静音时长(毫秒ms)
+     * @param ttsEngineId
      */
-    public void silence(int duration)  {
-        rtpProcessor.setCallback(callback);
+    public void silence(int duration, String ttsEngineId)  {
+        rtpProcessor.setCallback(getCallback(ttsEngineId));
         int i = duration * 16;
         if (reSample != null && reSample.equals("downsample24kTo8k")) {
             i = i * 3;
@@ -121,7 +166,7 @@ public class TtsHandler implements MrcpConnection {
     public void putAudioData(byte[] pcmBuffer, int bytesRead) {
         rtpProcessor.putData(pcmBuffer, bytesRead);
     }
-    
+
     /**
      * 向音频处理器中添加ByteBuf数据
      *

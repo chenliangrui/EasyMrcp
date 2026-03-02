@@ -2,7 +2,6 @@ package com.cfsl.easymrcp.tts;
 
 import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
-import com.cfsl.easymrcp.rtp.G711AUtil;
 import com.cfsl.easymrcp.rtp.AudioCodecUtil;
 import com.cfsl.easymrcp.rtp.NettyAudioRingBuffer;
 import com.cfsl.easymrcp.rtp.NettyRtpSender;
@@ -45,6 +44,14 @@ public class NettyTtsRtpProcessor {
     private int receiveTakeBytes = 6 * 500;
 
     /**
+     * 需要跳过的末尾的字节数(PCM格式)
+     * 例如使用：PCM 8kHz 16bit
+     * 那么200ms = 8000 * 2 * 0.2 = 3200字节
+     */
+    @Setter
+    private int skipBytesInTheEndPacket = 0;
+
+    /**
      * 构造函数 - 使用RtpManager
      *
      * @param remoteIp   远程IP地址
@@ -83,12 +90,13 @@ public class NettyTtsRtpProcessor {
                 try {
                     // 为解决24khz采样率重采样到8kHz采样率时数据长度不为6的倍数时导致的偶发的噪声问题，统一读取6 * n字节
                     while (inputRingBuffer.getSize() == 0 || inputRingBuffer.getSize() < receiveTakeBytes) {
-                        // 判断是否含有结束标志，有的话取出最后的音频数据
+                        // 判断是否含有结束标志，有的话取出最后的音频数据并去掉末尾200ms
                         if (inputRingBuffer.getSize() > 0) {
                             ByteBuf peek = inputRingBuffer.peek(receiveTakeBytes);
                             if (peek != null && peek.readableBytes() >= 2 &&
                                     peek.getByte(peek.readableBytes() - 2) == TTSConstant.TTS_END_BYTE &&
                                     peek.getByte(peek.readableBytes() - 1) == TTSConstant.TTS_END_BYTE) {
+                                if (skipBytesInTheEndPacket != 0) skipEndData();
                                 peek.release();
                                 break;
                             }
@@ -148,46 +156,6 @@ public class NettyTtsRtpProcessor {
     }
 
     /**
-     * 将PCM字节流从24kHz降采样到8kHz
-     */
-    public static byte[] downsample24kTo8k(byte[] inputBytes) {
-        int sampleSize = 2; // 每个采样点16-bit，即2字节
-        int ratio = 3;      // 24kHz -> 8kHz，每3个采样点降为1个
-        int totalSamples = inputBytes.length / sampleSize;
-        int newSamples = totalSamples / ratio;
-
-        byte[] outputBytes = new byte[newSamples * sampleSize];
-
-        for (int i = 0; i < newSamples; i++) {
-            int idx1 = i * ratio * sampleSize;
-            int idx2 = idx1 + sampleSize;
-            int idx3 = idx2 + sampleSize;
-
-            // 防止越界（尾部可能不足3个采样点）
-            if (idx3 + 1 >= inputBytes.length) {
-                break;
-            }
-
-            // 读取3个采样值（每个采样是2字节，小端）
-            int s1 = (inputBytes[idx1 + 1] << 8) | (inputBytes[idx1] & 0xFF);
-            int s2 = (inputBytes[idx2 + 1] << 8) | (inputBytes[idx2] & 0xFF);
-            int s3 = (inputBytes[idx3 + 1] << 8) | (inputBytes[idx3] & 0xFF);
-
-            int avg = (s1 + s2 + s3) / 3;
-
-            // 限幅防止溢出
-            if (avg > Short.MAX_VALUE) avg = Short.MAX_VALUE;
-            if (avg < Short.MIN_VALUE) avg = Short.MIN_VALUE;
-
-            // 写入输出（小端）
-            outputBytes[i * 2] = (byte) (avg & 0xFF);
-            outputBytes[i * 2 + 1] = (byte) ((avg >> 8) & 0xFF);
-        }
-
-        return outputBytes;
-    }
-
-    /**
      * 将PCM字节流从24kHz降采样到8kHz (ByteBuf版本，避免内存拷贝)
      */
     public static ByteBuf downsample24kTo8k(ByteBuf input) {
@@ -229,6 +197,30 @@ public class NettyTtsRtpProcessor {
         }
 
         return output;
+    }
+
+    private void skipEndData() {
+        // 检测到结束标志，去掉末尾skipEndBytes字节的音频
+        int totalSize = inputRingBuffer.getSize();
+        if (totalSize > skipBytesInTheEndPacket + 2) {
+            // 读取所有数据（包含结束标志）
+            ByteBuf allData = inputRingBuffer.read(totalSize);
+            // 去掉末尾的结束标志（2字节）和skipEndBytes字节音频
+            int keepBytes = allData.readableBytes() - skipBytesInTheEndPacket - 2;
+            if (keepBytes > 0) {
+                ByteBuf keepData = allData.readSlice(keepBytes);
+                inputRingBuffer.write(keepData.retainedDuplicate());
+                log.debug("检测到结束标志，已去除末尾{}字节，保留{}字节", skipBytesInTheEndPacket, keepBytes);
+            }
+            // 添加结束标志
+            inputRingBuffer.write(TTSConstant.TTS_END_FLAG.retainedDuplicate());
+            allData.release();
+        } else {
+            // 数据不足skipEndBytes，只保留结束标志
+            inputRingBuffer.clear();
+            inputRingBuffer.write(TTSConstant.TTS_END_FLAG.retainedDuplicate());
+            log.debug("检测到结束标志，剩余数据不足{}字节，已清空", skipBytesInTheEndPacket);
+        }
     }
 
     /**
