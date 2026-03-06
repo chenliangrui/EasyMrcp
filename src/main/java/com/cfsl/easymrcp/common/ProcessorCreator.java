@@ -26,6 +26,8 @@ import com.cfsl.easymrcp.tts.tencentcloud.TxCloudTtsConfig;
 import com.cfsl.easymrcp.tts.tencentcloud.TxCloudTtsProcessor;
 import com.cfsl.easymrcp.tts.xfyun.XfyunTtsConfig;
 import com.cfsl.easymrcp.tts.xfyun.XfyunTtsProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -37,6 +39,7 @@ import java.util.concurrent.*;
  */
 @Component
 public class ProcessorCreator {
+    private static final Logger log = LoggerFactory.getLogger(ProcessorCreator.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     @Value("${mrcp.asrMode}")
     String asrMode;
@@ -122,11 +125,13 @@ public class ProcessorCreator {
 
     /**
      * 设置与厂商对接的tts引擎
+     *
      * @param id
      * @param ttsProcessor
+     * @param pre   是否预加载
      * @return
      */
-    public TtsEngine setTtsEngine(String id, TtsProcessor ttsProcessor) {
+    public TtsEngine createTtsEngine(String id, TtsProcessor ttsProcessor, String pre, String ttsEngineId) {
         TtsHandler ttsHandler = mrcpManage.getTtsHandler(id);
         String ttsEngineName = mrcpManage.getTtsEngineName(id);
         String voice = mrcpManage.getVoice(id);
@@ -137,6 +142,7 @@ public class ProcessorCreator {
         switch (ttsEngineName) {
             case EMConstant.ALIYUN:
                 ttsEngine = new AliyunCosyVoiceEngine(aliyunTtsConfig);
+                ttsHandler.setSkipBytesInTheEndPacket(aliyunTtsConfig.getSkipBytesInTheEndPacket());
                 break;
             case EMConstant.KOKORO:
                 ttsEngine = new KokoroProcessor(kokoroConfig);
@@ -156,13 +162,14 @@ public class ProcessorCreator {
             default:
                 throw new RuntimeException("Unknown TTS mode: " + ttsMode);
         }
-        int ttsVersion = ttsHandler.newTtsVersion();
+        int ttsVersion = ttsHandler.newTtsVersion(pre);
         ttsEngine.setTtsVersion(ttsVersion);
-        ttsProcessor.setTtsEngine(ttsEngine);
+        ttsProcessor.setTtsEngine(ttsEngineId, ttsEngine);
         ttsEngine.setTtsHandler(ttsHandler);
         if (voice != null && !voice.isEmpty()) {
             ttsEngine.setVoice(voice);
         }
+        ttsEngine.setId(ttsEngineId);
         return ttsEngine;
     }
 }

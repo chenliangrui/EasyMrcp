@@ -66,6 +66,11 @@ public class SipRegister {
 
     long invco = 1;
     
+    // 重试相关常量和状态
+    private static final int MAX_RETRIES = 5;
+    private static final int RETRY_INTERVAL_SECONDS = 30;
+    private AtomicInteger retryCount = new AtomicInteger(0);
+    
     @PostConstruct
     public void init() {
         if (!registerEnabled) {
@@ -184,6 +189,7 @@ public class SipRegister {
         
         if (status == Response.OK) {
             log.info("FreeSWITCH注册成功！");
+            retryCount.set(0); // 重置重试计数
             
             // 获取过期时间
             ExpiresHeader expiresHeader = (ExpiresHeader) response.getHeader(ExpiresHeader.NAME);
@@ -202,6 +208,7 @@ public class SipRegister {
                 SipUtils.executeTask(() -> {
                     try {
                         log.info("执行注册更新");
+                        retryCount.set(0); // 重置计数
                         register();
                     } catch (Exception e) {
                         log.error("注册更新失败", e);
@@ -213,7 +220,28 @@ public class SipRegister {
             // 认证处理已在handleAuthChallenge中完成
             log.debug("收到认证请求，已在handleAuthChallenge中处理");
         } else {
+            // 注册失败
             log.warn("注册失败，状态码: {}, 原因: {}", status, response.getReasonPhrase());
+            
+            int currentRetry = retryCount.incrementAndGet();
+            
+            if (currentRetry <= MAX_RETRIES) {
+                log.info("将在{}秒后进行第{}次重试", RETRY_INTERVAL_SECONDS, currentRetry);
+                
+                if (reRegisterTimeout != null) {
+                    reRegisterTimeout.cancel();
+                }
+                
+                reRegisterTimeout = SipUtils.wheelTimer.newTimeout(timeout -> {
+                    SipUtils.executeTask(() -> {
+                        register();
+                    });
+                }, RETRY_INTERVAL_SECONDS, TimeUnit.SECONDS);
+                
+            } else {
+                log.error("注册失败，已达到最大重试次数({})，停止重试", MAX_RETRIES);
+                retryCount.set(0); // 重置计数
+            }
         }
     }
     

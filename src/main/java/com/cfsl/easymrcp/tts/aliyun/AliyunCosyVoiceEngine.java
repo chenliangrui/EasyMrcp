@@ -24,6 +24,7 @@ public class AliyunCosyVoiceEngine extends TtsEngine {
     public AliyunCosyVoiceEngine(AliyunTtsConfig aliyunTtsConfig) {
         APIKey = aliyunTtsConfig.getAPIKey();
         model = aliyunTtsConfig.getMode();
+        skipBytesInTheFirstPacket = aliyunTtsConfig.getSkipBytesInTheFirstPacket();
     }
 
     @Override
@@ -36,13 +37,14 @@ public class AliyunCosyVoiceEngine extends TtsEngine {
                     ByteBuffer audioFrame = result.getAudioFrame();
                     byte[] audioBytes = new byte[audioFrame.remaining()];
                     audioFrame.get(audioBytes);
-                    putAudioData(audioBytes, audioBytes.length);
+                    putAudioDataWithSkip(audioBytes, audioBytes.length);
                 }
             }
 
             @Override
             public void onComplete() {
                 putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
+                log.info("{}完成合成", getId());
                 latch.countDown();
             }
 

@@ -2,12 +2,14 @@ package com.cfsl.easymrcp.mrcp;
 
 import com.cfsl.easymrcp.asr.AsrHandler;
 import com.cfsl.easymrcp.tcp.MrcpEventWithCallback;
+import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * 业务层面全局管理mrcp通话
@@ -227,7 +229,21 @@ public class MrcpManage {
             LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = mrcpCallData.getMrcpEventQueue();
             mrcpEventQueue.put(event);
             if (!mrcpCallData.isSpeaking()) {
-                mrcpEventQueue.take().getRunnable().run();
+                mrcpEventQueue.take().getConsumer().accept("normal");
+            } else {
+                if (event.getEventType().equals(TcpEventType.Silence.name())) {
+                    return;
+                }
+                // 判断是否预加载
+                MrcpEventWithCallback peek = mrcpEventQueue.peek();
+                if (peek == event) {
+                    event.setPre(true);
+                    log.debug("开始预加载");
+                    // 预加载
+                    mrcpEventThreadPool.execute(() -> {
+                        peek.getConsumer().accept("pre");
+                    });
+                }
             }
         } catch (InterruptedException e) {
             log.error(e.getMessage(), e);
@@ -244,7 +260,26 @@ public class MrcpManage {
             LinkedBlockingQueue<MrcpEventWithCallback> mrcpEventQueue = mrcpCallData.getMrcpEventQueue();
             if (!mrcpEventQueue.isEmpty()) {
                 MrcpEventWithCallback take = mrcpEventQueue.take();
-                mrcpEventThreadPool.execute(take.getRunnable());
+//                mrcpEventThreadPool.execute(take.getConsumer());
+                mrcpEventThreadPool.execute(() -> {
+                    if (take.isPre()) {
+                        take.getConsumer().accept("playPre");
+                    } else {
+                        take.getConsumer().accept("normal");
+                    }
+
+                    // 判断是否需要预加载下一个Speak
+                    MrcpEventWithCallback peek = mrcpEventQueue.peek();
+                    if (peek != null && !peek.getEventType().equals(TcpEventType.Silence.name())) {
+                        // 预加载下一个Speak
+                        peek.setPre(true);
+                        log.info("预加载下一个Speak");
+                        // 预加载
+                        mrcpEventThreadPool.execute(() -> {
+                            peek.getConsumer().accept("pre");
+                        });
+                    }
+                });
             }
         } catch (InterruptedException e) {
             log.error(e.getMessage(), e);

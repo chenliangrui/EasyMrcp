@@ -45,6 +45,9 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     private volatile boolean isReconnecting = false;
     // 防止出现vad结束时asr还没连接成功而导致无法发送eof问题
     private volatile boolean connectedAndSendRemain = false;
+    @Setter
+    // PauseDetectSpeech、ResumeDetectSpeech控制是否接收网络的语音数据
+    private boolean run = true;
 
     public NettyAsrRtpProcessor(int mediaType) {
         this.mediaType = mediaType;
@@ -265,10 +268,12 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         pipeline.addLast("rtpHandler", new SimpleChannelInboundHandler<DatagramPacket>() {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) {
-                ByteBuf content = msg.content();
-                ByteBuf pcm = processRtpData(content, ctx.alloc());
-                if (pcm != null && pcm.readableBytes() > 0) {
-                    ctx.fireChannelRead(pcm);
+                if (run) {
+                    ByteBuf content = msg.content();
+                    ByteBuf pcm = processRtpData(content, ctx.alloc());
+                    if (pcm != null && pcm.readableBytes() > 0) {
+                        ctx.fireChannelRead(pcm);
+                    }
                 }
             }
 

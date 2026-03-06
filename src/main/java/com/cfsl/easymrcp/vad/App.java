@@ -1,26 +1,56 @@
 package com.cfsl.easymrcp.vad;
 
 import ai.onnxruntime.OrtException;
-import javax.sound.sampled.*;
-import java.util.Map;
 
+import javax.sound.sampled.*;
+
+/**
+ * Realtime Silero VAD Java Example
+ * Voice Activity Detection using microphone input
+ * 
+ * @author VvvvvGH
+ */
 public class App {
 
+    // ONNX model path - using the model file from the project
     private static final String MODEL_PATH = "D:\\code\\EasyMrcp\\src\\main\\resources\\silero_vad.onnx";
+    // Sampling rate
     private static final int SAMPLE_RATE = 16000;
-    private static final float START_THRESHOLD = 0.6f;
-    private static final float END_THRESHOLD = 0.9f;
+    // Speech threshold (consistent with Python default)
+    private static final float THRESHOLD = 0.6f;
+    // Negative threshold (used to determine speech end)
+    private static final float NEG_THRESHOLD = 0.9f; // threshold - 0.15
+    // Minimum silence duration (milliseconds)
     private static final int MIN_SILENCE_DURATION_MS = 100;
-    private static final int SPEECH_PAD_MS = 500;
+    // Speech padding (milliseconds)
+    private static final int SPEECH_PAD_MS = 30;
+    // Window size (samples) - 512 samples for 16kHz
     private static final int WINDOW_SIZE_SAMPLES = 2048;
+    // Energy threshold for filtering background noise (RMS value)
+    private static final float ENERGY_THRESHOLD = 0.05f;
 
     public static void main(String[] args) {
-        // Initialize the Voice Activity Detector
+        System.out.println("=".repeat(60));
+        System.out.println("Realtime Silero VAD Java ONNX Example");
+        System.out.println("=".repeat(60));
+        
+        // Initialize realtime VAD detector
         SlieroVadDetector vadDetector;
         try {
-            vadDetector = new SlieroVadDetector(MODEL_PATH, START_THRESHOLD, END_THRESHOLD, SAMPLE_RATE, MIN_SILENCE_DURATION_MS, SPEECH_PAD_MS);
+            System.out.println("Loading ONNX model: " + MODEL_PATH);
+            vadDetector = new SlieroVadDetector(
+                MODEL_PATH,
+                THRESHOLD,
+                NEG_THRESHOLD,
+                SAMPLE_RATE,
+                MIN_SILENCE_DURATION_MS,
+                SPEECH_PAD_MS,
+                ENERGY_THRESHOLD
+            );
+            System.out.println("VAD detector initialized successfully!");
         } catch (OrtException e) {
-            System.err.println("Error initializing the VAD detector: " + e.getMessage());
+            System.err.println("Failed to initialize VAD detector: " + e.getMessage());
+            e.printStackTrace();
             return;
         }
 
@@ -34,36 +64,49 @@ public class App {
             targetDataLine = (TargetDataLine) AudioSystem.getLine(info);
             targetDataLine.open(format);
             targetDataLine.start();
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("Microphone opened successfully!");
+            System.out.println("Listening for speech... (Press Ctrl+C to stop)");
+            System.out.println("=".repeat(60) + "\n");
         } catch (LineUnavailableException e) {
             System.err.println("Error opening target data line: " + e.getMessage());
+            try {
+                vadDetector.close();
+            } catch (OrtException ex) {
+                System.err.println("Error closing VAD detector: " + ex.getMessage());
+            }
             return;
         }
 
         // Main loop to continuously read data and apply Voice Activity Detection
+        byte[] buffer = new byte[WINDOW_SIZE_SAMPLES * 2]; // 2 bytes per sample (16-bit)
+        
         while (targetDataLine.isOpen()) {
-            byte[] data = new byte[WINDOW_SIZE_SAMPLES];
-
-            int numBytesRead = targetDataLine.read(data, 0, data.length);
+            int numBytesRead = targetDataLine.read(buffer, 0, buffer.length);
             if (numBytesRead <= 0) {
-                System.err.println("Error reading data from target data line.");
+                System.err.println("Error reading data from microphone.");
                 continue;
             }
 
             // Apply the Voice Activity Detector to the data and get the result
-            Map<String, Double> detectResult;
             try {
-                detectResult = vadDetector.apply(data, true);
+                vadDetector.apply(buffer, true);
             } catch (Exception e) {
                 System.err.println("Error applying VAD detector: " + e.getMessage());
                 continue;
             }
-
-            if (!detectResult.isEmpty()) {
-                System.out.println(detectResult);
-            }
         }
 
-        // Close the target data line to release audio resources
+        // Close resources
         targetDataLine.close();
+        try {
+            vadDetector.close();
+        } catch (OrtException e) {
+            System.err.println("Error closing VAD detector: " + e.getMessage());
+        }
+        
+        System.out.println("\n" + "=".repeat(60));
+        System.out.println("VAD stopped.");
+        System.out.println("=".repeat(60));
     }
 }

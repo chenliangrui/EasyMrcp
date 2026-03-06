@@ -30,6 +30,16 @@ public enum TcpEventType {
     NoInputTimeout,
 
     /**
+     * 暂停ASR识别
+     */
+    PauseDetectSpeech,
+
+    /**
+     * 恢复ASR识别
+     */
+    ResumeDetectSpeech,
+
+    /**
      * TTS合成完成事件
      */
     SpeakComplete,
