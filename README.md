@@ -14,7 +14,7 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 视频演示：【【EasyMrcp 2.0】VoIP中集成ASR/TTS的语音服务器】 [https://www.bilibili.com/video/BV1gGhhzeEf1/?share_source=copy_web&vd_source=5ff73fb9e66e524e8dde009d51927426](https://www.bilibili.com/video/BV1gGhhzeEf1/?share_source=copy_web&vd_source=5ff73fb9e66e524e8dde009d51927426)
 
 # 智声平台
-同时我们也自研了**智声AI联络中心**，一个完整的AI智能呼叫平台。底层使用EasyMrcp作为核心能力构建接入VoIP能力。您可以直接注册体验功能，也可以联系商务使用我的智声平台产品，欢迎您注册体验。  
+同时我们也自研了**智声AI联络中心**，一个完整的AI智能呼叫平台。底层使用EasyMrcp作为核心能力构建接入VoIP能力。您可以直接注册体验功能，也可以联系商务使用我们的智声平台产品，欢迎您注册体验。  
 官网地址：[https://www.hdtans.com](https://www.hdtans.com/)  
 平台地址：[https://www.platform.hdtans.com](https://www.platform.hdtans.com/)
 
@@ -33,12 +33,12 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 | ~~tencent-cloud~~ | ~~实时语音转写~~ | ~~目前使用EasyMrcp以一句话识别的模式集成的实时语音识别：~~<br/>[~~https://cloud.tencent.com/document/product/1093/52554~~](https://cloud.tencent.com/document/product/1093/52554) |
 
 
-| TTS | 支持的tts模式 | 简介                                                                                                                                                                                     |
-| --- | --- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| kokoro | 流式 | 离线的tts服务，开源免费，使用FastAPI项目：[https://github.com/remsky/Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)                                                                         |
-| xfyun | 流式 | 科大讯飞在线tts服务，每天有免费额度。地址：[https://www.xfyun.cn/services/online_tts](https://www.xfyun.cn/services/online_tts)                                                                            |
-| aliyun | 流式 | 70+种高品质音色，支持中英日韩及多种方言，应用场景广泛。地址：[音色地址](https://bailian.console.aliyun.com/cn-beijing/?spm=5176.29597918.J_SEsSjsNv72yRuRFS2VknO.2.2e257b08viq2Gl&tab=api#/api/?type=model&url=2997333) |
-| ~~tencent-cloud~~ | ~~流式~~ | ~~实时语音合成：~~[~~https://cloud.tencent.com/document/product/1093/52554~~](https://cloud.tencent.com/document/product/1093/52554)                                                          |
+| TTS | 支持的tts模式 | 简介 |
+| --- | --- | --- |
+| kokoro | 流式 | 离线的tts服务，开源免费，使用FastAPI项目：[https://github.com/remsky/Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) |
+| xfyun | 流式 | 科大讯飞在线tts服务，每天有免费额度。地址：[https://www.xfyun.cn/services/online_tts](https://www.xfyun.cn/services/online_tts) |
+| aliyun | 流式 | 70+种高品质音色，支持中英日韩及多种方言，应用场景广泛。地址：[https://bailian.console.aliyun.com/cn-beijing/?spm=5176.29597918.J_SEsSjsNv72yRuRFS2VknO.2.2e257b08viq2Gl&tab=api#/api/?type=model&url=2997333](https://bailian.console.aliyun.com/cn-beijing/?spm=5176.29597918.J_SEsSjsNv72yRuRFS2VknO.2.2e257b08viq2Gl&tab=api#/api/?type=model&url=2997333) |
+| ~~tencent-cloud~~ | ~~流式~~ | ~~实时语音合成：~~[~~https://cloud.tencent.com/document/product/1093/52554~~](https://cloud.tencent.com/document/product/1093/52554) |
 
 
 # 新版架构升级
