@@ -5,8 +5,10 @@ import com.cfsl.easymrcp.tcp.MrcpEventWithCallback;
 import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -17,15 +19,33 @@ import java.util.function.Consumer;
 @Slf4j
 @Component
 public class MrcpManage {
-    ThreadPoolExecutor mrcpEventThreadPool = new ThreadPoolExecutor(
-            8,                      // 核心线程数
-            100,                     // 最大线程数
-            60L, TimeUnit.SECONDS,  // 空闲线程最大存活时间
-            new LinkedBlockingQueue<>(), // 队列，用来存放任务
-            new ThreadPoolExecutor.CallerRunsPolicy()  // 拒绝策略：任务由提交线程执行
-    );
+    // MRCP事件处理线程池配置
+    @Value("${mrcp.event-thread-pool.core-pool-size:8}")
+    private int eventCorePoolSize;
+    @Value("${mrcp.event-thread-pool.max-pool-size:100}")
+    private int eventMaxPoolSize;
+    @Value("${mrcp.event-thread-pool.keep-alive-seconds:60}")
+    private long eventKeepAliveSeconds;
+    @Value("${mrcp.event-thread-pool.queue-capacity:1000}")
+    private int eventQueueCapacity;
+
+    ThreadPoolExecutor mrcpEventThreadPool;
 
     private ConcurrentHashMap<String, MrcpCallData> mrcpCallDataConcurrentHashMap = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void init() {
+        // 初始化MRCP事件处理线程池
+        mrcpEventThreadPool = new ThreadPoolExecutor(
+                eventCorePoolSize,
+                eventMaxPoolSize,
+                eventKeepAliveSeconds, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(eventQueueCapacity),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+        log.info("MRCP事件处理线程池初始化完成: core={}, max={}, queueCapacity={}",
+                eventCorePoolSize, eventMaxPoolSize, eventQueueCapacity);
+    }
 
     public void updateConnection(String callId) {
         updateConnection(callId, null);
