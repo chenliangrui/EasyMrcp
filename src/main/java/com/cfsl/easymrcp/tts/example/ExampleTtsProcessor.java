@@ -34,6 +34,7 @@ public class ExampleTtsProcessor extends TtsEngine {
             }
             byte[] buffer = new byte[4096];
             int bytesRead;
+            log.info("发送测试tts音频");
             while ((bytesRead = fis.read(buffer)) != -1) {
                 byte[] audioChunk = new byte[bytesRead];
                 System.arraycopy(buffer, 0, audioChunk, 0, bytesRead);
