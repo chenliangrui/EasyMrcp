@@ -31,8 +31,8 @@ public class SipContext {
     public AddressFactory addressFactory;
     public MessageFactory messageFactory;
     public HeaderFactory headerFactory;
-    // 使用的语音编码协议
-    public List<String> supportProtocols = Arrays.asList("8", "0", "96");
+    // 使用的语音编码协议，另外动态支持8khz PCM 16bit编码
+    public List<String> supportProtocols = Arrays.asList("8", "0");
     @Value("${sip.sipServer}")
     public String sipServerIp;
     @Value("${sip.sipPort}")

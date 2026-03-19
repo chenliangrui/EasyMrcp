@@ -4,6 +4,7 @@ import com.cfsl.easymrcp.domain.AsrConfig;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
 import com.cfsl.easymrcp.rtp.NettyAsrRtpProcessor;
+import com.cfsl.easymrcp.rtp.NettyAsrRtpProcessor2;
 import com.cfsl.easymrcp.rtp.MrcpConnection;
 import com.cfsl.easymrcp.rtp.RtpManager;
 import com.cfsl.easymrcp.vad.VadHandle;
@@ -40,7 +41,7 @@ public abstract class AsrHandler implements MrcpConnection {
     private Long speechCompleteTimeout;
 
     // RTP相关
-    private NettyAsrRtpProcessor nettyAsrRtpProcessor;
+    private NettyAsrRtpProcessor2 nettyAsrRtpProcessor;
     private RtpManager rtpManager;
 
     protected Boolean stop = false;
@@ -62,7 +63,7 @@ public abstract class AsrHandler implements MrcpConnection {
 
     @Override
     public void create(String remoteIp, int remotePort, int mediaType) {
-        nettyAsrRtpProcessor = new NettyAsrRtpProcessor(mediaType);
+        nettyAsrRtpProcessor = new NettyAsrRtpProcessor2(mediaType);
         nettyAsrRtpProcessor.setReceive(this::receive);
         nettyAsrRtpProcessor.setReCreate(this::reCreate);
         nettyAsrRtpProcessor.setSendEof(this::sendEof);

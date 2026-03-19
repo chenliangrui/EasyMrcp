@@ -12,12 +12,14 @@ import com.cfsl.easymrcp.tcp.TcpClientNotifier;
 import com.cfsl.easymrcp.tcp.TcpEventType;
 import com.cfsl.easymrcp.tts.TtsHandler;
 import com.cfsl.easymrcp.utils.SipUtils;
+import gov.nist.javax.sdp.fields.AttributeField;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sdp.MediaDescription;
+import javax.sdp.SdpParseException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Vector;
@@ -53,16 +55,38 @@ public class HandleSipInit {
             if (!channels.isEmpty()) {
                 for (MediaDescription md : channels) {
                     List<MediaDescription> rtpmd = sdpMessage.getAudioChansForThisControlChan(md);
-                    Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
-                    InetAddress remoteHost = InetAddress.getByName(sdpMessage.getSessionAddress());
-                    int remotePort = rtpmd.get(0).getMedia().getMediaPort();
-                    Vector<String> useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
-                    
+                    // 动态获取8khz PCM 16协议
+                    Vector<AttributeField> attributes = rtpmd.get(0).getAttributes(true);
+                    final String[] pt = {null};
+                    attributes.forEach(attribute -> {
+                        try {
+                            if (attribute.getName().equals("rtpmap")) {
+                                if (attribute.getAttribute().getValue().contains("L16/8000")) {
+                                    pt[0] = attribute.getAttribute().getValue().replace("L16/8000", "").trim();
+                                }
+                            }
+                        } catch (SdpParseException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
                     // 解析选定的编码类型
                     int mediaType = 8; // 默认使用PCMA
-                    if (!useProtocol.isEmpty()) {
-                        mediaType = AudioCodecUtil.parsePayloadType(useProtocol.get(0));
+                    Vector<String> useProtocol;
+                    Vector<String> formatsInRequest = rtpmd.get(0).getMedia().getMediaFormats(true);
+                    if (pt[0] != null) {
+                        // 使用自动协商的8khz PCM 16编码
+                        useProtocol = new Vector<>();
+                        useProtocol.add(pt[0]);
+                        mediaType = Integer.parseInt(pt[0]);
+                    } else {
+                        useProtocol = sipUtils.getSupportProtocols(formatsInRequest);
+                        if (!useProtocol.isEmpty()) {
+                            mediaType = AudioCodecUtil.parsePayloadType(useProtocol.get(0));
+                        }
                     }
+                    InetAddress remoteHost = InetAddress.getByName(sdpMessage.getSessionAddress());
+                    int remotePort = rtpmd.get(0).getMedia().getMediaPort();
                     
                     // 获取初始RTP端口
                     int rtpPort = sipContext.getAsrRtpPort();
