@@ -35,7 +35,7 @@ public class TtsHandler implements MrcpConnection {
     protected String reSample;
     protected int skipBytesInTheEndPacket;
     // 音频处理器
-    private NettyTtsRtpProcessor2 rtpProcessor;
+    private NettyTtsRtpProcessor3 rtpProcessor;
 
     // tts对接厂商处理器
     @Setter
@@ -52,7 +52,7 @@ public class TtsHandler implements MrcpConnection {
     public void create(String remoteIp, int remotePort, int mediaType) {
         try {
             // 创建RTP处理器
-            rtpProcessor = new NettyTtsRtpProcessor2(remoteIp, remotePort, mediaType);
+            rtpProcessor = new NettyTtsRtpProcessor3(remoteIp, remotePort, mediaType);
             // 启动处理器
 //            rtpProcessor.startProcessing();
         } catch (Exception e) {
