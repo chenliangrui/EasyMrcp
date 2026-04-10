@@ -21,6 +21,13 @@ mrcp:
     keep-alive-seconds: 60
     # 队列容量
     queue-capacity: 1000
+tts:
+  # TTS处理调度器配置
+  process-scheduler:
+    # 调度线程池大小
+    pool-size: 1
+    # 处理轮询间隔（ms）
+    interval-ms: 20
 rtp:
   # Netty线程池大小，默认为CPU核心数的2倍
   nettyThreads: 8
