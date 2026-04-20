@@ -4,6 +4,7 @@ import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.rtp.NettyAudioRingBuffer;
 import com.cfsl.easymrcp.rtp.NettyRtpSenderV3;
+import com.cfsl.easymrcp.utils.SpringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -12,12 +13,12 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 重构后的 TTS 音频处理器（V3）。
- * 保留该文件用于对照旧版简化实现，但当前主链路已经切到 V4，
- * 因此这里不再接入共享发送调度器。
+ * V3 版本 TTS 发送处理器对照实现。
+ * 该类按 80bcfb1c 中的 NettyTtsRtpProcessor3 语义保留，
+ * 用于对照查看旧版共享发送调度方案，不作为当前主链路实现。
  */
 @Slf4j
-public class NettyTtsRtpProcessor3 {
+public class NettyTtsRtpProcessor3Legacy {
 
     @Getter
     private NettyRtpSenderV3 sender;
@@ -26,15 +27,19 @@ public class NettyTtsRtpProcessor3 {
 
     private static final int TTS_OUTPUT_BUFFER_SECONDS = 30;
     private static final int SAMPLE_RATE = EMConstant.VOIP_SAMPLE_RATE;
-
     @Getter
     private final NettyAudioRingBuffer outputRingBuffer;
+
+    private String schedulerTaskId;
+    private final TtsRtpSchedulerV3 scheduler;
 
     @Setter
     @Getter
     private int skipBytesInTheEndPacket = 0;
 
-    public NettyTtsRtpProcessor3(String remoteIp, int remotePort, int mediaType) {
+    public NettyTtsRtpProcessor3Legacy(String remoteIp, int remotePort, int mediaType) {
+        this.scheduler = SpringUtils.getBean(TtsRtpSchedulerV3.class);
+
         ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
         this.outputRingBuffer = new NettyAudioRingBuffer(allocator, SAMPLE_RATE, TTS_OUTPUT_BUFFER_SECONDS, true);
 
@@ -42,7 +47,7 @@ public class NettyTtsRtpProcessor3 {
             this.sender = new NettyRtpSenderV3(remoteIp, remotePort);
             this.sender.setPayloadType(mediaType);
         } catch (Exception e) {
-            log.error("初始化 NettyTtsRtpProcessorV3 失败", e);
+            log.error("初始化 NettyTtsRtpProcessor3Legacy 失败", e);
             throw new RuntimeException("初始化 RTP 发送器失败", e);
         }
     }
@@ -73,13 +78,31 @@ public class NettyTtsRtpProcessor3 {
     }
 
     public void startRtpSender() {
-        log.warn("NettyTtsRtpProcessor3 仅保留代码对照用途，当前版本不再接入发送调度器");
+        if (schedulerTaskId != null) {
+            log.warn("RTP 发送器已在运行中，任务ID: {}", schedulerTaskId);
+            return;
+        }
+
+        schedulerTaskId = scheduler.register(this, result -> {
+            log.info("TTS RTP 发送任务完成，结果: {}", result);
+            if (callback != null) {
+                com.cfsl.easymrcp.utils.SipUtils.executeTask(() -> callback.apply(result));
+            }
+        });
+
+        log.debug("RTP 发送任务已注册，任务ID: {}", schedulerTaskId);
     }
 
     public void stopRtpSender() {
+        if (schedulerTaskId != null) {
+            scheduler.cancel(schedulerTaskId);
+            schedulerTaskId = null;
+        }
+
         if (sender != null) {
             sender.close();
         }
+
         releaseResources();
     }
 
@@ -106,6 +129,7 @@ public class NettyTtsRtpProcessor3 {
     }
 
     public String getBufferStatus() {
-        return String.format("TTS V3 - 缓冲区: %s", outputRingBuffer.getStatusInfo());
+        return String.format("TTS V3 Legacy - 调度任务ID: %s, 缓冲区: %s",
+                schedulerTaskId, outputRingBuffer.getStatusInfo());
     }
 }

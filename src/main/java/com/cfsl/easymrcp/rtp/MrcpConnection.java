@@ -10,8 +10,10 @@ public interface MrcpConnection {
      * @param remoteIp   rtp远端ip
      * @param remotePort rtp远端端口
      * @param mediaType sdp使用的编码
+     * @param frameBytes 单个RTP包负载字节数（由SDP协商结果计算）
+     * @param sendIntervalMs 发送间隔（由SDP中的ptime计算）
      */
-    void create(String remoteIp, int remotePort, int mediaType);
+    void create(String remoteIp, int remotePort, int mediaType, int frameBytes, int sendIntervalMs);
 
     /**
      * 处理asr、tts的关闭过程

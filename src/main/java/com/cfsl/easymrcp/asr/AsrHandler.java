@@ -62,7 +62,7 @@ public abstract class AsrHandler implements MrcpConnection {
     }
 
     @Override
-    public void create(String remoteIp, int remotePort, int mediaType) {
+    public void create(String remoteIp, int remotePort, int mediaType, int frameBytes, int sendIntervalMs) {
         nettyAsrRtpProcessor = new NettyAsrRtpProcessor2(mediaType);
         nettyAsrRtpProcessor.setReceive(this::receive);
         nettyAsrRtpProcessor.setReCreate(this::reCreate);
