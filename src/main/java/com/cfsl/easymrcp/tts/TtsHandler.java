@@ -35,7 +35,7 @@ public class TtsHandler implements MrcpConnection {
     protected String reSample;
     protected int skipBytesInTheEndPacket;
     // 音频处理器
-    private NettyTtsRtpProcessor4 rtpProcessor;
+    private NettyTtsRtpProcessor rtpProcessor;
 
     // tts对接厂商处理器
     @Setter
@@ -52,7 +52,7 @@ public class TtsHandler implements MrcpConnection {
     public void create(String remoteIp, int remotePort, int mediaType, int frameBytes, int sendIntervalMs) {
         try {
             // 创建RTP处理器
-            rtpProcessor = new NettyTtsRtpProcessor4(remoteIp, remotePort, mediaType, frameBytes, sendIntervalMs);
+            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort, mediaType, frameBytes, sendIntervalMs);
         } catch (Exception e) {
             log.error("初始化TTS失败: {}", e.getMessage(), e);
             throw new RuntimeException("初始化TTS失败", e);

@@ -1,8 +1,8 @@
 package com.cfsl.easymrcp.tts.scheduler;
 
 import com.cfsl.easymrcp.rtp.NettyAudioRingBuffer;
-import com.cfsl.easymrcp.rtp.NettyRtpSenderV4;
-import com.cfsl.easymrcp.tts.NettyTtsRtpProcessor4;
+import com.cfsl.easymrcp.rtp.NettyRtpSender;
+import com.cfsl.easymrcp.tts.NettyTtsRtpProcessor;
 import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.utils.SipUtils;
 import io.netty.buffer.ByteBuf;
@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  */
 final class RtpSendTask extends AbstractRtpSendTask {
     private final NettyAudioRingBuffer buffer;
-    private final NettyRtpSenderV4 sender;
+    private final NettyRtpSender sender;
     private final Consumer<String> callback;
     private final int frameBytes;
     private final long taskIntervalNanos;
@@ -36,7 +36,7 @@ final class RtpSendTask extends AbstractRtpSendTask {
     /** 当前任务下一次允许发送的时间点。 */
     private long nextSendTimeNanos = 0L;
 
-    RtpSendTask(String taskId, NettyTtsRtpProcessor4 processor, Consumer<String> callback) {
+    RtpSendTask(String taskId, NettyTtsRtpProcessor processor, Consumer<String> callback) {
         super(taskId);
         this.buffer = processor.getOutputRingBuffer();
         this.sender = processor.getSender();

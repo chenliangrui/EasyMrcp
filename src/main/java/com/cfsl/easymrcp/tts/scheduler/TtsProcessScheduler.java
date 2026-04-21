@@ -1,6 +1,6 @@
 package com.cfsl.easymrcp.tts.scheduler;
 
-import com.cfsl.easymrcp.tts.NettyTtsRtpProcessor4;
+import com.cfsl.easymrcp.tts.NettyTtsRtpProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,7 +20,7 @@ import java.util.concurrent.locks.LockSupport;
  * <p>该类只负责两件事：
  * <ul>
  *     <li>维护 worker 路由和扩缩容</li>
- *     <li>驱动 worker 线程周期性调用 {@link NettyTtsRtpProcessor4#processOnce()}</li>
+ *     <li>驱动 worker 线程周期性调用 {@link NettyTtsRtpProcessor#processOnce()}</li>
  * </ul>
  *
  * <p>具体任务集合由 {@link ProcessWorker} 自己维护。
@@ -68,7 +68,7 @@ public class TtsProcessScheduler {
      * <p>调度器只负责选择合适的 worker 并把任务交给 worker，
      * 之后由 worker 自己线程管理任务变更和执行过程。
      */
-    public String register(NettyTtsRtpProcessor4 processor) {
+    public String register(NettyTtsRtpProcessor processor) {
         synchronized (lifecycleLock) {
             if (!running) {
                 throw new IllegalStateException("TTS 处理调度器已关闭");

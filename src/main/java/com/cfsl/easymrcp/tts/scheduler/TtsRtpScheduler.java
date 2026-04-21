@@ -1,8 +1,8 @@
 package com.cfsl.easymrcp.tts.scheduler;
 
 import com.cfsl.easymrcp.rtp.NettyAudioRingBuffer;
-import com.cfsl.easymrcp.rtp.NettyRtpSenderV4;
-import com.cfsl.easymrcp.tts.NettyTtsRtpProcessor4;
+import com.cfsl.easymrcp.rtp.NettyRtpSender;
+import com.cfsl.easymrcp.tts.NettyTtsRtpProcessor;
 import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.utils.SipUtils;
 import io.netty.buffer.ByteBuf;
@@ -72,7 +72,7 @@ public class TtsRtpScheduler {
      * <p>调度器只负责找到目标 worker 并把任务投递进去，
      * 之后由 worker 自己线程把任务纳入 active 集合并驱动发送。
      */
-    public String register(NettyTtsRtpProcessor4 processor, Consumer<String> callback) {
+    public String register(NettyTtsRtpProcessor processor, Consumer<String> callback) {
         synchronized (lifecycleLock) {
             if (!running) {
                 throw new IllegalStateException("TTS RTP 调度器已关闭");
