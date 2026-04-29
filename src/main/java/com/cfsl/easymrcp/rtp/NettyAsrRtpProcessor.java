@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 
 /**
  * ASR RTP音频处理器
- * 负责接收和处理ASR的RTP音频数据，支持VAD检测和音频缓存
+ * 负责接收和处理ASR的RTP音频数据，支持G.711和L16输入，并保留VAD检测和音频缓存能力
  */
 @Slf4j
 public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
@@ -66,7 +66,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     }
 
     /**
-     * 处理接收到的RTP数据，返回解码后的PCM数据
+     * 处理接收到的RTP数据，按协商编码返回PCM数据
      */
     private ByteBuf processRtpData(ByteBuf rtpData, ByteBufAllocator allocator) {
         try {
@@ -74,10 +74,15 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             rtpData.getBytes(rtpData.readerIndex(), rtpBytes);
 
             RtpPacket parsedPacket = RtpPacket.parseRtpHeader(rtpBytes, rtpBytes.length);
-            byte[] g711Data = parsedPacket.getPayload();
-            
-            // 根据mediaType选择解码器
-            byte[] pcmData = AudioCodecUtil.decode(g711Data, mediaType);
+            byte[] payload = parsedPacket.getPayload();
+            byte[] pcmData;
+
+            if (mediaType == AudioCodecUtil.PT_PCMA || mediaType == AudioCodecUtil.PT_PCMU) {
+                pcmData = AudioCodecUtil.decode(payload, mediaType);
+            } else {
+                // L16使用网络字节序（大端），Java处理通常使用小端序
+                pcmData = convertL16Endianness(payload);
+            }
 
             if (reSample != null && reSample.equals("upsample8kTo16k")) {
                 pcmData = ReSample.resampleFrame(pcmData);
@@ -88,6 +93,21 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             log.error("处理RTP数据包异常", e);
             return null;
         }
+    }
+
+    /**
+     * 转换L16音频数据的字节序
+     * RTP传输的L16是大端序，Java处理通常使用小端序
+     */
+    private byte[] convertL16Endianness(byte[] data) {
+        byte[] result = new byte[data.length];
+        for (int i = 0; i < data.length; i += 2) {
+            if (i + 1 < data.length) {
+                result[i] = data[i + 1];
+                result[i + 1] = data[i];
+            }
+        }
+        return result;
     }
 
         /**

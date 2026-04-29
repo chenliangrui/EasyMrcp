@@ -47,7 +47,7 @@ public class RtpManager {
         }
     }
 
-    public Channel createRtpChannel(String dialogId, int localPort, NettyAsrRtpProcessor2 nettyAsrRtpProcessor) {
+    public Channel createRtpChannel(String dialogId, int localPort, NettyAsrRtpProcessor nettyAsrRtpProcessor) {
         try {
             Bootstrap bootstrap = new Bootstrap()
                     .group(rtpEventLoopGroup)
