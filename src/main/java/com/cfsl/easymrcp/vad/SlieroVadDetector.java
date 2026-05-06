@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * Silero VAD Detector with Energy Threshold
  * Real-time voice activity detection with energy-based filtering
- * 
+ *
  * @author VvvvvGH
  */
 public class SlieroVadDetector {
@@ -27,10 +27,16 @@ public class SlieroVadDetector {
     private final float minSilenceSamples;
     // Speech padding samples for calculating speech boundaries
     private final float speechPadSamples;
-    // Energy threshold for filtering background noise (will be updated dynamically)
-    private float energyThreshold;
+    // Minimum energy threshold floor used for background-noise filtering
+    private final float minEnergyThreshold;
     // Energy threshold multiplier for dynamic calculation
     private final float energyThresholdMultiplier;
+    // Exponential moving average factor for noise floor updates
+    private final float noiseFloorAlpha = 0.05f;
+    // Estimated noise floor energy
+    private float noiseFloorEnergy;
+    // Current energy threshold used to filter background noise
+    private float energyThreshold;
     // Triggered state (whether speech is being detected)
     private boolean triggered;
     // Temporary speech end sample position
@@ -41,14 +47,6 @@ public class SlieroVadDetector {
     private float[] audioBuffer;
     // Reusable result map
     private final Map<String, Double> resultMap;
-    
-    // Energy statistics for adaptive threshold
-    private float totalEnergySum = 0.0f;
-    private int totalEnergyCount = 0;
-    private float totalMaxEnergy = 0.0f;
-    private float totalMinEnergy = Float.MAX_VALUE;
-    private long lastStatsPrintTime = 0;
-
 
     public SlieroVadDetector(String modelPath,
                              float startThreshold,
@@ -56,7 +54,7 @@ public class SlieroVadDetector {
                              int samplingRate,
                              int minSilenceDurationMs,
                              int speechPadMs) throws OrtException {
-        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, 0.01f, 2.0f);
+        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, 0.01f, 1.4f);
     }
 
     public SlieroVadDetector(String modelPath,
@@ -66,7 +64,7 @@ public class SlieroVadDetector {
                              int minSilenceDurationMs,
                              int speechPadMs,
                              float energyThreshold) throws OrtException {
-        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, energyThreshold, 2.0f);
+        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, energyThreshold, 1.4f);
     }
 
     public SlieroVadDetector(String modelPath,
@@ -89,7 +87,7 @@ public class SlieroVadDetector {
         this.samplingRate = samplingRate;
         this.minSilenceSamples = samplingRate * minSilenceDurationMs / 1000f;
         this.speechPadSamples = samplingRate * speechPadMs / 1000f;
-        this.energyThreshold = energyThreshold;
+        this.minEnergyThreshold = energyThreshold;
         this.energyThresholdMultiplier = energyThresholdMultiplier;
         this.resultMap = new HashMap<>(3);
         // Reset state
@@ -105,18 +103,13 @@ public class SlieroVadDetector {
         tempEnd = 0;
         currentSample = 0;
         audioBuffer = null;
-        
-        // Reset energy statistics
-        totalEnergySum = 0.0f;
-        totalEnergyCount = 0;
-        totalMaxEnergy = 0.0f;
-        totalMinEnergy = Float.MAX_VALUE;
-        lastStatsPrintTime = System.currentTimeMillis();
+        noiseFloorEnergy = minEnergyThreshold;
+        energyThreshold = minEnergyThreshold;
     }
 
     /**
      * Calculate RMS (Root Mean Square) energy of audio data
-     * 
+     *
      * @param audioData Audio samples
      * @param length Actual length to calculate
      * @return RMS energy value
@@ -129,57 +122,17 @@ public class SlieroVadDetector {
         }
         return (float) Math.sqrt(sum / length);
     }
-    
-    /**
-     * Update energy statistics and print periodically
-     * 
-     * @param rmsEnergy Current frame RMS energy
-     */
-    private void updateEnergyStatistics(float rmsEnergy) {
-        totalEnergySum += rmsEnergy;
-        totalEnergyCount++;
-        
-        if (rmsEnergy > totalMaxEnergy) {
-            totalMaxEnergy = rmsEnergy;
+
+    private void updateNoiseFloorIfNeeded(float rmsEnergy) {
+        if (!triggered) {
+            noiseFloorEnergy = noiseFloorAlpha * rmsEnergy + (1 - noiseFloorAlpha) * noiseFloorEnergy;
         }
-        if (rmsEnergy < totalMinEnergy) {
-            totalMinEnergy = rmsEnergy;
-        }
-        
-        // Update dynamic threshold: multiplier × average energy
-        float avgEnergy = totalEnergySum / totalEnergyCount;
-        energyThreshold = avgEnergy * energyThresholdMultiplier;
-        
-        // Print statistics every 2 seconds
-//        long currentTime = System.currentTimeMillis();
-//        if (currentTime - lastStatsPrintTime >= 2000) {
-//            printEnergyStatistics();
-//            lastStatsPrintTime = currentTime;
-//        }
-    }
-    
-    /**
-     * Print energy statistics
-     */
-    private void printEnergyStatistics() {
-        if (totalEnergyCount == 0) {
-            return;
-        }
-        
-        float totalAvgEnergy = totalEnergySum / totalEnergyCount;
-        
-        System.out.println("========================================");
-        System.out.printf("Cumulative Energy Statistics (%d frames):%n", totalEnergyCount);
-        System.out.printf("  Average: %.4f%n", totalAvgEnergy);
-        System.out.printf("  Maximum: %.4f%n", totalMaxEnergy);
-        System.out.printf("  Minimum: %.4f%n", totalMinEnergy);
-        System.out.printf("  Dynamic Threshold (%.1fx avg): %.4f%n", energyThresholdMultiplier, energyThreshold);
-        System.out.println("========================================");
+        energyThreshold = Math.max(minEnergyThreshold, noiseFloorEnergy * energyThresholdMultiplier);
     }
 
     /**
      * Process audio data and detect speech events
-     * 
+     *
      * @param data Audio data as byte array
      * @param returnSeconds Whether to return timestamps in seconds
      * @return Speech event (start or end) or empty map if no event
@@ -187,12 +140,12 @@ public class SlieroVadDetector {
     public Map<String, Double> apply(byte[] data, boolean returnSeconds) {
 
         int numSamples = data.length / 2;
-        
+
         // Reuse buffer if possible
         if (audioBuffer == null || audioBuffer.length != numSamples) {
             audioBuffer = new float[numSamples];
         }
-        
+
         // Convert byte array to float array
         for (int i = 0; i < numSamples; i++) {
             audioBuffer[i] = ((data[i * 2] & 0xff) | (data[i * 2 + 1] << 8)) / 32767.0f;
@@ -205,9 +158,6 @@ public class SlieroVadDetector {
 
         // Calculate RMS energy
         float rmsEnergy = calculateRMSEnergy(audioBuffer, numSamples);
-        
-        // Update energy statistics
-        updateEnergyStatistics(rmsEnergy);
 
         // Get speech probability from model
         float speechProb = 0;
@@ -216,6 +166,8 @@ public class SlieroVadDetector {
         } catch (OrtException e) {
             throw new RuntimeException(e);
         }
+
+        updateNoiseFloorIfNeeded(rmsEnergy);
 
         // Reset temporary end if speech probability exceeds threshold
         if (speechProb >= startThreshold && tempEnd != 0) {
@@ -229,10 +181,10 @@ public class SlieroVadDetector {
                 triggered = true;
                 int speechStart = (int) (currentSample - speechPadSamples);
                 speechStart = Math.max(speechStart, 0);
-                
+
                 // Reuse result map
                 resultMap.clear();
-                
+
                 // Return in seconds or samples based on returnSeconds parameter
                 if (returnSeconds) {
                     double speechStartSeconds = speechStart / (double) samplingRate;
@@ -243,13 +195,8 @@ public class SlieroVadDetector {
                 }
                 resultMap.put("probability", (double) speechProb);
                 resultMap.put("energy", (double) rmsEnergy);
-//                System.out.printf("[START] time=%.1fs, prob=%.2f, energy=%.4f%n",
-//                                 resultMap.get("start"), speechProb, rmsEnergy);
                 return resultMap;
             } else {
-                // VAD detected speech but energy too low - log and ignore
-//                System.out.printf("[FILTERED] VAD detected speech but energy too low: prob=%.2f, energy=%.4f, threshold=%.4f%n",
-//                                 speechProb, rmsEnergy, energyThreshold);
                 return Collections.emptyMap();
             }
         }
@@ -268,7 +215,7 @@ public class SlieroVadDetector {
                 int speechEnd = (int) (tempEnd + speechPadSamples);
                 tempEnd = 0;
                 triggered = false;
-                
+
                 // Reuse result map
                 resultMap.clear();
 
@@ -281,8 +228,6 @@ public class SlieroVadDetector {
                 }
                 resultMap.put("probability", (double) speechProb);
                 resultMap.put("energy", (double) rmsEnergy);
-//                System.out.printf("[END]   time=%.1fs, prob=%.2f, energy=%.4f%n",
-//                                 resultMap.get("end"), speechProb, rmsEnergy);
                 return resultMap;
             }
         }
@@ -292,12 +237,6 @@ public class SlieroVadDetector {
     }
 
     public void close() throws OrtException {
-        // Print final statistics before closing
-//        if (totalEnergyCount > 0) {
-//            System.out.println("\n=== Final Energy Statistics ===");
-//            printEnergyStatistics();
-//        }
-        
         reset();
         model.close();
     }
