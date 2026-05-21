@@ -181,9 +181,7 @@
                     <!-- 排除配置示例文件，这些应该由用户在jar外部配置 -->
                     <exclude>asr/**</exclude>
                     <exclude>tts/**</exclude>
-                    <!-- 排除FreeSWITCH模块源码和脚本 -->
-                    <exclude>mod_easymrcp_spy/**</exclude>
-                    <exclude>scripts/**</exclude>
+                    <!-- FreeSWITCH演示模块源码和脚本已移动到仓库根目录 examples/，不在resources打包范围内 -->
                 </excludes>
             </resource>
         </resources>

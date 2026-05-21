@@ -102,8 +102,8 @@ TTS:`mrcp server -> mrcp client -> freeswtich`
 `mod_easymrcp_spy`模块不是运行项目时必须安装，而是当需要使用freeswitch的监听功能时才需要安装
 >
 支持单独监听某一路的音轨。例如在坐席辅助场景中需要asr识别客户和客服人员之间的通话，那么使用`mod_easymrcp_spy`模块即可分别监听对应的语音流，并通过EasyMRCP进行识别。  
-具体使用参考代码中的`mod_easymrcp_spy`模块文档`README.md`。  
-提供了演示脚本`spy_handler.py`，使用电话A拨打电话B即可分别看到对应的asr识别结果。
+仓库中的演示资源已统一整理到根目录`examples/`下，具体使用参考`examples/mod_easymrcp_spy/README.md`。  
+提供了演示脚本`examples/mod_easymrcp_spy/spy_handler.py`，使用电话A拨打电话B即可分别看到对应的asr识别结果。
 
 # 运行程序
 以下配置只是为了能够体验EasyMrcp，所以存在一些硬编码情况，在实际使用中可以根据自己的项目情况进行不同的配置。
@@ -232,7 +232,7 @@ xfyun-tts.VCN=xiaoyan
 ```
 
 2. 添加python执行脚本  
-   在/usr/local/freeswitch/scripts目录下新增`mrcp_handler.py`脚本和`tcp_client.py`脚本。脚本文件可以在下载的项目根目录下的`scripts`中找到。  
+   在/usr/local/freeswitch/scripts目录下新增`mrcp_handler.py`脚本和`tcp_client.py`脚本。脚本文件可以在下载项目根目录下的`examples/scripts`中找到，具体说明见`examples/scripts/README.md`。  
    `tcp_client.py`是EasyMrcp client的python版本，只需调用即可。  
    `mrcp_handler.py`包含用户与EasyMrcp电话之间的桥接和EasyMrcp client的简单调用。  
    在`mrcp_handler.py`中修改硬编码的EasyMrcp地址，将`server_host`改为EasyMrcp的运行地址。
