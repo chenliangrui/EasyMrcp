@@ -131,6 +131,10 @@ public class HandleSipInit {
                         // 更新SDP媒体描述中的端口
                         rtpmd.get(0).getMedia().setMediaFormats(useProtocol);
                         rtpmd.get(0).getMedia().setMediaPort(rtpPort);
+                        // 仅在首轮媒体初始化时缓存协商结果，后续 re-INVITE 的 session refresh
+                        // 直接复用这里的端口和 payload，避免重新申请 RTP 资源。
+                        session.setLocalRtpPort(rtpPort);
+                        session.setNegotiatedAudioFormats(new Vector<>(useProtocol));
 
                         // 初始化ASR，传递mediaType
                         AsrHandler asrHandler = initAsr(remoteHost.getHostAddress(), remotePort, mediaType, frameBytes, sendIntervalMs, customHeaderUUID);
