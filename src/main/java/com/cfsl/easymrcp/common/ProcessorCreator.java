@@ -12,6 +12,7 @@ import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
+import com.cfsl.easymrcp.rtp.RtpAsrProperties;
 import com.cfsl.easymrcp.rtp.RtpManager;
 import com.cfsl.easymrcp.tts.TtsEngine;
 import com.cfsl.easymrcp.tts.TtsProcessor;
@@ -67,12 +68,16 @@ public class ProcessorCreator {
     @Autowired
     RtpManager rtpManager;
     @Autowired
+    RtpAsrProperties rtpAsrProperties;
+    @Autowired
     MrcpManage mrcpManage;
 
     public AsrHandler getAsrHandler() {
         AsrHandler asrHandler = createAsrHandler();
         if (asrHandler != null) {
             asrHandler.setRtpManager(rtpManager);
+            asrHandler.setReorderWindowPackets(rtpAsrProperties.getReorderWindowPackets());
+            asrHandler.setMaxConsecutiveLossFill(rtpAsrProperties.getMaxConsecutiveLossFill());
         }
         return asrHandler;
     }

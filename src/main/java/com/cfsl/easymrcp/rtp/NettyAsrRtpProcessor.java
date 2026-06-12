@@ -1,6 +1,7 @@
 package com.cfsl.easymrcp.rtp;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
+import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.mrcp.Callback;
 import com.cfsl.easymrcp.utils.ReSample;
 import com.cfsl.easymrcp.utils.SipUtils;
@@ -24,6 +25,9 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
+    private static final int DEFAULT_REORDER_WINDOW_PACKETS = 2;
+    private static final int DEFAULT_MAX_CONSECUTIVE_LOSS_FILL = 3;
+
     @Setter
     private String reSample;
     @Setter
@@ -37,7 +41,16 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     Callback reCreate;
     @Setter
     Callback sendEof;
-    private int mediaType;
+    private final int mediaType;
+    private final int frameBytes;
+    @Setter
+    // PauseDetectSpeech、ResumeDetectSpeech控制是否接收网络的语音数据
+    private boolean run = true;
+
+    private final long timestampStep;
+    private final int reorderWindowPackets;
+    private final int maxConsecutiveLossFill;
+    private InboundRtpReorderBuffer reorderBuffer;
 
     // 音频缓冲区，在构造时创建
     private NettyAudioRingBuffer ringBuffer;
@@ -45,12 +58,42 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     private volatile boolean isReconnecting = false;
     // 防止出现vad结束时asr还没连接成功而导致无法发送eof问题
     private volatile boolean connectedAndSendRemain = false;
-    @Setter
-    // PauseDetectSpeech、ResumeDetectSpeech控制是否接收网络的语音数据
-    private boolean run = true;
 
-    public NettyAsrRtpProcessor(int mediaType) {
+    public NettyAsrRtpProcessor(int mediaType, int frameBytes, int sendIntervalMs) {
+        this(mediaType, frameBytes, sendIntervalMs, DEFAULT_REORDER_WINDOW_PACKETS, DEFAULT_MAX_CONSECUTIVE_LOSS_FILL);
+    }
+
+    public NettyAsrRtpProcessor(int mediaType,
+                                int frameBytes,
+                                int sendIntervalMs,
+                                int reorderWindowPackets,
+                                int maxConsecutiveLossFill) {
+        if (frameBytes < 0) {
+            throw new IllegalArgumentException("frameBytes must be non-negative");
+        }
+        if (sendIntervalMs < 0) {
+            throw new IllegalArgumentException("sendIntervalMs must be non-negative");
+        }
+        if (reorderWindowPackets < 0) {
+            throw new IllegalArgumentException("reorderWindowPackets must be non-negative");
+        }
+        if (maxConsecutiveLossFill < 0) {
+            throw new IllegalArgumentException("maxConsecutiveLossFill must be non-negative");
+        }
         this.mediaType = mediaType;
+        this.frameBytes = frameBytes;
+        this.timestampStep = EMConstant.VOIP_SAMPLE_RATE * (long) sendIntervalMs / 1000L;
+        this.reorderWindowPackets = reorderWindowPackets;
+        this.maxConsecutiveLossFill = maxConsecutiveLossFill;
+        this.reorderBuffer = createReorderBuffer();
+    }
+
+    public void setRun(boolean run) {
+        boolean wasRunning = this.run;
+        this.run = run;
+        if (wasRunning && !run) {
+            clearReorderRuntimeState();
+        }
     }
 
     /**
@@ -65,16 +108,47 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         }
     }
 
+    private InboundRtpReorderBuffer createReorderBuffer() {
+        return new InboundRtpReorderBuffer(
+                mediaType, frameBytes, reorderWindowPackets, maxConsecutiveLossFill, timestampStep);
+    }
+
+    /**
+     * pause/close 时清掉当前重排窗口。
+     * 恢复后只处理新的 RTP 包，不继续吐出暂停前残留的数据。
+     */
+    private void clearReorderRuntimeState() {
+        if (reorderBuffer != null && reorderBuffer.getBufferedPacketCount() > 0) {
+            log.info("清空RTP重排窗口缓存: bufferedPackets={}", reorderBuffer.getBufferedPacketCount());
+        }
+        reorderBuffer = createReorderBuffer();
+    }
+
+    /**
+     * 收到一个 RTP 包后，直接把本次可释放的包解码并交给 consumer，避免在热路径上再攒一层 PCM list。
+     */
+    private void processIncomingPacket(RtpPacket packet, ByteBufAllocator allocator, Consumer<ByteBuf> consumer) {
+        if (!run) {
+            return;
+        }
+        reorderBuffer.offer(packet, decodedPacket -> {
+            ByteBuf pcm = decodePayload(decodedPacket.payloadView(), allocator);
+            if (pcm == null) {
+                return;
+            }
+            if (pcm.readableBytes() == 0) {
+                pcm.release();
+                return;
+            }
+            consumer.accept(pcm);
+        });
+    }
+
     /**
      * 处理接收到的RTP数据，按协商编码返回PCM数据
      */
-    private ByteBuf processRtpData(ByteBuf rtpData, ByteBufAllocator allocator) {
+    private ByteBuf decodePayload(byte[] payload, ByteBufAllocator allocator) {
         try {
-            byte[] rtpBytes = new byte[rtpData.readableBytes()];
-            rtpData.getBytes(rtpData.readerIndex(), rtpBytes);
-
-            RtpPacket parsedPacket = RtpPacket.parseRtpHeader(rtpBytes, rtpBytes.length);
-            byte[] payload = parsedPacket.getPayload();
             byte[] pcmData;
 
             if (mediaType == AudioCodecUtil.PT_PCMA || mediaType == AudioCodecUtil.PT_PCMU) {
@@ -110,7 +184,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         return result;
     }
 
-        /**
+    /**
      * 业务处理Handler，直接处理PCM数据
      */
     private class AsrBusinessHandler extends SimpleChannelInboundHandler<ByteBuf> {
@@ -119,7 +193,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         private final int VAD_FRAME_SIZE = 2048;
         // VAD缓冲区容量：能容纳2-3个VAD帧，防止数据积压
         private final int VAD_BUFFER_CAPACITY = VAD_FRAME_SIZE * 3;
-        
+
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
             try {
@@ -127,7 +201,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 if (ringBuffer == null) {
                     initializeBuffer(ctx.alloc());
                 }
-                
+
                 // 初始化VAD缓冲区（环形缓冲区，固定容量）
                 if (vadBuffer == null) {
                     vadBuffer = new NettyAudioRingBuffer(ctx.alloc(), VAD_BUFFER_CAPACITY, false);
@@ -145,17 +219,17 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             }
         }
 
-                /**
+        /**
          * 处理VAD模式，使用2048字节帧进行VAD检测
          * 依靠PCM接收节奏驱动VAD检测，每次只处理一个帧
          */
         private void handleVadMode(ChannelHandlerContext ctx, ByteBuf msg) {
             // 所有音频数据都先写入主缓冲区
             ringBuffer.write(msg);
-            
+
             // 将数据添加到VAD环形缓冲区（自动覆盖旧数据，防止内存泄漏）
             vadBuffer.write(msg);
-            
+
             // 只处理一个VAD帧，保持与PCM接收的自然节奏
             if (vadBuffer.getSize() >= VAD_FRAME_SIZE) {
                 // 读取一个2048字节的音频帧
@@ -163,12 +237,12 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                 byte[] vadFrame = new byte[VAD_FRAME_SIZE];
                 vadFrameBuf.readBytes(vadFrame);
                 vadFrameBuf.release();
-                
+
                 // 进行VAD检测
                 boolean isSpeakingBefore = vadHandle.getIsSpeaking();
                 vadHandle.receivePcm(vadFrame);
                 boolean isSpeakingNow = vadHandle.getIsSpeaking();
-                
+
                 // 处理VAD状态变化
                 if (isSpeakingNow) {
                     if (!isSpeakingBefore && !isReconnecting) {
@@ -177,7 +251,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
                         ringBuffer.moveReadPointerBack(500);
                         asyncReconnectAsr();
                     }
-                    
+
                     // 语音期间，如果不在连接中则发送数据
                     if (!isReconnecting) {
                         sendBufferedAudio();
@@ -257,7 +331,6 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             ringBuffer.clear();
         }
 
-
         /**
          * 发送音频数据
          */
@@ -289,12 +362,34 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) {
                 if (run) {
-                    ByteBuf content = msg.content();
-                    ByteBuf pcm = processRtpData(content, ctx.alloc());
-                    if (pcm != null && pcm.readableBytes() > 0) {
-                        ctx.fireChannelRead(pcm);
-                    }
+                    RtpPacket packet = RtpPacket.parse(msg.content());
+                    processIncomingPacket(packet, ctx.alloc(), buffer -> {
+                        if (run && buffer.readableBytes() > 0) {
+                            ctx.fireChannelRead(buffer);
+                        } else {
+                            buffer.release();
+                        }
+                    });
                 }
+            }
+
+            /**
+             * 通道关闭或移除时同步清理当前窗口，避免旧窗口状态泄漏到下一次会话。
+             */
+            private void cleanupReorderState() {
+                clearReorderRuntimeState();
+            }
+
+            @Override
+            public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                cleanupReorderState();
+                super.channelInactive(ctx);
+            }
+
+            @Override
+            public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+                cleanupReorderState();
+                super.handlerRemoved(ctx);
             }
 
             @Override
@@ -304,4 +399,4 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         });
         pipeline.addLast("asrBusinessHandler", new AsrBusinessHandler());
     }
-} 
+}
