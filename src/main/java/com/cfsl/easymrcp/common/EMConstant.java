@@ -16,6 +16,7 @@ public class EMConstant {
 
     public static final String XFYUN = "xfyun";
     public static final String FUNASR = "funasr";
+    public static final String ALIYUN_FUNASR = "aliyun-funasr";
     public static final String TENCENT_CLOUD = "tencent-cloud";
     public static final String ALIYUN = "aliyun";
     public static final String KOKORO = "kokoro";
