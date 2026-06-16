@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class VadHandle {
     private static final String MODEL_PATH = "silero_vad.onnx";
-    private static final int SAMPLE_RATE = 8000;
     private static final float START_THRESHOLD = 0.4f;
     private static final float END_THRESHOLD = 0.8f;
     // Speech-Complete-Timeout默认使用300毫秒
@@ -29,11 +28,13 @@ public class VadHandle {
     // 动态能量阈值倍数（阈值 = 噪声底能量 × 倍数，且不会低于最小下限）
     private static final float ENERGY_THRESHOLD_MULTIPLIER = 1.4f;
 
+    private final int sampleRate;
     private SlieroVadDetector vadDetector;
     @Getter
     private Boolean isSpeaking = false;
 
-    public VadHandle() {
+    public VadHandle(int sampleRate) {
+        this.sampleRate = sampleRate;
         initVad();
     }
 
@@ -42,7 +43,8 @@ public class VadHandle {
      *
      * @param speechCompleteTimeoutMs Speech-Complete-Timeout参数值（毫秒）
      */
-    public VadHandle(Long speechCompleteTimeoutMs) {
+    public VadHandle(int sampleRate, Long speechCompleteTimeoutMs) {
+        this.sampleRate = sampleRate;
         if (speechCompleteTimeoutMs != null && speechCompleteTimeoutMs > 0) {
             MIN_SILENCE_DURATION_MS = speechCompleteTimeoutMs.intValue();
             log.info("Using custom Speech-Complete-Timeout value for VAD: {} ms", MIN_SILENCE_DURATION_MS);
@@ -71,7 +73,7 @@ public class VadHandle {
                     modePath,
                     START_THRESHOLD,
                     END_THRESHOLD,
-                    SAMPLE_RATE,
+                    sampleRate,
                     MIN_SILENCE_DURATION_MS,
                     SPEECH_PAD_MS,
                     MIN_ENERGY_THRESHOLD_FLOOR,

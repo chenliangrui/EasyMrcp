@@ -97,8 +97,10 @@ public abstract class AsrHandler implements MrcpConnection {
      */
     public void receive() {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-            // 使用Speech-Complete-Timeout参数初始化VAD
-            vadHandle = speechCompleteTimeout != null ? new VadHandle(speechCompleteTimeout) : new VadHandle();
+            int sampleRate = "upsample8kTo16k".equals(reSample) ? 16000 : 8000;
+            vadHandle = speechCompleteTimeout != null
+                    ? new VadHandle(sampleRate, speechCompleteTimeout)
+                    : new VadHandle(sampleRate);
         }
         nettyAsrRtpProcessor.setVadHandle(vadHandle);
         nettyAsrRtpProcessor.setIdentifyPatterns(identifyPatterns);

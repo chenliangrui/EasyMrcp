@@ -101,7 +101,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
      */
     public void initializeBuffer(ByteBufAllocator allocator) {
         if (ringBuffer == null) {
-            int sampleRate = (reSample != null && reSample.equals("upsample8kTo16k")) ? 16000 : 8000;
+            int sampleRate = "upsample8kTo16k".equals(reSample) ? 16000 : 8000;
             // 固定3秒缓冲容量
             ringBuffer = new NettyAudioRingBuffer(allocator, sampleRate);
             log.info("初始化音频缓冲区，采样率: {}Hz, 固定缓冲: 3秒", sampleRate);
@@ -190,9 +190,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
     private class AsrBusinessHandler extends SimpleChannelInboundHandler<ByteBuf> {
         // VAD检测需要的环形缓冲区（固定容量，防止内存泄漏）
         private NettyAudioRingBuffer vadBuffer;
-        private final int VAD_FRAME_SIZE = 2048;
-        // VAD缓冲区容量：能容纳2-3个VAD帧，防止数据积压
-        private final int VAD_BUFFER_CAPACITY = VAD_FRAME_SIZE * 3;
+        private int vadFrameSizeBytes;
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
@@ -204,8 +202,10 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
 
                 // 初始化VAD缓冲区（环形缓冲区，固定容量）
                 if (vadBuffer == null) {
-                    vadBuffer = new NettyAudioRingBuffer(ctx.alloc(), VAD_BUFFER_CAPACITY, false);
-                    log.debug("初始化VAD环形缓冲区，容量: {}字节", VAD_BUFFER_CAPACITY);
+                    vadFrameSizeBytes = "upsample8kTo16k".equals(reSample) ? 4096 : 2048;
+                    // VAD缓冲区容量：能容纳2-3个VAD帧，防止数据积压
+                    vadBuffer = new NettyAudioRingBuffer(ctx.alloc(), vadFrameSizeBytes * 3, false);
+                    log.debug("初始化VAD环形缓冲区，容量: {}字节", vadFrameSizeBytes * 3);
                 }
 
                 if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
@@ -220,7 +220,7 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
         }
 
         /**
-         * 处理VAD模式，使用2048字节帧进行VAD检测
+         * 处理VAD模式，使用按采样率换算后的聚合帧进行VAD检测。
          * 依靠PCM接收节奏驱动VAD检测，每次只处理一个帧
          */
         private void handleVadMode(ChannelHandlerContext ctx, ByteBuf msg) {
@@ -231,10 +231,10 @@ public class NettyAsrRtpProcessor extends ChannelInitializer<DatagramChannel> {
             vadBuffer.write(msg);
 
             // 只处理一个VAD帧，保持与PCM接收的自然节奏
-            if (vadBuffer.getSize() >= VAD_FRAME_SIZE) {
-                // 读取一个2048字节的音频帧
-                ByteBuf vadFrameBuf = vadBuffer.read(VAD_FRAME_SIZE);
-                byte[] vadFrame = new byte[VAD_FRAME_SIZE];
+            if (vadBuffer.getSize() >= vadFrameSizeBytes) {
+                // 读取一个聚合音频帧。8k 保持 2048 字节，16k 对应放大到 4096 字节。
+                ByteBuf vadFrameBuf = vadBuffer.read(vadFrameSizeBytes);
+                byte[] vadFrame = new byte[vadFrameSizeBytes];
                 vadFrameBuf.readBytes(vadFrame);
                 vadFrameBuf.release();
 
