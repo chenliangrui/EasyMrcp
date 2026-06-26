@@ -23,9 +23,11 @@ public class VadHandle {
     // Speech-Complete-Timeout默认使用300毫秒
     private static int MIN_SILENCE_DURATION_MS = 300;
     private static final int SPEECH_PAD_MS = 500;
-    // 最小能量阈值下限，用于避免动态阈值低于基础噪声门限
+    // 能量阈值最小下限：energyThreshold不会低于该值。
+    // 最终能量判断是当前帧 rmsEnergy >= energyThreshold。
     private static final float MIN_ENERGY_THRESHOLD_FLOOR = 0.01f;
-    // 动态能量阈值倍数（阈值 = 噪声底能量 × 倍数，且不会低于最小下限）
+    // 动态能量阈值倍数：energyThreshold = max(MIN_ENERGY_THRESHOLD_FLOOR, noiseFloorEnergy * ENERGY_THRESHOLD_MULTIPLIER)。
+    // noiseFloorEnergy是根据未触发说话状态下的历史rmsEnergy平滑估计出来的背景底噪。
     private static final float ENERGY_THRESHOLD_MULTIPLIER = 1.4f;
 
     private final int sampleRate;

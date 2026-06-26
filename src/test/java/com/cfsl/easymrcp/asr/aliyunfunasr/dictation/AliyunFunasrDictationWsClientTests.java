@@ -1,5 +1,9 @@
 package com.cfsl.easymrcp.asr.aliyunfunasr.dictation;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.aliyunfunasr.AliyunFunasrConfig;
 import com.cfsl.easymrcp.common.EMConstant;
@@ -17,6 +21,7 @@ import okio.ByteString;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayDeque;
@@ -25,6 +30,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,15 +45,29 @@ import static org.mockito.Mockito.verify;
 class AliyunFunasrDictationWsClientTests {
 
     private Object originalNotifier;
+    private Logger logger;
+    private Level originalLevel;
+    private ListAppender<ILoggingEvent> logAppender;
 
     @BeforeEach
     void captureStaticNotifier() {
         originalNotifier = ReflectionTestUtils.getField(SipUtils.class, "tcpClientNotifier");
+        logger = (Logger) LoggerFactory.getLogger(AliyunFunasrDictationWsClient.class);
+        originalLevel = logger.getLevel();
+        logger.setLevel(Level.INFO);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @AfterEach
     void restoreStaticNotifier() {
         ReflectionTestUtils.setField(SipUtils.class, "tcpClientNotifier", originalNotifier);
+        if (logger != null && logAppender != null) {
+            logger.detachAppender(logAppender);
+            logAppender.stop();
+            logger.setLevel(originalLevel);
+        }
     }
 
     @Test
@@ -130,6 +150,44 @@ class AliyunFunasrDictationWsClientTests {
         assertEquals(0L, latch.getCount());
         assertEquals(0, webSocket.textMessages.size());
         assertTrue(webSocket.closeCount > 0 || webSocket.cancelCount > 0);
+    }
+
+    @Test
+    void keyOperationsProduceInfoLogs() {
+        List<String> callbacks = new ArrayList<>();
+        AliyunFunasrDictationWsClient client = newClient(new CountDownLatch(1), new AtomicBoolean(true), new AtomicBoolean(false), false, recordCallbacks(callbacks));
+        RecordingWebSocket webSocket = new RecordingWebSocket();
+
+        client.onOpen(webSocket, websocketResponse());
+        client.onMessage(webSocket, eventMessage("task-started"));
+        client.onMessage(webSocket, resultMessage("hello", false, false));
+        client.onMessage(webSocket, resultMessage("hello world", false, true));
+        client.sendFinishTask();
+        client.onMessage(webSocket, eventMessage("task-finished"));
+        client.closeSocket("client done");
+
+        List<ILoggingEvent> infoEvents = logAppender.list.stream()
+                .filter(event -> event.getLevel() == Level.INFO)
+                .collect(Collectors.toList());
+
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("WebSocket连接已建立")
+                && event.getFormattedMessage().contains("taskId=task-123")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("run-task已发送")
+                && event.getFormattedMessage().contains("taskId=task-123")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("任务已启动")
+                && event.getFormattedMessage().contains("taskId=task-123")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("识别结果")
+                && event.getFormattedMessage().contains("hello")
+                && event.getFormattedMessage().contains("sentenceEnd=false")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("识别结果")
+                && event.getFormattedMessage().contains("hello world")
+                && event.getFormattedMessage().contains("sentenceEnd=true")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("finish-task已发送")
+                && event.getFormattedMessage().contains("taskId=task-123")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("任务已结束")
+                && event.getFormattedMessage().contains("taskId=task-123")));
+        assertTrue(infoEvents.stream().anyMatch(event -> event.getFormattedMessage().contains("关闭WebSocket")
+                && event.getFormattedMessage().contains("client done")));
     }
 
     private AliyunFunasrDictationWsClient newClient(

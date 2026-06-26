@@ -8,6 +8,8 @@ import java.lang.reflect.Method;
 import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SlieroVadDetectorTests {
 
@@ -72,6 +74,31 @@ class SlieroVadDetectorTests {
         }
     }
 
+    @Test
+    void printsRealtimeStatsAtMostOncePer200Ms() throws Exception {
+        SlieroVadDetector detector = createDetector();
+        try {
+            assertTrue(invokeShouldPrintRealtimeStats(detector, 100L));
+            assertFalse(invokeShouldPrintRealtimeStats(detector, 250L));
+            assertTrue(invokeShouldPrintRealtimeStats(detector, 300L));
+            assertFalse(invokeShouldPrintRealtimeStats(detector, 450L));
+        } finally {
+            detector.close();
+        }
+    }
+
+    @Test
+    void formatsRealtimeStatNumbersWithoutScientificNotation() throws Exception {
+        SlieroVadDetector detector = createDetector();
+        try {
+            assertEquals("0.000800", invokeFormatRealtimeStat(detector, 0.0008f));
+            assertEquals("0.010000", invokeFormatRealtimeStat(detector, 0.01f));
+            assertEquals("0.400000", invokeFormatRealtimeStat(detector, 0.4f));
+        } finally {
+            detector.close();
+        }
+    }
+
     private SlieroVadDetector createDetector() throws OrtException {
         return new SlieroVadDetector(MODEL_PATH, 0.4f, 0.8f, 8000, 300, 500, 0.01f, 1.4f);
     }
@@ -80,6 +107,18 @@ class SlieroVadDetectorTests {
         Method method = SlieroVadDetector.class.getDeclaredMethod("updateNoiseFloorIfNeeded", float.class);
         method.setAccessible(true);
         method.invoke(detector, rmsEnergy);
+    }
+
+    private boolean invokeShouldPrintRealtimeStats(SlieroVadDetector detector, long nowMillis) throws Exception {
+        Method method = SlieroVadDetector.class.getDeclaredMethod("shouldPrintRealtimeStats", long.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(detector, nowMillis);
+    }
+
+    private String invokeFormatRealtimeStat(SlieroVadDetector detector, float value) throws Exception {
+        Method method = SlieroVadDetector.class.getDeclaredMethod("formatRealtimeStat", float.class);
+        method.setAccessible(true);
+        return (String) method.invoke(detector, value);
     }
 
     private float getFloatField(Object target, String fieldName) throws Exception {

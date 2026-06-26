@@ -19,9 +19,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
-/**
- * 阿里云 FunASR 在线一句话识别 WebSocket 协议适配器。
- */
 public class AliyunFunasrDictationWsClient extends WebSocketListener {
 
     private final AliyunFunasrConfig config;
@@ -60,14 +57,17 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
     @Override
     public void onOpen(WebSocket webSocket, Response response) {
         this.webSocket = webSocket;
+        log.info("阿里云 FunASR 听写 WebSocket连接已建立, taskId={}, callId={}", taskId, callId);
         boolean accepted = webSocket.send(buildRunTaskFrame().toString());
         if (!accepted) {
             terminalStateReached.set(true);
             releaseStartLatch();
-            log.warn("阿里云 FunASR 在线一句话识别 run-task 发送被拒绝，taskId={}", taskId);
-            webSocket.close(1000, "run-task 发送被拒绝");
+            log.info("阿里云 FunASR 听写 run-task发送被拒绝, taskId={}, callId={}", taskId, callId);
+            webSocket.close(1000, "run-task send rejected");
             webSocket.cancel();
+            return;
         }
+        log.info("阿里云 FunASR 听写 run-task已发送, taskId={}, callId={}", taskId, callId);
     }
 
     @Override
@@ -76,7 +76,8 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         try {
             message = JsonParser.parseString(text).getAsJsonObject();
         } catch (RuntimeException ex) {
-            log.warn("解析阿里云 FunASR WebSocket 消息失败：{}", text, ex);
+            log.warn("解析阿里云 FunASR 听写 WebSocket消息失败, taskId={}, callId={}, text={}",
+                    taskId, callId, text, ex);
             return;
         }
 
@@ -93,6 +94,7 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         switch (event) {
             case "task-started":
                 releaseStartLatch();
+                log.info("阿里云 FunASR 听写任务已启动, taskId={}, callId={}", taskId, callId);
                 break;
             case "result-generated":
                 if (!terminalStateReached.get()) {
@@ -101,15 +103,15 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
                 break;
             case "task-finished":
                 terminalStateReached.set(true);
-                log.debug("阿里云 FunASR 在线一句话识别任务结束，taskId={}", taskId);
+                log.info("阿里云 FunASR 听写任务已结束, taskId={}, callId={}", taskId, callId);
                 break;
             case "task-failed":
                 releaseStartLatch();
                 terminalStateReached.set(true);
-                log.warn("阿里云 FunASR 在线一句话识别任务失败，taskId={}", taskId);
+                log.info("阿里云 FunASR 听写任务失败, taskId={}, callId={}", taskId, callId);
                 break;
             default:
-                log.debug("忽略阿里云 FunASR 在线一句话识别事件 {}，taskId={}", event, taskId);
+                log.info("收到阿里云 FunASR 听写事件, event={}, taskId={}, callId={}", event, taskId, callId);
                 break;
         }
     }
@@ -118,7 +120,7 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
     public void onFailure(WebSocket webSocket, Throwable t, Response response) {
         releaseStartLatch();
         terminalStateReached.set(true);
-        log.error("阿里云 FunASR 在线一句话识别 WebSocket 异常，taskId={}", taskId, t);
+        log.error("阿里云 FunASR 听写 WebSocket异常, taskId={}, callId={}", taskId, callId, t);
         if (response != null) {
             response.close();
         }
@@ -138,11 +140,16 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         boolean accepted = webSocket.send(buildFinishTaskFrame().toString());
         if (accepted) {
             finishTaskSent = true;
+            log.info("阿里云 FunASR 听写 finish-task已发送, taskId={}, callId={}", taskId, callId);
+            return;
         }
+        log.info("阿里云 FunASR 听写 finish-task发送被拒绝, taskId={}, callId={}", taskId, callId);
     }
 
     public void closeSocket(String reason) {
         if (webSocket != null) {
+            log.info("关闭WebSocket, 阿里云 FunASR 听写, taskId={}, callId={}, reason={}",
+                    taskId, callId, reason == null ? "" : reason);
             webSocket.close(1000, reason == null ? "" : reason);
         }
     }
@@ -163,16 +170,24 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         }
 
         boolean sentenceEnd = getBoolean(sentence, "sentence_end");
+        log.info("阿里云 FunASR 听写识别结果, taskId={}, callId={}, sentenceEnd={}, text={}",
+                taskId, callId, sentenceEnd, resultText);
         if (!sentenceEnd && paragraphOpen && isEnabled(interruptEnable)) {
             callback.apply(ASRConstant.Interrupt, resultText);
             paragraphOpen = false;
+            log.info("阿里云 FunASR 听写触发打断回调, taskId={}, callId={}, text={}",
+                    taskId, callId, resultText);
         }
         if (!sentenceEnd && isEnabled(pushAsrRealtimeResult)) {
             SipUtils.sendAsrRealTimeResultEvent(callId, EMConstant.ALIYUN_FUNASR, resultText);
+            log.info("阿里云 FunASR 听写实时结果已推送, taskId={}, callId={}, text={}",
+                    taskId, callId, resultText);
         }
         if (sentenceEnd) {
             if (!stop) {
                 callback.apply(ASRConstant.Result, resultText);
+                log.info("阿里云 FunASR 听写触发最终结果回调, taskId={}, callId={}, text={}",
+                        taskId, callId, resultText);
             }
             paragraphOpen = true;
         }

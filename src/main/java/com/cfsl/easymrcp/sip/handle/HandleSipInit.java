@@ -172,7 +172,7 @@ public class HandleSipInit {
             asrHandler.getPushAsrRealtimeResult().set(mrcpManage.getPushAsrRealtimeResult(customHeaderUUID) != null);
             return asrHandler;
         } catch (Exception e) {
-            log.error("初始化ASR失败", e);
+            log.error("初始化ASR失败，请查看相关配置是否正确", e);
             throw new RuntimeException("初始化ASR失败", e);
         }
     }
