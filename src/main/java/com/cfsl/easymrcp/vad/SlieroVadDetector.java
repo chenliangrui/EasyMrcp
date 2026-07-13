@@ -1,54 +1,59 @@
 package com.cfsl.easymrcp.vad;
 
 import ai.onnxruntime.OrtException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
- * Silero VAD Detector with Energy Threshold
- * Real-time voice activity detection with energy-based filtering
- * 
+ * Silero VAD检测器，额外增加能量阈值过滤。
+ * VAD模型负责判断“像不像人声”，能量阈值负责过滤低能量底噪。
+ *
  * @author VvvvvGH
  */
+@Slf4j
 public class SlieroVadDetector {
-    // ONNX model for speech processing
+    // 实时统计日志打印间隔，避免每个音频帧都刷日志
+    private static final long REALTIME_STATS_LOG_INTERVAL_MS = 200L;
+    // Silero VAD ONNX模型，用于输出当前音频帧的人声概率
     private final SlieroVadOnnxModel model;
-    // Speech start threshold
+    // VAD语音开始阈值：speechProb >= startThreshold 时，模型侧认为可能开始说话
     private final float startThreshold;
-    // Speech end threshold
+    // VAD语音结束阈值：已触发说话后，speechProb < endThreshold 时进入可能结束判断
     private final float endThreshold;
-    // Sampling rate
+    // 音频采样率，只支持8000或16000
     private final int samplingRate;
-    // Minimum silence samples to determine speech end
+    // 判定语音结束需要持续静音的采样点数
     private final float minSilenceSamples;
-    // Speech padding samples for calculating speech boundaries
+    // 语音起止点前后补偿的采样点数
     private final float speechPadSamples;
-    // Energy threshold for filtering background noise (will be updated dynamically)
-    private float energyThreshold;
-    // Energy threshold multiplier for dynamic calculation
+    // 能量阈值最小下限：energyThreshold不会低于该值，避免安静环境下阈值过低
+    private final float minEnergyThreshold;
+    // 动态能量阈值倍数：energyThreshold = max(minEnergyThreshold, noiseFloorEnergy * energyThresholdMultiplier)
     private final float energyThresholdMultiplier;
-    // Triggered state (whether speech is being detected)
+    // 底噪更新的指数滑动平均系数；值越大，noiseFloorEnergy跟随当前rmsEnergy越快
+    private final float noiseFloorAlpha = 0.01f;
+    // 估计的背景底噪能量；无人说话时，由历史rmsEnergy平滑更新得到
+    private float noiseFloorEnergy;
+    // 当前动态能量阈值；最终能量过滤条件是 rmsEnergy >= energyThreshold
+    private float energyThreshold;
+    // 当前是否已经进入“正在说话”状态
     private boolean triggered;
-    // Temporary speech end sample position
+    // 临时语音结束采样点，用于等待持续静音确认
     private int tempEnd;
-    // Current sample position
+    // 当前累计处理到的采样点位置
     private int currentSample;
-    // Reusable buffer for audio conversion
+    // 复用的音频转换缓冲区，避免每帧重复分配
     private float[] audioBuffer;
-    // Reusable result map
+    // 复用的检测结果Map，避免频繁分配
     private final Map<String, Double> resultMap;
-    
-    // Energy statistics for adaptive threshold
-    private float totalEnergySum = 0.0f;
-    private int totalEnergyCount = 0;
-    private float totalMaxEnergy = 0.0f;
-    private float totalMinEnergy = Float.MAX_VALUE;
-    private long lastStatsPrintTime = 0;
-
+    // 上一次打印实时统计日志的时间戳
+    private long lastRealtimeStatsLogMs;
 
     public SlieroVadDetector(String modelPath,
                              float startThreshold,
@@ -56,7 +61,7 @@ public class SlieroVadDetector {
                              int samplingRate,
                              int minSilenceDurationMs,
                              int speechPadMs) throws OrtException {
-        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, 0.01f, 2.0f);
+        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, 0.01f, 1.4f);
     }
 
     public SlieroVadDetector(String modelPath,
@@ -66,7 +71,7 @@ public class SlieroVadDetector {
                              int minSilenceDurationMs,
                              int speechPadMs,
                              float energyThreshold) throws OrtException {
-        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, energyThreshold, 2.0f);
+        this(modelPath, startThreshold, endThreshold, samplingRate, minSilenceDurationMs, speechPadMs, energyThreshold, 1.4f);
     }
 
     public SlieroVadDetector(String modelPath,
@@ -77,27 +82,27 @@ public class SlieroVadDetector {
                              int speechPadMs,
                              float energyThreshold,
                              float energyThresholdMultiplier) throws OrtException {
-        // Validate sampling rate
+        // 校验采样率
         if (samplingRate != 8000 && samplingRate != 16000) {
             throw new IllegalArgumentException("Does not support sampling rates other than [8000, 16000]");
         }
 
-        // Initialize parameters
+        // 初始化参数
         this.model = new SlieroVadOnnxModel(modelPath);
         this.startThreshold = startThreshold;
         this.endThreshold = endThreshold;
         this.samplingRate = samplingRate;
         this.minSilenceSamples = samplingRate * minSilenceDurationMs / 1000f;
         this.speechPadSamples = samplingRate * speechPadMs / 1000f;
-        this.energyThreshold = energyThreshold;
+        this.minEnergyThreshold = energyThreshold;
         this.energyThresholdMultiplier = energyThresholdMultiplier;
         this.resultMap = new HashMap<>(3);
-        // Reset state
+        // 初始化检测状态
         reset();
     }
 
     /**
-     * Reset detector state
+     * 重置检测器状态
      */
     public void reset() {
         model.resetStates();
@@ -105,21 +110,18 @@ public class SlieroVadDetector {
         tempEnd = 0;
         currentSample = 0;
         audioBuffer = null;
-        
-        // Reset energy statistics
-        totalEnergySum = 0.0f;
-        totalEnergyCount = 0;
-        totalMaxEnergy = 0.0f;
-        totalMinEnergy = Float.MAX_VALUE;
-        lastStatsPrintTime = System.currentTimeMillis();
+        noiseFloorEnergy = minEnergyThreshold;
+        energyThreshold = minEnergyThreshold;
+        lastRealtimeStatsLogMs = 0L;
     }
 
     /**
-     * Calculate RMS (Root Mean Square) energy of audio data
-     * 
-     * @param audioData Audio samples
-     * @param length Actual length to calculate
-     * @return RMS energy value
+     * 计算当前音频帧的RMS能量。
+     * rmsEnergy只表示当前帧音量强度，不是动态阈值。
+     *
+     * @param audioData 音频采样数据
+     * @param length 实际参与计算的采样长度
+     * @return 当前帧RMS能量
      */
     private float calculateRMSEnergy(float[] audioData, int length) {
         float sum = 0.0f;
@@ -129,87 +131,75 @@ public class SlieroVadDetector {
         }
         return (float) Math.sqrt(sum / length);
     }
-    
-    /**
-     * Update energy statistics and print periodically
-     * 
-     * @param rmsEnergy Current frame RMS energy
-     */
-    private void updateEnergyStatistics(float rmsEnergy) {
-        totalEnergySum += rmsEnergy;
-        totalEnergyCount++;
-        
-        if (rmsEnergy > totalMaxEnergy) {
-            totalMaxEnergy = rmsEnergy;
+
+    private void updateNoiseFloorIfNeeded(float rmsEnergy) {
+        if (!triggered) {
+            // 只有未进入说话状态时，才把当前帧能量纳入底噪估计。
+            // 这里用平滑更新，避免单帧突增直接把底噪抬得过高。
+            noiseFloorEnergy = noiseFloorAlpha * rmsEnergy + (1 - noiseFloorAlpha) * noiseFloorEnergy;
         }
-        if (rmsEnergy < totalMinEnergy) {
-            totalMinEnergy = rmsEnergy;
-        }
-        
-        // Update dynamic threshold: multiplier × average energy
-        float avgEnergy = totalEnergySum / totalEnergyCount;
-        energyThreshold = avgEnergy * energyThresholdMultiplier;
-        
-        // Print statistics every 2 seconds
-//        long currentTime = System.currentTimeMillis();
-//        if (currentTime - lastStatsPrintTime >= 2000) {
-//            printEnergyStatistics();
-//            lastStatsPrintTime = currentTime;
-//        }
+        // 动态能量阈值由底噪乘以倍数得到，但不会低于最小下限。
+        // 后续真正判断能量是否通过时，用的是当前帧 rmsEnergy >= energyThreshold。
+        energyThreshold = Math.max(minEnergyThreshold, noiseFloorEnergy * energyThresholdMultiplier);
     }
-    
-    /**
-     * Print energy statistics
-     */
-    private void printEnergyStatistics() {
-        if (totalEnergyCount == 0) {
+
+    private boolean shouldPrintRealtimeStats(long nowMillis) {
+        if (lastRealtimeStatsLogMs != 0L && nowMillis - lastRealtimeStatsLogMs < REALTIME_STATS_LOG_INTERVAL_MS) {
+            return false;
+        }
+        lastRealtimeStatsLogMs = nowMillis;
+        return true;
+    }
+
+    private void logRealtimeStats(float speechProb, float rmsEnergy) {
+        long nowMillis = System.currentTimeMillis();
+        if (!shouldPrintRealtimeStats(nowMillis)) {
             return;
         }
-        
-        float totalAvgEnergy = totalEnergySum / totalEnergyCount;
-        
-        System.out.println("========================================");
-        System.out.printf("Cumulative Energy Statistics (%d frames):%n", totalEnergyCount);
-        System.out.printf("  Average: %.4f%n", totalAvgEnergy);
-        System.out.printf("  Maximum: %.4f%n", totalMaxEnergy);
-        System.out.printf("  Minimum: %.4f%n", totalMinEnergy);
-        System.out.printf("  Dynamic Threshold (%.1fx avg): %.4f%n", energyThresholdMultiplier, energyThreshold);
-        System.out.println("========================================");
+        log.info("VAD realtime stats: vadProb={}, startThreshold={}, endThreshold={}, rmsEnergy={}, energyThreshold={}, noiseFloorEnergy={}, triggered={}",
+                formatRealtimeStat(speechProb),
+                formatRealtimeStat(startThreshold),
+                formatRealtimeStat(endThreshold),
+                formatRealtimeStat(rmsEnergy),
+                formatRealtimeStat(energyThreshold),
+                formatRealtimeStat(noiseFloorEnergy),
+                triggered);
+    }
+
+    private String formatRealtimeStat(float value) {
+        return String.format(Locale.ROOT, "%.6f", value);
     }
 
     /**
-     * Process audio data and detect speech events
-     * 
-     * @param data Audio data as byte array
-     * @param returnSeconds Whether to return timestamps in seconds
-     * @return Speech event (start or end) or empty map if no event
+     * 处理音频数据并检测语音事件。
+     *
+     * @param data PCM音频字节数组
+     * @param returnSeconds 是否用秒返回起止时间；false时返回采样点位置
+     * @return 检测到语音开始/结束事件时返回事件Map，否则返回空Map
      */
     public Map<String, Double> apply(byte[] data, boolean returnSeconds) {
 
         int numSamples = data.length / 2;
-        
-        // Reuse buffer if possible
+
+        // 尽量复用缓冲区
         if (audioBuffer == null || audioBuffer.length != numSamples) {
             audioBuffer = new float[numSamples];
         }
-        
-        // Convert byte array to float array
+
+        // 将16位小端PCM转换为float采样值
         for (int i = 0; i < numSamples; i++) {
             audioBuffer[i] = ((data[i * 2] & 0xff) | (data[i * 2 + 1] << 8)) / 32767.0f;
         }
 
-        // Get window size from audio data length
+        // 当前处理窗口的采样点数量
         int windowSizeSamples = numSamples;
-        // Update current sample position
+        // 更新当前累计采样点位置
         currentSample += windowSizeSamples;
 
-        // Calculate RMS energy
+        // 当前帧音频能量，后续会拿它和energyThreshold比较
         float rmsEnergy = calculateRMSEnergy(audioBuffer, numSamples);
-        
-        // Update energy statistics
-        updateEnergyStatistics(rmsEnergy);
 
-        // Get speech probability from model
+        // VAD模型输出的人声概率
         float speechProb = 0;
         try {
             speechProb = model.call(new float[][]{audioBuffer}, samplingRate)[0];
@@ -217,23 +207,26 @@ public class SlieroVadDetector {
             throw new RuntimeException(e);
         }
 
-        // Reset temporary end if speech probability exceeds threshold
+        updateNoiseFloorIfNeeded(rmsEnergy);
+        logRealtimeStats(speechProb, rmsEnergy);
+
+        // 人声概率重新超过开始阈值时，取消之前的临时结束点
         if (speechProb >= startThreshold && tempEnd != 0) {
             tempEnd = 0;
         }
 
-        // Detect speech start - requires BOTH VAD and energy threshold
+        // 检测语音开始：VAD概率先过线，再检查当前帧能量是否超过动态能量阈值
         if (speechProb >= startThreshold && !triggered) {
-            // Check energy threshold to filter out background noise
+            // 最终能量过滤条件：当前帧 rmsEnergy >= 当前动态阈值 energyThreshold
             if (rmsEnergy >= energyThreshold) {
                 triggered = true;
                 int speechStart = (int) (currentSample - speechPadSamples);
                 speechStart = Math.max(speechStart, 0);
-                
-                // Reuse result map
+
+                // 复用结果Map
                 resultMap.clear();
-                
-                // Return in seconds or samples based on returnSeconds parameter
+
+                // 根据参数返回秒或采样点位置
                 if (returnSeconds) {
                     double speechStartSeconds = speechStart / (double) samplingRate;
                     double roundedSpeechStart = Math.round(speechStartSeconds * 10.0) / 10.0;
@@ -243,33 +236,28 @@ public class SlieroVadDetector {
                 }
                 resultMap.put("probability", (double) speechProb);
                 resultMap.put("energy", (double) rmsEnergy);
-//                System.out.printf("[START] time=%.1fs, prob=%.2f, energy=%.4f%n",
-//                                 resultMap.get("start"), speechProb, rmsEnergy);
                 return resultMap;
             } else {
-                // VAD detected speech but energy too low - log and ignore
-//                System.out.printf("[FILTERED] VAD detected speech but energy too low: prob=%.2f, energy=%.4f, threshold=%.4f%n",
-//                                 speechProb, rmsEnergy, energyThreshold);
                 return Collections.emptyMap();
             }
         }
 
-        // Detect speech end
+        // 检测语音结束
         if (speechProb < endThreshold && triggered) {
-            // Initialize or update temporary end position
+            // 记录或保持临时结束点
             if (tempEnd == 0) {
                 tempEnd = currentSample;
             }
-            // Wait for minimum silence duration before confirming speech end
+            // 等待静音持续时间达到阈值后，才确认语音结束
             if (currentSample - tempEnd < minSilenceSamples) {
                 return Collections.emptyMap();
             } else {
-                // Calculate speech end time and reset state
+                // 计算语音结束位置并重置说话状态
                 int speechEnd = (int) (tempEnd + speechPadSamples);
                 tempEnd = 0;
                 triggered = false;
-                
-                // Reuse result map
+
+                // 复用结果Map
                 resultMap.clear();
 
                 if (returnSeconds) {
@@ -281,23 +269,15 @@ public class SlieroVadDetector {
                 }
                 resultMap.put("probability", (double) speechProb);
                 resultMap.put("energy", (double) rmsEnergy);
-//                System.out.printf("[END]   time=%.1fs, prob=%.2f, energy=%.4f%n",
-//                                 resultMap.get("end"), speechProb, rmsEnergy);
                 return resultMap;
             }
         }
 
-        // No speech event detected
+        // 没有检测到起止事件
         return Collections.emptyMap();
     }
 
     public void close() throws OrtException {
-        // Print final statistics before closing
-//        if (totalEnergyCount > 0) {
-//            System.out.println("\n=== Final Energy Statistics ===");
-//            printEnergyStatistics();
-//        }
-        
         reset();
         model.close();
     }

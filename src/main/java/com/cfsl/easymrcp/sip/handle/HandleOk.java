@@ -23,6 +23,9 @@ public class HandleOk {
     SipContext sipContext;
 
     public void sendResponse(SipSession session, SdpMessage sdpResponse) throws SipException {
+        if (session != null && session.isCancelled()) {
+            throw new IllegalStateException("SIP session already cancelled");
+        }
         // send the ok (assuming that the offer is accepted with the response in the sdpMessaage)
         //TODO what if the offer is not accepted?  Do all non-ok response come thru the exception path?
         Response okResponse = null;

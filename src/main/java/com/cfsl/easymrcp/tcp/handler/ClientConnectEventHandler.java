@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.tcp.handler;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.cfsl.easymrcp.asr.AsrHandler;
+import com.cfsl.easymrcp.common.EMConstant;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.rtp.RtpManager;
@@ -47,7 +48,7 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
             RtpManager rtpManager = SpringUtils.getBean(RtpManager.class);
             SipOptions sipOptions = SpringUtils.getBean(SipOptions.class);
             HandleSipInit handleSipInit = SpringUtils.getBean(HandleSipInit.class);
-            AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, 8, id);
+            AsrHandler asrHandler = handleSipInit.initAsr(sipOptions.getFsServerIp(), 0, 8, EMConstant.VOIP_SAMPLES_PER_FRAME, 20, id);
             int rtpPort = sipContext.getAsrRtpPort();
             Channel rtpChannel = rtpManager.createRtpChannel(id, rtpPort, asrHandler.getNettyAsrRtpProcessor());
             JSONObject connectParamsRes = new JSONObject();

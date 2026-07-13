@@ -49,12 +49,10 @@ public class TtsHandler implements MrcpConnection {
     private AtomicInteger ttsVersion = new AtomicInteger(0);
 
     @Override
-    public void create(String remoteIp, int remotePort, int mediaType) {
+    public void create(String remoteIp, int remotePort, int mediaType, int frameBytes, int sendIntervalMs) {
         try {
             // 创建RTP处理器
-            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort, mediaType);
-            // 启动处理器
-            rtpProcessor.startProcessing();
+            rtpProcessor = new NettyTtsRtpProcessor(remoteIp, remotePort, mediaType, frameBytes, sendIntervalMs);
         } catch (Exception e) {
             log.error("初始化TTS失败: {}", e.getMessage(), e);
             throw new RuntimeException("初始化TTS失败", e);

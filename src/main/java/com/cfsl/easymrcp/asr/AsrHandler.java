@@ -30,6 +30,8 @@ public abstract class AsrHandler implements MrcpConnection {
     private AsrCallback callback;
     protected String identifyPatterns;
     protected String reSample;
+    protected Integer reorderWindowPackets = 2;
+    protected Integer maxConsecutiveLossFill = 3;
     @Setter
     @Getter
     private MrcpTimeoutManager timeoutManager;
@@ -61,8 +63,9 @@ public abstract class AsrHandler implements MrcpConnection {
     }
 
     @Override
-    public void create(String remoteIp, int remotePort, int mediaType) {
-        nettyAsrRtpProcessor = new NettyAsrRtpProcessor(mediaType);
+    public void create(String remoteIp, int remotePort, int mediaType, int frameBytes, int sendIntervalMs) {
+        nettyAsrRtpProcessor = new NettyAsrRtpProcessor(
+                mediaType, frameBytes, sendIntervalMs, reorderWindowPackets, maxConsecutiveLossFill);
         nettyAsrRtpProcessor.setReceive(this::receive);
         nettyAsrRtpProcessor.setReCreate(this::reCreate);
         nettyAsrRtpProcessor.setSendEof(this::sendEof);
@@ -94,8 +97,10 @@ public abstract class AsrHandler implements MrcpConnection {
      */
     public void receive() {
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns)) {
-            // 使用Speech-Complete-Timeout参数初始化VAD
-            vadHandle = speechCompleteTimeout != null ? new VadHandle(speechCompleteTimeout) : new VadHandle();
+            int sampleRate = "upsample8kTo16k".equals(reSample) ? 16000 : 8000;
+            vadHandle = speechCompleteTimeout != null
+                    ? new VadHandle(sampleRate, speechCompleteTimeout)
+                    : new VadHandle(sampleRate);
         }
         nettyAsrRtpProcessor.setVadHandle(vadHandle);
         nettyAsrRtpProcessor.setIdentifyPatterns(identifyPatterns);
@@ -105,6 +110,9 @@ public abstract class AsrHandler implements MrcpConnection {
     @Override
     public void close() {
         stop = true;
+        if (nettyAsrRtpProcessor != null) {
+            nettyAsrRtpProcessor.setRun(false);
+        }
         // 关闭ASR客户端
         asrClose();
         if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(identifyPatterns) && vadHandle != null) {

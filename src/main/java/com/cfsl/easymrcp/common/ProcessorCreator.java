@@ -2,6 +2,9 @@ package com.cfsl.easymrcp.common;
 
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
+import com.cfsl.easymrcp.asr.aliyunfunasr.AliyunFunasrConfig;
+import com.cfsl.easymrcp.asr.aliyunfunasr.dictation.AliyunFunasrDictationProcessor;
+import com.cfsl.easymrcp.asr.aliyunfunasr.transliterate.AliyunFunasrTransliterateProcessor;
 import com.cfsl.easymrcp.asr.example.ExampleAsrConfig;
 import com.cfsl.easymrcp.asr.example.ExampleAsrProcessor;
 import com.cfsl.easymrcp.asr.funasr.FunAsrProcessor;
@@ -12,6 +15,7 @@ import com.cfsl.easymrcp.asr.xfyun.XfyunAsrConfig;
 import com.cfsl.easymrcp.asr.xfyun.dictation.XfyunDictationAsrProcessor;
 import com.cfsl.easymrcp.asr.xfyun.transliterate.XfyunTransliterateAsrProcessor;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
+import com.cfsl.easymrcp.rtp.RtpAsrProperties;
 import com.cfsl.easymrcp.rtp.RtpManager;
 import com.cfsl.easymrcp.tts.TtsEngine;
 import com.cfsl.easymrcp.tts.TtsProcessor;
@@ -49,6 +53,8 @@ public class ProcessorCreator {
     @Autowired
     FunasrConfig funasrConfig;
     @Autowired
+    AliyunFunasrConfig aliyunFunasrConfig;
+    @Autowired
     AliyunTtsConfig aliyunTtsConfig;
     @Autowired
     KokoroConfig kokoroConfig;
@@ -67,12 +73,16 @@ public class ProcessorCreator {
     @Autowired
     RtpManager rtpManager;
     @Autowired
+    RtpAsrProperties rtpAsrProperties;
+    @Autowired
     MrcpManage mrcpManage;
 
     public AsrHandler getAsrHandler() {
         AsrHandler asrHandler = createAsrHandler();
         if (asrHandler != null) {
             asrHandler.setRtpManager(rtpManager);
+            asrHandler.setReorderWindowPackets(rtpAsrProperties.getReorderWindowPackets());
+            asrHandler.setMaxConsecutiveLossFill(rtpAsrProperties.getMaxConsecutiveLossFill());
         }
         return asrHandler;
     }
@@ -83,6 +93,19 @@ public class ProcessorCreator {
                 FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);
                 funAsrProcessor.setConfig(funasrConfig);
                 return funAsrProcessor;
+            case EMConstant.ALIYUN_FUNASR:
+                if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(aliyunFunasrConfig.getIdentifyPatterns())) {
+                    AliyunFunasrDictationProcessor aliyunFunasrDictationProcessor =
+                            new AliyunFunasrDictationProcessor(aliyunFunasrConfig);
+                    aliyunFunasrDictationProcessor.setConfig(aliyunFunasrConfig);
+                    return aliyunFunasrDictationProcessor;
+                } else if (ASRConstant.IDENTIFY_PATTERNS_TRANSLITERATE.equals(aliyunFunasrConfig.getIdentifyPatterns())) {
+                    AliyunFunasrTransliterateProcessor aliyunFunasrTransliterateProcessor =
+                            new AliyunFunasrTransliterateProcessor(aliyunFunasrConfig);
+                    aliyunFunasrTransliterateProcessor.setConfig(aliyunFunasrConfig);
+                    return aliyunFunasrTransliterateProcessor;
+                }
+                break;
             case EMConstant.XFYUN:
                 if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
                     XfyunDictationAsrProcessor xfyunDictationAsrProcessor = new XfyunDictationAsrProcessor(xfyunAsrConfig);
@@ -94,11 +117,12 @@ public class ProcessorCreator {
                     return xfyunTransliterateAsrProcessor;
                 }
             case EMConstant.TENCENT_CLOUD:
-                if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(xfyunAsrConfig.getIdentifyPatterns())) {
+                if (ASRConstant.IDENTIFY_PATTERNS_DICTATION.equals(txCloudAsrConfig.getIdentifyPatterns())) {
                     TxCloudAsrProcessor txCloudProcessor = new TxCloudAsrProcessor(txCloudAsrConfig);
                     txCloudProcessor.setConfig(txCloudAsrConfig);
                     return txCloudProcessor;
                 }
+                break;
             case EMConstant.EXAMPLE_ASR:
                 ExampleAsrProcessor exampleProcessor = new ExampleAsrProcessor(exampleAsrConfig);
                 exampleProcessor.setConfig(exampleAsrConfig);

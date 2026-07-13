@@ -105,7 +105,7 @@ public class AudioCodecUtil {
             case PT_PCMA:
                 return "G.711 A-law (PCMA)";
             default:
-                return "Unknown";
+                return "自定义编码类型:{}" + payloadType;
         }
     }
     

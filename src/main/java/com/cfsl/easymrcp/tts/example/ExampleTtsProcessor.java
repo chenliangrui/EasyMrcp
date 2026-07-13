@@ -25,8 +25,8 @@ public class ExampleTtsProcessor extends TtsEngine {
 
     @Override
     public void speak(String text) {
-//            java.io.File wavFile = new java.io.File("/home/clr/Downloads/send-0.wav"); // text参数为wav文件路径
-        java.io.File wavFile = new java.io.File("C:\\Users\\25212\\Downloads\\send-0.wav");
+            java.io.File wavFile = new java.io.File("/opt/easymrcp/tts/send-0.wav"); // text参数为wav文件路径
+//        java.io.File wavFile = new java.io.File("C:\\Users\\25212\\Downloads\\send-0.wav");
         try (java.io.FileInputStream fis = new java.io.FileInputStream(wavFile)) {
             // 跳过wav头部44字节
             if (fis.skip(44) != 44) {
@@ -34,6 +34,7 @@ public class ExampleTtsProcessor extends TtsEngine {
             }
             byte[] buffer = new byte[4096];
             int bytesRead;
+            log.info("发送测试tts音频");
             while ((bytesRead = fis.read(buffer)) != -1) {
                 byte[] audioChunk = new byte[bytesRead];
                 System.arraycopy(buffer, 0, audioChunk, 0, bytesRead);

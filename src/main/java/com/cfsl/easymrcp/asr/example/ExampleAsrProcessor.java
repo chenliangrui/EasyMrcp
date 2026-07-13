@@ -32,7 +32,9 @@ public class ExampleAsrProcessor extends AsrHandler {
                 @Override
                 public void run() {
                     try {
-                        Thread.sleep(3000);
+                        Thread.sleep(500);
+                        SipUtils.executeTask(() -> getCallback().apply(ASRConstant.Interrupt, "打断"));
+                        log.info("{}, 识别成功", getCallId());
                         SipUtils.executeTask(() -> getCallback().apply(ASRConstant.Result, "识别成功"));
                     } catch (InterruptedException e) {
                         log.error(e.getMessage(), e);

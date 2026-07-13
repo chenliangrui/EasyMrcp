@@ -3,6 +3,7 @@ package com.cfsl.easymrcp.sip;
 import com.cfsl.easymrcp.common.SipContext;
 import com.cfsl.easymrcp.sip.handle.HandleAck;
 import com.cfsl.easymrcp.sip.handle.HandleBye;
+import com.cfsl.easymrcp.sip.handle.HandleCancel;
 import com.cfsl.easymrcp.sip.handle.HandleInvite;
 import com.cfsl.easymrcp.sip.handle.HandleOptions;
 import com.cfsl.easymrcp.sip.handle.HandleRegister;
@@ -28,6 +29,8 @@ public class SipListenerImpl implements SipListener {
     @Autowired
     private HandleBye handleBye;
     @Autowired
+    private HandleCancel handleCancel;
+    @Autowired
     private HandleOptions handleOptions;
     @Autowired
     private HandleRegister handleRegister;
@@ -43,6 +46,8 @@ public class SipListenerImpl implements SipListener {
             handleAck.processAck(requestEvent);
         } else if (request.getMethod().equals(Request.BYE)) {
             handleBye.processBye(requestEvent);
+        } else if (request.getMethod().equals(Request.CANCEL)) {
+            handleCancel.processCancel(requestEvent);
         } else if (request.getMethod().equals(Request.OPTIONS)) {
             handleOptions.handleOptions(requestEvent);
         } else {

@@ -12,28 +12,31 @@ import java.util.concurrent.TimeUnit;
 /**
  * 新版VAD处理器，使用vadNew包中的SlieroVadDetector实现
  * 支持能量阈值过滤，提高VAD检测准确性
- * 
+ *
  * @author VvvvvGH
  */
 @Slf4j
 public class VadHandle {
     private static final String MODEL_PATH = "silero_vad.onnx";
-    private static final int SAMPLE_RATE = 8000;
     private static final float START_THRESHOLD = 0.4f;
     private static final float END_THRESHOLD = 0.8f;
     // Speech-Complete-Timeout默认使用300毫秒
     private static int MIN_SILENCE_DURATION_MS = 300;
     private static final int SPEECH_PAD_MS = 500;
-    // 能量阈值，用于过滤背景噪音
-    private static final float ENERGY_THRESHOLD = 0.05f;
-    // 动态能量阈值倍数（阈值 = 平均能量 × 倍数）
-    private static final float ENERGY_THRESHOLD_MULTIPLIER = 2.0f;
+    // 能量阈值最小下限：energyThreshold不会低于该值。
+    // 最终能量判断是当前帧 rmsEnergy >= energyThreshold。
+    private static final float MIN_ENERGY_THRESHOLD_FLOOR = 0.01f;
+    // 动态能量阈值倍数：energyThreshold = max(MIN_ENERGY_THRESHOLD_FLOOR, noiseFloorEnergy * ENERGY_THRESHOLD_MULTIPLIER)。
+    // noiseFloorEnergy是根据未触发说话状态下的历史rmsEnergy平滑估计出来的背景底噪。
+    private static final float ENERGY_THRESHOLD_MULTIPLIER = 1.4f;
 
+    private final int sampleRate;
     private SlieroVadDetector vadDetector;
     @Getter
     private Boolean isSpeaking = false;
 
-    public VadHandle() {
+    public VadHandle(int sampleRate) {
+        this.sampleRate = sampleRate;
         initVad();
     }
 
@@ -42,7 +45,8 @@ public class VadHandle {
      *
      * @param speechCompleteTimeoutMs Speech-Complete-Timeout参数值（毫秒）
      */
-    public VadHandle(Long speechCompleteTimeoutMs) {
+    public VadHandle(int sampleRate, Long speechCompleteTimeoutMs) {
+        this.sampleRate = sampleRate;
         if (speechCompleteTimeoutMs != null && speechCompleteTimeoutMs > 0) {
             MIN_SILENCE_DURATION_MS = speechCompleteTimeoutMs.intValue();
             log.info("Using custom Speech-Complete-Timeout value for VAD: {} ms", MIN_SILENCE_DURATION_MS);
@@ -71,14 +75,14 @@ public class VadHandle {
                     modePath,
                     START_THRESHOLD,
                     END_THRESHOLD,
-                    SAMPLE_RATE,
+                    sampleRate,
                     MIN_SILENCE_DURATION_MS,
                     SPEECH_PAD_MS,
-                    ENERGY_THRESHOLD,
+                    MIN_ENERGY_THRESHOLD_FLOOR,
                     ENERGY_THRESHOLD_MULTIPLIER
             );
-            log.info("VadHandleNew initialized with MIN_SILENCE_DURATION_MS: {} ms, ENERGY_THRESHOLD: {}, MULTIPLIER: {}", 
-                    MIN_SILENCE_DURATION_MS, ENERGY_THRESHOLD, ENERGY_THRESHOLD_MULTIPLIER);
+            log.info("VadHandleNew initialized with MIN_SILENCE_DURATION_MS: {} ms, MIN_ENERGY_THRESHOLD_FLOOR: {}, MULTIPLIER: {}",
+                    MIN_SILENCE_DURATION_MS, MIN_ENERGY_THRESHOLD_FLOOR, ENERGY_THRESHOLD_MULTIPLIER);
         } catch (OrtException e) {
             log.error("Error initializing the VAD detector: {}", e.getMessage(), e);
         }
@@ -89,9 +93,9 @@ public class VadHandle {
      */
     private String resolveModelPath() {
         String path = System.getProperty("user.dir");
-        File file = new File(path + File.separator + "src" + File.separator + "main" + 
+        File file = new File(path + File.separator + "src" + File.separator + "main" +
                 File.separator + "resources" + File.separator + MODEL_PATH);
-        
+
         if (!file.exists()) {
             // 尝试在当前目录查找
             return path + File.separator + MODEL_PATH;
@@ -102,7 +106,7 @@ public class VadHandle {
 
     /**
      * 接收PCM音频数据并进行VAD检测
-     * 
+     *
      * @param pcmData PCM音频数据（16位，单声道）
      */
     public void receivePcm(byte[] pcmData) {
@@ -112,13 +116,13 @@ public class VadHandle {
             if (detectResult != null && !detectResult.isEmpty()) {
                 if (detectResult.containsKey("start")) {
                     isSpeaking = true;
-                    log.debug("VAD detected speech start at {}s, probability: {}, energy: {}", 
-                            detectResult.get("start"), 
+                    log.debug("VAD detected speech start at {}s, probability: {}, energy: {}",
+                            detectResult.get("start"),
                             detectResult.get("probability"),
                             detectResult.get("energy"));
                 } else if (detectResult.containsKey("end")) {
                     isSpeaking = false;
-                    log.debug("VAD detected speech end at {}s, probability: {}, energy: {}", 
+                    log.debug("VAD detected speech end at {}s, probability: {}, energy: {}",
                             detectResult.get("end"),
                             detectResult.get("probability"),
                             detectResult.get("energy"));

@@ -1,140 +1,162 @@
 package com.cfsl.easymrcp.rtp;
 
 import com.cfsl.easymrcp.common.EMConstant;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.util.CharsetUtil;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Random;
-import java.util.concurrent.locks.LockSupport;
-import io.netty.buffer.ByteBuf;
 
 /**
- * 基于Netty实现的RTP发送器
- * 用于替换基于BIO的G711RtpSender实现
+ * 统一的 TTS RTP 发送器。
+ * 根据会话协商得到的编码类型控制发送内容：
+ * - G711：直接写入 payload
+ * - L16：发送前做小端转大端
  */
 @Slf4j
 public class NettyRtpSender {
-    Channel channel;
-    // RTP配置参数
     private static final int RTP_HEADER_SIZE = 12;
-    @Setter
-    private int payloadType;  // RTP Payload Type，由外部设置
-    private long nextSendTime = 0;
 
-    // RTP头部字段
-    private int sequenceNumber = 0;
-    private int timestamp = 0;
+    private int payloadType = 96;
+    private int sequenceNumber = new Random().nextInt(65536);
+    private int timestamp = new Random().nextInt(0x7FFFFFFF);
     private final int ssrc = new Random().nextInt(Integer.MAX_VALUE);
-    private RtpManager rtpManager;
-    private boolean interrupt = false;
+
     private final InetAddress destAddress;
     private final int destPort;
+    private Channel channel;
+    private ByteBuf silenceFrame;
+    private int frameBytes = EMConstant.VOIP_SAMPLES_PER_FRAME;
+    private boolean endianSwapRequired;
 
-    /**
-     * 构造函数
-     *
-     * @param destIp         目标IP
-     * @param destPort       目标端口
-     */
     public NettyRtpSender(String destIp, int destPort) throws UnknownHostException {
         this.destAddress = InetAddress.getByName(destIp);
         this.destPort = destPort;
+        this.silenceFrame = createSilenceFrame();
     }
 
     /**
-     * 发送G.711u音频帧（每帧160字节，对应20ms音频）
-     *
-     * @param g711Data G711编码的音频数据ByteBuf
+     * 设置 payloadType。
      */
-    public void sendFrame(ByteBuf g711Data) {
-        if (g711Data == null || g711Data.readableBytes() == 0) {
-            return;
+    public void setPayloadType(int payloadType) {
+        this.payloadType = payloadType;
+    }
+
+    /**
+     * 设置会话级发送参数，并按当前参数重建静音帧。
+     */
+    public void configureSession(int frameBytes, boolean endianSwapRequired) {
+        this.frameBytes = frameBytes;
+        this.endianSwapRequired = endianSwapRequired;
+        if (silenceFrame != null) {
+            silenceFrame.release();
         }
-        
-        InetSocketAddress remoteAddress = new InetSocketAddress(destAddress, destPort);
-        int remainingBytes = g711Data.readableBytes();
-        int readerIndex = g711Data.readerIndex();
-        
-        while (remainingBytes > 0 && !interrupt) {
-            int frameSize = Math.min(EMConstant.VOIP_SAMPLES_PER_FRAME, remainingBytes);
-            
-            // 直接使用ByteBuf构建RTP包，避免拷贝
-            ByteBuf rtpPacket = buildRtpPacket(g711Data, readerIndex, frameSize);
-            DatagramPacket packet = new DatagramPacket(rtpPacket, remoteAddress);
-            channel.writeAndFlush(packet);
-            
-            // 控制发送速率
-            long time = System.nanoTime();
-            if (nextSendTime == 0) {
-                nextSendTime = time;
-            }
-            long parkTime = time - nextSendTime;
-            if (parkTime < -20 * 1000000) {
-                LockSupport.parkNanos(20 * 1000000);
-            } else {
-                LockSupport.parkNanos(-parkTime);
-            }
-
-            readerIndex += frameSize;
-            remainingBytes -= frameSize;
-            updateHeader(); // 更新序列号和时间戳
-            nextSendTime += EMConstant.VOIP_FRAME_DURATION * 1000000;
-        }
-        interrupt = false;
+        this.silenceFrame = createSilenceFrame();
     }
 
     /**
-     * 构建RTP包（零拷贝版本）
-     *
-     * @param payload 负载数据ByteBuf
-     * @param offset  偏移量
-     * @param length  长度
-     * @return 完整的RTP包ByteBuf
+     * 设置 RTP 通道。
      */
-    private ByteBuf buildRtpPacket(ByteBuf payload, int offset, int length) {
-        ByteBuf rtpPacket = Unpooled.buffer(RTP_HEADER_SIZE + length);
-
-        // RTP头部（RFC3550）
-        rtpPacket.writeByte(0x80);  // Version 2, no padding/extension/CSRC
-        rtpPacket.writeByte(payloadType & 0x7F);  // 使用动态Payload Type
-        rtpPacket.writeShort(sequenceNumber);
-        rtpPacket.writeInt(timestamp);
-        rtpPacket.writeInt(ssrc);
-
-        // 音频负载 - 直接复制，避免额外的byte[]转换
-        rtpPacket.writeBytes(payload, offset, length);
-
-        return rtpPacket;
-    }
-
-    /**
-     * 更新RTP头部字段
-     */
-    private void updateHeader() {
-        sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
-        timestamp += EMConstant.VOIP_SAMPLES_PER_FRAME; // 时间戳增量=8000*0.02=160
-    }
-
-    /**
-     * 中断当前发送
-     */
-    public void interrupt() {
-        interrupt = true;
-    }
-
     public void setRtpChannel(Channel channel) {
         this.channel = channel;
     }
 
+    /**
+     * 非阻塞发送一帧音频，由上层调度器负责节拍控制。
+     */
+    public void sendFrame(ByteBuf payloadData) {
+        if (payloadData == null || payloadData.readableBytes() == 0) {
+            return;
+        }
+
+        if (channel == null || !channel.isActive()) {
+            log.debug("RTP 通道未准备好");
+            return;
+        }
+
+        try {
+            ByteBuf rtpPacket = buildRtpPacket(payloadData, payloadData.readerIndex(), payloadData.readableBytes());
+            DatagramPacket packet = new DatagramPacket(rtpPacket, new InetSocketAddress(destAddress, destPort));
+            channel.writeAndFlush(packet);
+            updateRtpHeader();
+        } catch (Exception e) {
+            log.error("RTP 发送失败", e);
+        }
+    }
+
+    /**
+     * 发送当前编码对应的静音帧。
+     */
+    public void sendSilence() {
+        sendFrame(silenceFrame);
+    }
+
+    /**
+     * 构建 RTP 包，L16 需要大小端转换，其它编码直接写 payload。
+     */
+    private ByteBuf buildRtpPacket(ByteBuf payload, int offset, int length) {
+        ByteBuf rtpPacket = Unpooled.buffer(RTP_HEADER_SIZE + length);
+        rtpPacket.writeByte(0x80);
+        rtpPacket.writeByte(payloadType & 0x7F);
+        rtpPacket.writeShort(sequenceNumber);
+        rtpPacket.writeInt(timestamp);
+        rtpPacket.writeInt(ssrc);
+
+        if (endianSwapRequired) {
+            byte[] tempBuffer = new byte[length];
+            payload.getBytes(offset, tempBuffer);
+            for (int i = 0; i < tempBuffer.length; i += 2) {
+                if (i + 1 < tempBuffer.length) {
+                    byte lowByte = tempBuffer[i];
+                    byte highByte = tempBuffer[i + 1];
+                    tempBuffer[i] = highByte;
+                    tempBuffer[i + 1] = lowByte;
+                }
+            }
+            rtpPacket.writeBytes(tempBuffer);
+        } else {
+            rtpPacket.writeBytes(payload, offset, length);
+        }
+        return rtpPacket;
+    }
+
+    /**
+     * 更新时间戳和序列号，时间戳仍按 20ms@8k 的 160 sample 增量推进。
+     */
+    private void updateRtpHeader() {
+        sequenceNumber = (sequenceNumber + 1) & 0xFFFF;
+        timestamp += EMConstant.VOIP_SAMPLES_PER_FRAME;
+    }
+
+    /**
+     * 按当前会话参数创建静音帧。
+     */
+    private ByteBuf createSilenceFrame() {
+        ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer(frameBytes);
+        byte fill = (byte) 0x00;
+        for (int i = 0; i < frameBytes; i++) {
+            buffer.writeByte(fill);
+        }
+        return buffer;
+    }
+
+    /**
+     * 关闭发送器并释放静音帧资源。
+     */
     public void close() {
+        if (silenceFrame != null) {
+            try {
+                silenceFrame.release();
+            } catch (Exception e) {
+                log.warn("释放静音帧失败", e);
+            }
+        }
         if (channel != null) {
             channel.close();
         }

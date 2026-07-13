@@ -1,11 +1,14 @@
 package com.cfsl.easymrcp.common;
 
 public class EMConstant {
+    // VoIP常用8kHz采样率
     public static final int VOIP_SAMPLE_RATE = 8000;
     //每帧20ms
     public static final int VOIP_FRAME_DURATION = 20;
-    //每帧数据大小
+    //每帧采样点数
     public static final int VOIP_SAMPLES_PER_FRAME = VOIP_SAMPLE_RATE * VOIP_FRAME_DURATION / 1000;
+    // L16 PCM每帧字节数 (16bit)
+    public static final int VOIP_L16_BYTES_PER_FRAME = VOIP_SAMPLES_PER_FRAME * 2;
 
     // TCP Server Constants
     public static final int DEFAULT_TCP_PORT = 9090;
@@ -13,6 +16,7 @@ public class EMConstant {
 
     public static final String XFYUN = "xfyun";
     public static final String FUNASR = "funasr";
+    public static final String ALIYUN_FUNASR = "aliyun-funasr";
     public static final String TENCENT_CLOUD = "tencent-cloud";
     public static final String ALIYUN = "aliyun";
     public static final String KOKORO = "kokoro";

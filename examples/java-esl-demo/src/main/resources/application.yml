@@ -1,0 +1,42 @@
+spring:
+  application:
+    # Spring Boot 应用名，仅用于日志和上下文标识
+    name: java-esl-demo
+
+server:
+  # Demo 自身 HTTP 端口，只用于让 Spring Boot 常驻运行
+  # 与 EasyMrcp TCP 端口、FreeSWITCH ESL 端口无关
+  port: 18080
+
+easy-mrcp:
+  # EasyMrcp 服务地址
+  # 这里填写 EasyMrcp 服务实际运行的 IP 或域名
+  host: 172.16.2.155
+  # EasyMrcp 自定义 TCP 控制端口
+  # 默认与主项目 application.yaml 中 tcpServer.port 对应
+  port: 9090
+  # Java originate B-leg 时使用的 FreeSWITCH user/<sip-user> 目标
+  # 填写EasyMrcp的注册号码
+  sip-user: 1020
+
+link:
+  thingscloud:
+    freeswitch:
+      esl:
+        inbound:
+          # FreeSWITCH ESL 登录密码，默认通常是 ClueCon
+          defaultPassword: ClueCon
+          performance: false
+          performanceCostTime: 200
+          servers:
+            # 可配置多个 ESL 服务端，这里 demo 只保留一个
+            # FreeSWITCH ESL 服务地址
+            - host: 172.16.2.205
+              # FreeSWITCH ESL 入站端口，默认通常是 8021
+              port: 8021
+              # 建立连接时的超时时间，单位：秒
+              timeout-seconds: 5
+          events:
+            # 只订阅 demo 实际处理的通话生命周期事件，避免未处理的系统事件落到默认 handler
+            - CHANNEL_PARK
+            - CHANNEL_HANGUP
