@@ -28,6 +28,7 @@ EasyMrcp使用java编写，目前提供了多种不同的asr和tts的集成，�
 
 | ASR | 支持的asr模式 | 简介 |
 | --- | --- | --- |
+| aliyun-funasr | 一句话语音识别、实时语音转写 | 阿里云百炼在线asr服务，实时语音识别（Fun-ASR），地址：[https://help.aliyun.com/zh/model-studio/fun-asr-realtime-java-sdk](https://help.aliyun.com/zh/model-studio/fun-asr-realtime-java-sdk) |
 | funAsr | 实时语音转写 | 阿里开源，免费可离线运行的asr，地址：[https://github.com/modelscope/FunASR](https://github.com/modelscope/FunASR) |
 | xfyun | ~~实时语音转写~~、一句话语音识别 | 科大讯飞在线asr服务，每天有免费额度。一句话语音识别：[https://www.xfyun.cn/services/voicedictation](https://www.xfyun.cn/services/voicedictation)   长时间实时语音转写：[https://www.xfyun.cn/services/rtasr](https://www.xfyun.cn/services/rtasr) |
 | ~~tencent-cloud~~ | ~~实时语音转写~~ | ~~目前使用EasyMrcp以一句话识别的模式集成的实时语音识别：~~<br/>[~~https://cloud.tencent.com/document/product/1093/52554~~](https://cloud.tencent.com/document/product/1093/52554) |
