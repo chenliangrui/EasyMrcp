@@ -8,4 +8,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class EasyMrcpDemoProperties {
     private String host;
     private int port;
+    private String sipUser;
 }

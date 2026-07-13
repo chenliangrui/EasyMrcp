@@ -24,6 +24,10 @@ public class SimpleEslHangupEventHandler implements EslEventHandler {
 
     @Override
     public void handle(String addr, EslEvent event) {
+        if (SimpleEslCallListener.isBridgeLeg(event)) {
+            return;
+        }
+
         String uuid = event.getEventHeaders().get("Unique-ID");
         if (uuid == null || uuid.isEmpty()) {
             log.warn("CHANNEL_HANGUP事件缺少Unique-ID");

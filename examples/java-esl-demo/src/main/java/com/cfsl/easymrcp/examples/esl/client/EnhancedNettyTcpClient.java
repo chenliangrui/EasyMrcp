@@ -154,6 +154,25 @@ public class EnhancedNettyTcpClient implements AutoCloseable {
         }
     }
 
+    void handleServerMessage(String message) {
+        JSONObject jsonObject = JSONObject.parseObject(message);
+        String eventName = jsonObject.getString("event");
+        if (eventName == null || eventName.isEmpty()) {
+            if (jsonObject.containsKey("code")) {
+                log.debug("收到EasyMrcp响应: {}", message);
+            } else {
+                log.warn("收到缺少event字段的EasyMrcp消息: {}", message);
+            }
+            return;
+        }
+
+        handleStandardEvent(
+                jsonObject.getString("eventId"),
+                eventName,
+                jsonObject.getString("data")
+        );
+    }
+
     private class ClientHandler extends SimpleChannelInboundHandler<String> {
 
         @Override
@@ -171,12 +190,7 @@ public class EnhancedNettyTcpClient implements AutoCloseable {
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, String message) {
             try {
-                JSONObject jsonObject = JSONObject.parseObject(message);
-                handleStandardEvent(
-                        jsonObject.getString("eventId"),
-                        jsonObject.getString("event"),
-                        jsonObject.getString("data")
-                );
+                handleServerMessage(message);
             } catch (Exception e) {
                 log.error("处理EasyMrcp响应异常: {}", message, e);
             }

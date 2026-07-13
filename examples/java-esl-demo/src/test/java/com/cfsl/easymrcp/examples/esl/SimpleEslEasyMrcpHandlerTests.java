@@ -7,6 +7,11 @@ import com.cfsl.easymrcp.examples.esl.config.EasyMrcpDemoProperties;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.FileSystemResource;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -21,16 +26,46 @@ import java.util.function.BiConsumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SimpleEslEasyMrcpHandlerTests {
 
+    private static final String APPLICATION_CONFIG_PATH = "src/main/resources/application.yml";
+
     @Test
     void applicationConfigDoesNotContainPromptTexts() throws Exception {
-        Path configPath = Path.of("src/main/resources/application.yml");
-        String config = Files.readString(configPath, StandardCharsets.UTF_8);
+        String config = readApplicationConfig();
 
         assertFalse(config.contains("welcome-text:"));
         assertFalse(config.contains("timeout-text:"));
+    }
+
+    @Test
+    void applicationConfigBindsConfiguredSipUser() throws Exception {
+        EasyMrcpDemoProperties properties = bindApplicationConfig();
+
+        assertEquals("1020", properties.getSipUser());
+    }
+
+    @Test
+    void applicationConfigSubscribesOnlyToCallLifecycleEvents() throws Exception {
+        String config = readApplicationConfig();
+
+        assertTrue(config.contains("- CHANNEL_PARK"));
+        assertTrue(config.contains("- CHANNEL_HANGUP"));
+        assertFalse(config.contains("- all"));
+    }
+
+    private static String readApplicationConfig() throws Exception {
+        return Files.readString(Path.of(APPLICATION_CONFIG_PATH), StandardCharsets.UTF_8);
+    }
+
+    private static EasyMrcpDemoProperties bindApplicationConfig() throws Exception {
+        List<PropertySource<?>> propertySources = new YamlPropertySourceLoader()
+                .load("application.yml", new FileSystemResource(APPLICATION_CONFIG_PATH));
+        return new Binder(ConfigurationPropertySources.from(propertySources))
+                .bind("easy-mrcp", EasyMrcpDemoProperties.class)
+                .orElseThrow(() -> new AssertionError("easy-mrcp configuration was not bound"));
     }
 
     @Test
