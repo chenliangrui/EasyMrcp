@@ -151,6 +151,11 @@ public class SlieroVadDetector {
         return true;
     }
 
+    /**
+     * 实时打印VAD相关参数，用于调试使用
+     * @param speechProb
+     * @param rmsEnergy
+     */
     private void logRealtimeStats(float speechProb, float rmsEnergy) {
         long nowMillis = System.currentTimeMillis();
         if (!shouldPrintRealtimeStats(nowMillis)) {
@@ -208,7 +213,7 @@ public class SlieroVadDetector {
         }
 
         updateNoiseFloorIfNeeded(rmsEnergy);
-        logRealtimeStats(speechProb, rmsEnergy);
+//        logRealtimeStats(speechProb, rmsEnergy);
 
         // 人声概率重新超过开始阈值时，取消之前的临时结束点
         if (speechProb >= startThreshold && tempEnd != 0) {
