@@ -17,9 +17,9 @@ public class App {
     // Sampling rate
     private static final int SAMPLE_RATE = 16000;
     // Speech threshold (consistent with Python default)
-    private static final float THRESHOLD = 0.6f;
+    private static final float THRESHOLD = 0.4f;
     // Negative threshold (used to determine speech end)
-    private static final float NEG_THRESHOLD = 0.9f; // threshold - 0.15
+    private static final float NEG_THRESHOLD = 0.8f; // threshold - 0.15
     // Minimum silence duration (milliseconds)
     private static final int MIN_SILENCE_DURATION_MS = 100;
     // Speech padding (milliseconds)
@@ -27,7 +27,7 @@ public class App {
     // Window size (samples) - 512 samples for 16kHz
     private static final int WINDOW_SIZE_SAMPLES = 2048;
     // Energy threshold for filtering background noise (RMS value)
-    private static final float ENERGY_THRESHOLD = 0.05f;
+    private static final float ENERGY_THRESHOLD = 0.01f;
 
     public static void main(String[] args) {
         System.out.println("=".repeat(60));

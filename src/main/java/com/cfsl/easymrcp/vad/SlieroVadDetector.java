@@ -37,7 +37,7 @@ public class SlieroVadDetector {
     // 动态能量阈值倍数：energyThreshold = max(minEnergyThreshold, noiseFloorEnergy * energyThresholdMultiplier)
     private final float energyThresholdMultiplier;
     // 底噪更新的指数滑动平均系数；值越大，noiseFloorEnergy跟随当前rmsEnergy越快
-    private final float noiseFloorAlpha = 0.05f;
+    private final float noiseFloorAlpha = 0.01f;
     // 估计的背景底噪能量；无人说话时，由历史rmsEnergy平滑更新得到
     private float noiseFloorEnergy;
     // 当前动态能量阈值；最终能量过滤条件是 rmsEnergy >= energyThreshold

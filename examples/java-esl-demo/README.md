@@ -42,10 +42,8 @@ mvn -f examples/java-esl-demo/pom.xml spring-boot:run
   - EasyMrcp 服务地址
 - `easy-mrcp.port`
   - EasyMrcp 自定义 TCP 控制端口
-- `easy-mrcp.welcome-text`
-  - 通话建立后首次播放的欢迎语
-- `easy-mrcp.timeout-text`
-  - 长时间没说话时回放的提示语
+- `easy-mrcp.sip-user`
+  - Java 创建 B-leg 时在 FreeSWITCH 中呼叫的 `user/<sip-user>` 目标
 
 ### 2. FreeSWITCH ESL 连接配置
 
@@ -64,7 +62,7 @@ mvn -f examples/java-esl-demo/pom.xml spring-boot:run
 - `link.thingscloud.freeswitch.esl.inbound.servers[0].timeout-seconds`
   - ESL 建连超时，单位秒
 - `link.thingscloud.freeswitch.esl.inbound.events`
-  - 监听哪些事件；demo 直接用 `all`
+  - 监听哪些事件；demo 只订阅 `CHANNEL_PARK` 和 `CHANNEL_HANGUP`
 
 ### 3. 对应配置示例
 
@@ -72,8 +70,7 @@ mvn -f examples/java-esl-demo/pom.xml spring-boot:run
 easy-mrcp:
   host: 127.0.0.1
   port: 9090
-  welcome-text: 您好，请开始讲话。
-  timeout-text: 您好，您还在线吗？
+  sip-user: 1020
 
 link:
   thingscloud:
@@ -86,8 +83,11 @@ link:
               port: 8021
               timeout-seconds: 5
           events:
-            - all
+            - CHANNEL_PARK
+            - CHANNEL_HANGUP
 ```
+
+不要订阅 `all`：未被 demo 处理的 `HEARTBEAT`、`RE_SCHEDULE` 等系统事件会进入 ESL starter 的默认 handler，并输出无关的 WARN 日志。
 
 ## 运行说明
 
@@ -98,16 +98,41 @@ link:
 
 也就是说，看到 `Started EslEasyMrcpDemoApplication` 还不够，最好再观察是否有 ESL 相关连接日志，以及后续是否能收到事件。
 
+## FreeSWITCH 拨号计划
+
+操作人员应在 FreeSWITCH 的 `conf/dialplan/default/` 目录下创建一个 include 文件（例如 `easymrcp.xml`；实际安装路径请按环境调整）。该目录会被包含到 `default` 拨号计划 context 中。保存后执行 `reloadxml` 使其生效。
+
+Java demo 不会写入或重载 FreeSWITCH 的拨号计划或服务器配置；安装 include 文件和执行 `reloadxml` 都是操作人员的部署步骤。
+
+下面是 include 文件的代表性内容：
+
+```xml
+<include>
+  <extension name="java_dialplan">
+    <condition field="destination_number" expression="^\d+$">
+      <action application="park"/>
+    </condition>
+  </extension>
+</include>
+```
+
+下列值取决于实际部署拓扑：
+
+- `^\d+$` 表示所有数字号码均交给 Java 处理；请按实际业务范围收窄匹配规则。
+- `user/<easy-mrcp.sip-user>` 是 Java demo 创建 B-leg 时使用的 EasyMrcp SIP 目标。配置的 SIP 用户必须与 EasyMrcp 的 `fs.register.username` 一致，并在呼叫前注册到 FreeSWITCH；FreeSWITCH 的 directory、domain 和注册路由必须使该目标可达。
+
+目标 FreeSWITCH 必须启用并监听 Event Socket；其密码以及 ACL / 网络规则必须允许 Java demo 所在主机连接。该 FreeSWITCH 还必须能通过 Event Socket / API 暴露并支持 `uuid_answer`、`originate`、`uuid_bridge` 和 `uuid_kill`。
+
 ## 事件流
 
 1. FreeSWITCH 产生 `CHANNEL_PARK` 事件
-2. `SimpleEslCallListener` 取出通话 UUID
-3. 按 UUID 创建 `SimpleEslEasyMrcpHandler`
-4. Handler 建立到 EasyMrcp 的 TCP 连接
-5. `ClientConnect` 后发送欢迎语和 `DetectSpeech`
-6. 用户说话后，收到 `RecognitionComplete`
-7. demo 把识别结果回发成 `Speak`
-8. FreeSWITCH 产生 `CHANNEL_HANGUP` 后关闭对应会话
+2. `SimpleEslCallListener` 取出事件中的 `Unique-ID`，并按该 UUID 建立 EasyMrcp TCP 客户端
+3. demo 通过 ESL 执行 `uuid_answer <uuid>` 接听 A-leg
+4. demo 执行 `originate {origination_uuid=<B-leg UUID>,easymrcp_bridge_leg=true,sip_h_X-EasyMRCP=<A-leg UUID>}user/<easy-mrcp.sip-user> &park()` 创建 B-leg
+5. demo 执行 `uuid_bridge <A-leg UUID> <B-leg UUID>` 建立通话桥；B-leg 的 `CHANNEL_PARK` 因为带有标记而被忽略，避免递归建会话
+6. EasyMrcp 的 SIP / RTP 会话初始化
+7. `ClientConnect` 建立后发送 `Speak` / `DetectSpeech`
+8. FreeSWITCH 产生 A-leg 的 `CHANNEL_HANGUP` 后关闭对应的客户端会话
 
 ## 当前示例的边界
 
