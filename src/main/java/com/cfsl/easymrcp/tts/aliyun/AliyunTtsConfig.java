@@ -17,4 +17,6 @@ public class AliyunTtsConfig extends TtsConfig {
     public String mode;
     // 阿里云百炼 API Key
     public String APIKey;
+    // 阿里云百炼 WebSocket API 地址
+    public String baseWebsocketApiUrl;
 }

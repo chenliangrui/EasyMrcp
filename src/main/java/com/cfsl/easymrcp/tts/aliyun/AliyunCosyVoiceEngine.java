@@ -8,6 +8,7 @@ import com.alibaba.dashscope.common.ResultCallback;
 import com.cfsl.easymrcp.tts.TTSConstant;
 import com.cfsl.easymrcp.tts.TtsEngine;
 import lombok.extern.slf4j.Slf4j;
+import com.alibaba.dashscope.utils.Constants;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
@@ -17,6 +18,7 @@ public class AliyunCosyVoiceEngine extends TtsEngine {
     // 模型
     private static String model;
     public String APIKey;
+    private String baseWebsocketApiUrl;
 
     private SpeechSynthesizer synthesizer;
     private final CountDownLatch latch = new CountDownLatch(1);
@@ -24,11 +26,15 @@ public class AliyunCosyVoiceEngine extends TtsEngine {
     public AliyunCosyVoiceEngine(AliyunTtsConfig aliyunTtsConfig) {
         APIKey = aliyunTtsConfig.getAPIKey();
         model = aliyunTtsConfig.getMode();
+        baseWebsocketApiUrl = aliyunTtsConfig.getBaseWebsocketApiUrl();
         skipBytesInTheFirstPacket = aliyunTtsConfig.getSkipBytesInTheFirstPacket();
     }
 
     @Override
     public void create() {
+        if (baseWebsocketApiUrl != null && !baseWebsocketApiUrl.isEmpty()) {
+            Constants.baseWebsocketApiUrl = baseWebsocketApiUrl;
+        }
         // 实现回调接口ResultCallback
         ResultCallback<SpeechSynthesisResult> callback = new ResultCallback<>() {
             @Override
@@ -50,17 +56,26 @@ public class AliyunCosyVoiceEngine extends TtsEngine {
 
             @Override
             public void onError(Exception e) {
-                log.error("阿里云语音合成出现异常", e);
+                log.error("阿里云TTS回调异常, callId={}, engineId={}, requestId={}",
+                        ttsHandler == null ? null : ttsHandler.getCallId(),
+                        getId(), synthesizer == null ? null : synthesizer.getLastRequestId(), e);
                 latch.countDown();
             }
         };
+
+        // 根据音色自动选择模型：自定义音色(cosyvoice-xxx-hash)用配置的模型，系统音色用v3-flash
+        String actualModel = model;
+        if (voice != null && !voice.startsWith("cosyvoice-")) {
+            actualModel = "cosyvoice-v3-flash";
+        }
+        log.info("阿里云TTS音色={}, 使用模型={}", voice, actualModel);
 
         // 请求参数
         SpeechSynthesisParam param =
                 SpeechSynthesisParam.builder()
                         // 若没有将API Key配置到环境变量中，需将下面这行代码注释放开，并将your-api-key替换为自己的API Key
                         .apiKey(APIKey)
-                        .model(model) // 模型
+                        .model(actualModel) // 模型
                         .voice(voice) // 音色
                         .format(SpeechSynthesisAudioFormat.PCM_8000HZ_MONO_16BIT)
                         .build();
