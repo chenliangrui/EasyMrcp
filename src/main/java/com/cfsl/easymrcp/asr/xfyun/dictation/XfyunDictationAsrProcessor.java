@@ -54,8 +54,8 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
         //System.out.println("url===>" + url);
         xfyunCallback = new AsrCallback() {
             @Override
-            public void apply(String action, String msg) {
-                getCallback().apply(action, msg);
+            public void apply(String action, String msg, long audioDurationMs) {
+                getCallback().apply(action, msg, audioDurationMs);
             }
         };
         xfyunWsClient = new XfyunDictationWsClient(xfyunCallback, stop, getCountDownLatch(), getInterruptEnable(), getCallId(), getPushAsrRealtimeResult());

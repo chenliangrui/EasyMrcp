@@ -96,7 +96,7 @@ class AliyunFunasrDictationWsClientTests {
 
         assertEquals(List.of(
                 ASRConstant.Interrupt + "|hello",
-                ASRConstant.Result + "|hello world",
+                ASRConstant.Result + "|hello world|12000",
                 ASRConstant.Interrupt + "|next turn"
         ), callbacks);
     }
@@ -117,7 +117,7 @@ class AliyunFunasrDictationWsClientTests {
                 eq("{\"asrEngine\":\"" + EMConstant.ALIYUN_FUNASR + "\",\"asrResult\":\"streaming text\"}"));
         verify(notifier, never()).sendEvent(anyString(), nullable(String.class), eq(TcpEventType.AsrRealTimeResult),
                 eq("{\"asrEngine\":\"" + EMConstant.ALIYUN_FUNASR + "\",\"asrResult\":\"final text\"}"));
-        assertEquals(List.of(ASRConstant.Result + "|final text"), callbacks);
+        assertEquals(List.of(ASRConstant.Result + "|final text|12000"), callbacks);
     }
 
     @Test
@@ -139,7 +139,7 @@ class AliyunFunasrDictationWsClientTests {
     @Test
     void rejectedRunTaskSendReleasesLatchImmediately() {
         CountDownLatch latch = new CountDownLatch(1);
-        AliyunFunasrDictationWsClient client = newClient(latch, new AtomicBoolean(true), new AtomicBoolean(false), false, (action, message) -> {
+        AliyunFunasrDictationWsClient client = newClient(latch, new AtomicBoolean(true), new AtomicBoolean(false), false, (action, message, audioDurationMs) -> {
         });
         RecordingWebSocket webSocket = new RecordingWebSocket();
         webSocket.queueTextSendResult(false);
@@ -209,7 +209,13 @@ class AliyunFunasrDictationWsClientTests {
     }
 
     private AsrCallback recordCallbacks(List<String> callbacks) {
-        return (action, message) -> callbacks.add(action + "|" + message);
+        return new AsrCallback() {
+            @Override
+            public void apply(String action, String message, long audioDurationMs) {
+                String value = action + "|" + message;
+                callbacks.add(audioDurationMs > 0L ? value + "|" + audioDurationMs : value);
+            }
+        };
     }
 
     private AliyunFunasrConfig config() {
@@ -255,6 +261,9 @@ class AliyunFunasrDictationWsClientTests {
         sentence.addProperty("sentence_end", sentenceEnd);
         output.add("sentence", sentence);
         payload.add("output", output);
+        JsonObject usage = new JsonObject();
+        usage.addProperty("duration", 12);
+        payload.add("usage", usage);
         message.add("payload", payload);
         return message.toString();
     }

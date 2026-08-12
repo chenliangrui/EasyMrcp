@@ -27,6 +27,9 @@ public abstract class AsrHandler implements MrcpConnection {
     @Getter
     private String callId;
     @Setter
+    @Getter
+    private String asrEngine;
+    @Setter
     private AsrCallback callback;
     protected String identifyPatterns;
     protected String reSample;

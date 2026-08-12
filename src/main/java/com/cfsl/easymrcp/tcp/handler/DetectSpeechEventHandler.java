@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.cfsl.easymrcp.asr.ASRConstant;
 import com.cfsl.easymrcp.asr.AsrHandler;
+import com.cfsl.easymrcp.domain.RecognitionCompleteProtocol;
 import com.cfsl.easymrcp.mrcp.AsrCallback;
 import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.mrcp.MrcpTimeoutManager;
@@ -78,15 +79,18 @@ public class DetectSpeechEventHandler implements MrcpEventHandler {
 
         asrHandler.setCallback(new AsrCallback() {
             @Override
-            public void apply(String action, String msg) {
+            public void apply(String action, String msg, long audioDurationMs) {
                 if (asrHandler.getAutomaticInterruption() && action.equals(ASRConstant.Interrupt)) {
                     mrcpManage.clearAllSpeakTaskAndInterrupt(id);
                     asrHandler.cancelTimeouts();
                 }
                 if (action.equals(ASRConstant.Result)) {
-                    if (!msg.isEmpty()) {
-                        tcpClientNotifier.sendEvent(id, null, TcpEventType.RecognitionComplete, msg);
-                    }
+                    RecognitionCompleteProtocol recognitionComplete = new RecognitionCompleteProtocol();
+                    recognitionComplete.setText(msg == null ? "" : msg);
+                    recognitionComplete.setAsrEngine(asrHandler.getAsrEngine());
+                    recognitionComplete.setAudioDurationMs(audioDurationMs);
+                    tcpClientNotifier.sendEvent(id, null, TcpEventType.RecognitionComplete,
+                            JSON.toJSONString(recognitionComplete));
                     asrHandler.startInputTimers();
                 }
             }

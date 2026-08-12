@@ -35,6 +35,7 @@ public class AliyunFunasrTransliterateWsClient extends WebSocketListener {
 
     private WebSocket webSocket;
     private boolean finishTaskSent;
+    private long audioDurationMs;
 
     public AliyunFunasrTransliterateWsClient(
             AliyunFunasrConfig config,
@@ -97,6 +98,10 @@ public class AliyunFunasrTransliterateWsClient extends WebSocketListener {
                 break;
             case "task-finished":
                 terminalStateReached.set(true);
+                if (!stop) {
+                    callback.apply(ASRConstant.Result, "", audioDurationMs);
+                }
+                closeSocket("任务完成");
                 log.debug("阿里云 FunASR 长时间转写任务结束，taskId={}", taskId);
                 break;
             case "task-failed":
@@ -154,16 +159,19 @@ public class AliyunFunasrTransliterateWsClient extends WebSocketListener {
         }
 
         String resultText = getString(sentence, "text");
+        boolean sentenceEnd = getBoolean(sentence, "sentence_end");
+        if (sentenceEnd) {
+            audioDurationMs = getAudioDurationMs(message);
+        }
         if (resultText == null || resultText.trim().isEmpty()) {
             return;
         }
 
-        boolean sentenceEnd = getBoolean(sentence, "sentence_end");
         if (!sentenceEnd && isEnabled(pushAsrRealtimeResult)) {
             SipUtils.sendAsrRealTimeResultEvent(callId, EMConstant.ALIYUN_FUNASR, resultText);
         }
         if (sentenceEnd && !stop) {
-            callback.apply(ASRConstant.Result, resultText);
+            callback.apply(ASRConstant.Result, resultText, 0L);
         }
     }
 
@@ -217,6 +225,13 @@ public class AliyunFunasrTransliterateWsClient extends WebSocketListener {
         JsonObject payload = getObject(message, "payload");
         JsonObject output = getObject(payload, "output");
         return getObject(output, "sentence");
+    }
+
+    private long getAudioDurationMs(JsonObject message) {
+        return message.getAsJsonObject("payload")
+                .getAsJsonObject("usage")
+                .get("duration")
+                .getAsLong() * 1000L;
     }
 
     private void addLanguageHints(JsonObject parameters, String languageHintsValue) {

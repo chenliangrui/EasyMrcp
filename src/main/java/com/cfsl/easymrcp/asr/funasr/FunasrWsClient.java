@@ -153,14 +153,14 @@ public class FunasrWsClient extends WebSocketClient {
             jsonObject = (JSONObject) jsonParser.parse(message);
             String result = jsonObject.get("text").toString();
             log.info("text: " + result);
-            if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断"));
+            if (isParagraphOver) SipUtils.executeTask(() -> callback.apply(ASRConstant.Interrupt, "打断", 0L));
             isParagraphOver = false;
             if (pushAsrRealtimeResult.get() && !result.isEmpty()) {
                 // 实时推送asr识别结果
                 SipUtils.sendAsrRealTimeResultEvent(callId, EMConstant.XFYUN, result);
             }
             if (!stop && (jsonObject.containsKey("timestamp") || (jsonObject.containsKey("mode") && jsonObject.get("mode").equals("2pass-offline")))) {
-                SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result));
+                SipUtils.executeTask(() -> callback.apply(ASRConstant.Result, result, 0L));
                 isParagraphOver = true;
             }
             if (jsonObject.containsKey("timestamp")) {

@@ -25,8 +25,9 @@ public class ClientConnectEventHandler implements MrcpEventHandler {
     @Override
     public TcpResponse handleEvent(MrcpEvent event, TcpClientNotifier tcpClientNotifier) {
         String id = event.getId();
-        mrcpManage.updateConnection(id);
         JSONObject connectParams = JSON.parseObject(event.getData());
+        String asrEngineName = connectParams == null ? null : connectParams.getString("AsrEngine");
+        mrcpManage.updateConnection(id, null, asrEngineName);
         if (connectParams != null && connectParams.getString("TtsEngine") != null) {
             // 设置TTS引擎和发音人
             String ttsEngineName = connectParams.getString("TtsEngine");

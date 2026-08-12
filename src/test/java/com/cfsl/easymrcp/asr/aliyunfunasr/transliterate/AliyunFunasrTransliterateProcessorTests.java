@@ -69,7 +69,7 @@ class AliyunFunasrTransliterateProcessorTests {
     }
 
     @Test
-    void asrCloseSendsBestEffortFinishTaskAndClosesSocket() {
+    void asrCloseSendsFinishTaskAndWaitsForServerCompletion() {
         RecordingFactory factory = new RecordingFactory();
         AliyunFunasrTransliterateProcessor processor = newProcessor(config(""), factory);
 
@@ -79,9 +79,7 @@ class AliyunFunasrTransliterateProcessorTests {
         processor.asrClose();
 
         assertEquals(List.of("run-task", "finish-task"), factory.webSocket.textMessages);
-        assertEquals(1, factory.webSocket.closeCount);
-        assertEquals(1000, factory.webSocket.closeCode);
-        assertEquals("正常关闭", factory.webSocket.closeReason);
+        assertEquals(0, factory.webSocket.closeCount);
         assertNull(factory.request.header("X-DashScope-WorkSpace"));
     }
 
@@ -90,7 +88,7 @@ class AliyunFunasrTransliterateProcessorTests {
             RecordingFactory factory) {
         AliyunFunasrTransliterateProcessor processor = new AliyunFunasrTransliterateProcessor(config, factory);
         processor.setCallId("call-456");
-        processor.setCallback((action, message) -> {
+        processor.setCallback((action, message, audioDurationMs) -> {
         });
         processor.setInterruptEnable(new AtomicBoolean(true));
         processor.setPushAsrRealtimeResult(new AtomicBoolean(false));

@@ -47,19 +47,21 @@ public class MrcpManage {
                 eventCorePoolSize, eventMaxPoolSize, eventQueueCapacity);
     }
 
-    public void updateConnection(String callId) {
-        updateConnection(callId, null);
-    }
-
-    public void updateConnection(String callId, CountDownLatch countDownLatch) {
+    public void updateConnection(String callId, CountDownLatch countDownLatch, String asrEngineName) {
         if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
             MrcpCallData mrcpCallData = new MrcpCallData();
             mrcpCallData.setCallId(callId);
             mrcpCallData.setSipLatch(countDownLatch);
+            if (asrEngineName != null) {
+                mrcpCallData.setAsrEngineName(asrEngineName);
+            }
             mrcpCallDataConcurrentHashMap.put(callId, mrcpCallData);
         } else {
-            // sip等待client连接情况，放行等待
             MrcpCallData mrcpCallData = mrcpCallDataConcurrentHashMap.get(callId);
+            if (asrEngineName != null) {
+                mrcpCallData.setAsrEngineName(asrEngineName);
+            }
+            // sip等待client连接情况，ASR引擎参数写入完成后放行等待
             if (mrcpCallData.getSipLatch() != null) {
                 mrcpCallData.getSipLatch().countDown();
             }
@@ -113,6 +115,14 @@ public class MrcpManage {
         } else {
             return mrcpCallDataConcurrentHashMap.get(callId).getAsrHandler();
         }
+    }
+
+    public String getAsrEngineName(String callId) {
+        if (!mrcpCallDataConcurrentHashMap.containsKey(callId)) {
+            log.error("getAsrEngineName error, callId:{} not exist", callId);
+            return null;
+        }
+        return mrcpCallDataConcurrentHashMap.get(callId).getAsrEngineName();
     }
 
     public TtsHandler getTtsHandler(String callId) {

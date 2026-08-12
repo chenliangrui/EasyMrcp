@@ -36,10 +36,10 @@ public class AliyunFunasrDictationProcessor extends AsrHandler {
 
     @Override
     public void create() {
-        AsrCallback callbackProxy = (action, msg) -> {
+        AsrCallback callbackProxy = (action, msg, audioDurationMs) -> {
             AsrCallback callback = getCallback();
             if (callback != null) {
-                callback.apply(action, msg);
+                callback.apply(action, msg, audioDurationMs);
             }
         };
 

@@ -43,7 +43,7 @@ public class AsrText {
             }
             // 创建新定时任务
             scheduledFuture = executor.schedule(() -> {
-                SipUtils.executeTask(() -> xfyunAsrCallback.apply(ASRConstant.Result, result));
+                SipUtils.executeTask(() -> xfyunAsrCallback.apply(ASRConstant.Result, result, 0L));
                 lock.lock();
                 try {
                     result = "";

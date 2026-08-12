@@ -7,10 +7,11 @@ package com.cfsl.easymrcp.mrcp;
  */
 public interface AsrCallback {
     /**
-     * 获得asr识别结果后回调，执行后mrcp会发送MrcpEventName.RECOGNITION_COMPLETE事件
+     * 获得asr识别结果后回调，执行后mrcp会发送MrcpEventName.RECOGNITION_COMPLETE事件。
      *
-     * @param action
-     * @param msg    asr的识别结果
+     * @param action          回调类型
+     * @param msg             ASR识别结果
+     * @param audioDurationMs 厂商返回的计费时长，单位毫秒
      */
-    void apply(String action, String msg);
+    void apply(String action, String msg, long audioDurationMs);
 }

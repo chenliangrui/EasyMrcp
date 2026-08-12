@@ -38,6 +38,13 @@ public class MrcpCallData {
     @Setter
     AsrHandler asrHandler;
 
+    /**
+     * 使用asr引擎名称
+     */
+    @Setter
+    @Getter
+    private String asrEngineName;
+
     @Getter
     @Setter
     TtsHandler ttsHandler;

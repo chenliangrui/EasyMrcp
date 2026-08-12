@@ -65,7 +65,7 @@ class AliyunFunasrTransliterateWsClientTests {
     }
 
     @Test
-    void finalSentenceTriggersResultAndIgnoresRealtimePush() {
+    void taskFinishedReportsWholeConnectionDurationOnce() {
         TcpClientNotifier notifier = mock(TcpClientNotifier.class);
         ReflectionTestUtils.setField(SipUtils.class, "tcpClientNotifier", notifier);
         List<String> callbacks = new ArrayList<>();
@@ -74,8 +74,13 @@ class AliyunFunasrTransliterateWsClientTests {
         client.onOpen(webSocket, websocketResponse());
 
         client.onMessage(webSocket, resultMessage("final text", false, true));
+        client.onMessage(webSocket, eventMessage("task-finished"));
 
-        assertEquals(List.of(ASRConstant.Result + "|final text"), callbacks);
+        assertEquals(List.of(
+                ASRConstant.Result + "|final text",
+                ASRConstant.Result + "||12000"
+        ), callbacks);
+        assertEquals(1, webSocket.closeCount);
         verify(notifier, never()).sendEvent(anyString(), nullable(String.class), eq(TcpEventType.AsrRealTimeResult),
                 eq("{\"asrEngine\":\"" + EMConstant.ALIYUN_FUNASR + "\",\"asrResult\":\"final text\"}"));
     }
@@ -130,7 +135,13 @@ class AliyunFunasrTransliterateWsClientTests {
     }
 
     private AsrCallback recordCallbacks(List<String> callbacks) {
-        return (action, message) -> callbacks.add(action + "|" + message);
+        return new AsrCallback() {
+            @Override
+            public void apply(String action, String message, long audioDurationMs) {
+                String value = action + "|" + message;
+                callbacks.add(audioDurationMs > 0L ? value + "|" + audioDurationMs : value);
+            }
+        };
     }
 
     private AliyunFunasrConfig config() {
@@ -171,6 +182,9 @@ class AliyunFunasrTransliterateWsClientTests {
         sentence.addProperty("sentence_end", sentenceEnd);
         output.add("sentence", sentence);
         payload.add("output", output);
+        JsonObject usage = new JsonObject();
+        usage.addProperty("duration", 12);
+        payload.add("usage", usage);
         message.add("payload", payload);
         return message.toString();
     }

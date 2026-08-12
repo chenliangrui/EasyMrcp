@@ -33,9 +33,9 @@ public class ExampleAsrProcessor extends AsrHandler {
                 public void run() {
                     try {
                         Thread.sleep(500);
-                        SipUtils.executeTask(() -> getCallback().apply(ASRConstant.Interrupt, "打断"));
+                        SipUtils.executeTask(() -> getCallback().apply(ASRConstant.Interrupt, "打断", 0L));
                         log.info("{}, 识别成功", getCallId());
-                        SipUtils.executeTask(() -> getCallback().apply(ASRConstant.Result, "识别成功"));
+                        SipUtils.executeTask(() -> getCallback().apply(ASRConstant.Result, "识别成功", 0L));
                     } catch (InterruptedException e) {
                         log.error(e.getMessage(), e);
                     }

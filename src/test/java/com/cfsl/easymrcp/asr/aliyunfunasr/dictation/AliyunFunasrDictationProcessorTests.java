@@ -91,7 +91,7 @@ class AliyunFunasrDictationProcessorTests {
             AliyunFunasrDictationProcessor.WebSocketFactory factory) {
         AliyunFunasrDictationProcessor processor = new AliyunFunasrDictationProcessor(config, factory);
         processor.setCallId("call-123");
-        processor.setCallback((action, message) -> {
+        processor.setCallback((action, message, audioDurationMs) -> {
         });
         processor.setInterruptEnable(new AtomicBoolean(true));
         processor.setPushAsrRealtimeResult(new AtomicBoolean(false));

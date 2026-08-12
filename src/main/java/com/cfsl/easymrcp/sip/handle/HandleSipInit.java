@@ -114,7 +114,7 @@ public class HandleSipInit {
                     if (!mrcpManage.containsCallId(customHeaderUUID)) {
                         try {
                             CountDownLatch countDownLatch = new CountDownLatch(1);
-                            mrcpManage.updateConnection(customHeaderUUID, countDownLatch);
+                            mrcpManage.updateConnection(customHeaderUUID, countDownLatch, null);
                             boolean await = countDownLatch.await(30, TimeUnit.SECONDS);
                             if (!await) {
                                 mrcpManage.removeMrcpCallData(customHeaderUUID);
@@ -162,7 +162,8 @@ public class HandleSipInit {
 
     public AsrHandler initAsr(String remoteHost, int remotePort, int mediaType, int frameBytes, int sendIntervalMs, String customHeaderUUID) {
         try {
-            AsrHandler asrHandler = asrChose.getAsrHandler();
+            String asrEngineName = mrcpManage.getAsrEngineName(customHeaderUUID);
+            AsrHandler asrHandler = asrChose.getAsrHandler(asrEngineName);
             asrHandler.setCallId(customHeaderUUID);
             asrHandler.create(remoteHost, remotePort, mediaType, frameBytes, sendIntervalMs);
             asrHandler.receive();

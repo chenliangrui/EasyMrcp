@@ -39,10 +39,10 @@ public class AliyunFunasrTransliterateProcessor extends AsrHandler {
      */
     @Override
     public void create() {
-        AsrCallback callbackProxy = (action, msg) -> {
+        AsrCallback callbackProxy = (action, msg, audioDurationMs) -> {
             AsrCallback callback = getCallback();
             if (callback != null) {
-                callback.apply(action, msg);
+                callback.apply(action, msg, audioDurationMs);
             }
         };
 
@@ -85,16 +85,14 @@ public class AliyunFunasrTransliterateProcessor extends AsrHandler {
     }
 
     /**
-     * 通话结束时补发 finish-task 并关闭长连接，完成资源回收。
+     * 通话结束时补发 finish-task，等待服务端返回最终计费时长后关闭长连接。
      */
     @Override
     public void asrClose() {
         if (wsClient != null && !wsClient.isFinishTaskSent()) {
             wsClient.sendFinishTask();
         }
-        if (wsClient != null) {
-            wsClient.closeSocket("正常关闭");
-        } else if (webSocket != null) {
+        if (wsClient == null && webSocket != null) {
             webSocket.close(1000, "正常关闭");
         }
         webSocket = null;

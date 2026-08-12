@@ -27,14 +27,14 @@ class ProcessorCreatorTests {
         rtpAsrProperties.setReorderWindowPackets(7);
         rtpAsrProperties.setMaxConsecutiveLossFill(9);
 
-        ReflectionTestUtils.setField(processorCreator, "asrMode", EMConstant.EXAMPLE_ASR);
         ReflectionTestUtils.setField(processorCreator, "exampleAsrConfig", exampleAsrConfig);
         ReflectionTestUtils.setField(processorCreator, "rtpAsrProperties", rtpAsrProperties);
         ReflectionTestUtils.setField(processorCreator, "rtpManager", new RtpManager());
 
-        AsrHandler asrHandler = processorCreator.getAsrHandler();
+        AsrHandler asrHandler = processorCreator.getAsrHandler(EMConstant.EXAMPLE_ASR);
 
         assertNotNull(asrHandler);
+        assertEquals(EMConstant.EXAMPLE_ASR, asrHandler.getAsrEngine());
         assertEquals(7, asrHandler.getReorderWindowPackets());
         assertEquals(9, asrHandler.getMaxConsecutiveLossFill());
     }
@@ -48,12 +48,11 @@ class ProcessorCreatorTests {
         rtpAsrProperties.setMaxConsecutiveLossFill(13);
         aliyunFunasrConfig.setIdentifyPatterns(ASRConstant.IDENTIFY_PATTERNS_DICTATION);
 
-        ReflectionTestUtils.setField(processorCreator, "asrMode", EMConstant.ALIYUN_FUNASR);
         ReflectionTestUtils.setField(processorCreator, "aliyunFunasrConfig", aliyunFunasrConfig);
         ReflectionTestUtils.setField(processorCreator, "rtpAsrProperties", rtpAsrProperties);
         ReflectionTestUtils.setField(processorCreator, "rtpManager", new RtpManager());
 
-        AsrHandler asrHandler = processorCreator.getAsrHandler();
+        AsrHandler asrHandler = processorCreator.getAsrHandler(EMConstant.ALIYUN_FUNASR);
 
         assertNotNull(asrHandler);
         assertInstanceOf(AliyunFunasrDictationProcessor.class, asrHandler);
@@ -71,12 +70,11 @@ class ProcessorCreatorTests {
         rtpAsrProperties.setMaxConsecutiveLossFill(19);
         aliyunFunasrConfig.setIdentifyPatterns(ASRConstant.IDENTIFY_PATTERNS_TRANSLITERATE);
 
-        ReflectionTestUtils.setField(processorCreator, "asrMode", EMConstant.ALIYUN_FUNASR);
         ReflectionTestUtils.setField(processorCreator, "aliyunFunasrConfig", aliyunFunasrConfig);
         ReflectionTestUtils.setField(processorCreator, "rtpAsrProperties", rtpAsrProperties);
         ReflectionTestUtils.setField(processorCreator, "rtpManager", new RtpManager());
 
-        AsrHandler asrHandler = processorCreator.getAsrHandler();
+        AsrHandler asrHandler = processorCreator.getAsrHandler(EMConstant.ALIYUN_FUNASR);
 
         assertNotNull(asrHandler);
         assertInstanceOf(AliyunFunasrTransliterateProcessor.class, asrHandler);
@@ -95,13 +93,12 @@ class ProcessorCreatorTests {
         rtpAsrProperties.setMaxConsecutiveLossFill(29);
         txCloudAsrConfig.setIdentifyPatterns(ASRConstant.IDENTIFY_PATTERNS_DICTATION);
 
-        ReflectionTestUtils.setField(processorCreator, "asrMode", EMConstant.TENCENT_CLOUD);
         ReflectionTestUtils.setField(processorCreator, "txCloudAsrConfig", txCloudAsrConfig);
         ReflectionTestUtils.setField(processorCreator, "exampleAsrConfig", exampleAsrConfig);
         ReflectionTestUtils.setField(processorCreator, "rtpAsrProperties", rtpAsrProperties);
         ReflectionTestUtils.setField(processorCreator, "rtpManager", new RtpManager());
 
-        AsrHandler asrHandler = processorCreator.getAsrHandler();
+        AsrHandler asrHandler = processorCreator.getAsrHandler(EMConstant.TENCENT_CLOUD);
 
         assertNotNull(asrHandler);
         assertInstanceOf(TxCloudAsrProcessor.class, asrHandler);

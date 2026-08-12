@@ -45,8 +45,6 @@ import java.util.concurrent.*;
 public class ProcessorCreator {
     private static final Logger log = LoggerFactory.getLogger(ProcessorCreator.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-    @Value("${mrcp.asrMode}")
-    String asrMode;
     @Value("${mrcp.ttsMode}")
     String ttsMode;
     
@@ -77,9 +75,10 @@ public class ProcessorCreator {
     @Autowired
     MrcpManage mrcpManage;
 
-    public AsrHandler getAsrHandler() {
-        AsrHandler asrHandler = createAsrHandler();
+    public AsrHandler getAsrHandler(String selectedAsrMode) {
+        AsrHandler asrHandler = createAsrHandler(selectedAsrMode);
         if (asrHandler != null) {
+            asrHandler.setAsrEngine(selectedAsrMode);
             asrHandler.setRtpManager(rtpManager);
             asrHandler.setReorderWindowPackets(rtpAsrProperties.getReorderWindowPackets());
             asrHandler.setMaxConsecutiveLossFill(rtpAsrProperties.getMaxConsecutiveLossFill());
@@ -87,8 +86,8 @@ public class ProcessorCreator {
         return asrHandler;
     }
     
-    private AsrHandler createAsrHandler() {
-        switch (asrMode) {
+    private AsrHandler createAsrHandler(String selectedAsrMode) {
+        switch (selectedAsrMode) {
             case EMConstant.FUNASR:
                 FunAsrProcessor funAsrProcessor = new FunAsrProcessor(funasrConfig);
                 funAsrProcessor.setConfig(funasrConfig);

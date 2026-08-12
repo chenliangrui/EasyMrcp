@@ -165,15 +165,15 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         }
 
         String resultText = getString(sentence, "text");
+        boolean sentenceEnd = getBoolean(sentence, "sentence_end");
         if (resultText == null || resultText.trim().isEmpty()) {
             return;
         }
 
-        boolean sentenceEnd = getBoolean(sentence, "sentence_end");
         log.info("阿里云 FunASR 听写识别结果, taskId={}, callId={}, sentenceEnd={}, text={}",
                 taskId, callId, sentenceEnd, resultText);
         if (!sentenceEnd && paragraphOpen && isEnabled(interruptEnable)) {
-            callback.apply(ASRConstant.Interrupt, resultText);
+            callback.apply(ASRConstant.Interrupt, resultText, 0L);
             paragraphOpen = false;
             log.info("阿里云 FunASR 听写触发打断回调, taskId={}, callId={}, text={}",
                     taskId, callId, resultText);
@@ -185,7 +185,7 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         }
         if (sentenceEnd) {
             if (!stop) {
-                callback.apply(ASRConstant.Result, resultText);
+                callback.apply(ASRConstant.Result, resultText, getAudioDurationMs(message));
                 log.info("阿里云 FunASR 听写触发最终结果回调, taskId={}, callId={}, text={}",
                         taskId, callId, resultText);
             }
@@ -243,6 +243,13 @@ public class AliyunFunasrDictationWsClient extends WebSocketListener {
         JsonObject payload = getObject(message, "payload");
         JsonObject output = getObject(payload, "output");
         return getObject(output, "sentence");
+    }
+
+    private long getAudioDurationMs(JsonObject message) {
+        return message.getAsJsonObject("payload")
+                .getAsJsonObject("usage")
+                .get("duration")
+                .getAsLong() * 1000L;
     }
 
     private void addLanguageHints(JsonObject parameters, String languageHintsValue) {
