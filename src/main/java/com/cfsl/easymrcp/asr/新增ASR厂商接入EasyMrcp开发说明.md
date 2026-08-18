@@ -182,7 +182,7 @@ public class XfyunDictationAsrProcessor extends AsrHandler {
         String authUrl = XfyunDictationWsClient.getAuthUrl(hostUrl, apiKey, apiSecret);
         client = new OkHttpClient.Builder().build();
         Request request = new Request.Builder().url(url).build();
-        xfyunCallback = (action, msg) -> getCallback().apply(action, msg);
+        xfyunCallback = (action, msg, audioDurationMs) -> getCallback().apply(action, msg, audioDurationMs);
         xfyunWsClient = new XfyunDictationWsClient(
                 xfyunCallback, stop, getCountDownLatch(), getInterruptEnable(), getCallId(), getPushAsrRealtimeResult());
         webSocket = client.newWebSocket(request, xfyunWsClient);

@@ -106,7 +106,7 @@ public class TtsHandler implements MrcpConnection {
         return ttsVersion.get();
     }
 
-    public void transmit(String id, String text, String pre, String ttsEngineId) {
+    public void transmit(String id, TtsRequest request, String pre, String ttsEngineId) {
         if (!pre.equals("pre")) rtpProcessor.setCallback(getCallback(ttsEngineId));
         ProcessorCreator ttsChose = SpringUtils.getBean(ProcessorCreator.class);
         if (pre.equals("playPre")) {
@@ -125,7 +125,7 @@ public class TtsHandler implements MrcpConnection {
                 NettyAudioRingBuffer nettyAudioRingBuffer = new NettyAudioRingBuffer(allocator, EMConstant.VOIP_SAMPLE_RATE, 30, true);// TTS模式
                 ttsEngine.setNettyAudioRingBuffer(nettyAudioRingBuffer);
             }
-            ttsProcessor.createAndSpeak(ttsEngine, text);
+            ttsProcessor.createAndSpeak(ttsEngine, request);
         }
     }
 

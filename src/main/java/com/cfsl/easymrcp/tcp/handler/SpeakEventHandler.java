@@ -5,6 +5,9 @@ import com.cfsl.easymrcp.mrcp.MrcpManage;
 import com.cfsl.easymrcp.mrcp.TtsCallback;
 import com.cfsl.easymrcp.tcp.*;
 import com.cfsl.easymrcp.tts.TtsHandler;
+import com.cfsl.easymrcp.tts.TtsEngine;
+import com.cfsl.easymrcp.tts.TtsRequest;
+import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Consumer;
@@ -46,24 +49,29 @@ public class SpeakEventHandler implements MrcpEventHandler {
                 ttsHandler.addCallback(ttsEngineId, new TtsCallback() {
                     @Override
                     public void apply(String msg) {
+                        TtsEngine ttsEngine = ttsHandler.getTtsProcessor().getTtsEngines().get(ttsEngineId);
+                        JSONObject result = new JSONObject();
+                        result.put("status", msg);
+                        result.put("cacheHit", ttsEngine != null && ttsEngine.isCacheHit());
+                        result.put("charCount", ttsEngine == null ? 0 : ttsEngine.getCharCount());
                         ttsHandler.removeCallback(ttsEngineId);
                         ttsHandler.getTtsProcessor().removeTtsEngine(ttsEngineId);
                         if (msg.equals("completed")) {
                             if (!mrcpManage.isInterruptEnable(id)) mrcpManage.setInterruptEnable(id, true);
-                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakComplete, msg);
+                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakComplete, result.toJSONString());
                             asrHandler.startInputTimers();
                             mrcpManage.setSpeaking(id,false);
                             // 继续speak
                             mrcpManage.runNextSpeak(id);
                         } else {
-                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakInterrupted, msg);
+                            tcpClientNotifier.sendEvent(id, event.getEventId(), TcpEventType.SpeakInterrupted, result.toJSONString());
                         }
                     }
                 });
                 if (event.getEvent().equals(TcpEventType.Silence.name())) {
                     ttsHandler.silence(Integer.parseInt(event.getData()), ttsEngineId);
                 } else {
-                    ttsHandler.transmit(id, event.getData(), pre, ttsEngineId);
+                    ttsHandler.transmit(id, TtsRequest.parse(event.getData()), pre, ttsEngineId);
                 }
             }
         });

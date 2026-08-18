@@ -28,6 +28,12 @@ public abstract class TtsEngine {
     // 首包跳过字节计数
     @Setter
     protected int skipBytesInTheFirstPacket;
+    @Getter
+    @Setter
+    private boolean cacheHit;
+    @Getter
+    @Setter
+    private int charCount;
 
     public abstract void create();
 
@@ -37,6 +43,18 @@ public abstract class TtsEngine {
      * 关闭TTS资源
      */
     public abstract void ttsClose();
+
+    public void playPcm(byte[] pcm) {
+        int offset = 0;
+        while (offset < pcm.length) {
+            int length = Math.min(TTSConstant.TTS_PCM_FRAME_BYTES, pcm.length - offset);
+            byte[] chunk = new byte[length];
+            System.arraycopy(pcm, offset, chunk, 0, length);
+            putAudioData(chunk, length);
+            offset += length;
+        }
+        putAudioData(TTSConstant.TTS_END_FLAG.retainedDuplicate());
+    }
 
     /**
      * byte[]形式写入TTS音频数据

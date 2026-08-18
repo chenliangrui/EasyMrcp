@@ -1,6 +1,6 @@
 server:
   # 服务端口
-  port: 8080
+  port: 18081
 sip:
   # EasyMrcp要监听的sip服务器地址，填写项目运行的ip地址
   sipServer: 172.16.2.155
@@ -8,7 +8,7 @@ sip:
   sipPort: 5060
 mrcp:
   # 选择一个asr服务，目前已经集成：xfyun、funasr、aliyun-funasr、tencent-cloud
-  asrMode: xfyun
+  asrMode: aliyun-funasr
   # 选择一个tts服务，目前已经集成：xfyun、kokoro、tencent-cloud、aliyun
   ttsMode: xfyun
   # MRCP事件处理线程池配置
@@ -63,3 +63,29 @@ tcp:
   server:
     # TCP服务器监听端口
     port: 9090
+audio:
+  # 发布开场白时调用厂商接口进行 TTS 合成的配置，不影响实时通话 TTS
+  synthesis:
+    # 单次发布合成等待厂商返回音频的超时时间（秒）
+    timeout-seconds: 60
+  # 通话播放录音前使用的本地文件缓存
+  cache:
+    # 已下载录音的本地缓存目录
+    dir: ./audio-cache
+    # 缓存文件保留天数，清理任务会删除超过该时间的文件
+    retain-days: 1
+    # 缓存清理任务 Cron 表达式，默认每天 03:20 执行
+    cleanup-cron: 0 20 3 * * ?
+  # EasyMrcp 直接从 OSS 下载已发布录音，不经过平台签名接口
+  oss:
+    # 是否启用 OSS 录音下载；关闭或下载失败时回退到原有实时 TTS
+    enabled: true
+    # OSS Endpoint，部署在同地域时建议使用内网地址
+    endpoint:
+    # 保存开场白录音的 OSS Bucket 名称
+    bucket:
+    # OSS 访问凭证，建议仅授予 allowed-prefix 范围的只读权限
+    access-key-id:
+    access-key-secret:
+    # 允许下载的 objectName 前缀
+    allowed-prefix: tts-cache/agent-speak/

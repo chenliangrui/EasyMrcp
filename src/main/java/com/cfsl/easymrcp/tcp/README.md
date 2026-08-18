@@ -120,9 +120,11 @@
 {
   "id": "client-001",
   "event": "RecognitionComplete",
-  "data": "识别到的文本内容"
+  "data": "{\"text\":\"识别到的文本内容\",\"asrEngine\":\"aliyun-funasr\",\"audioDurationMs\":12000}"
 }
 ```
+
+`RecognitionComplete.data` 只使用上述 JSON 字符串协议，不再发送或兼容纯文本结果。`audioDurationMs` 为厂商返回的计费时长，阿里云返回秒数后转换为毫秒，其他未返回计费时长的引擎使用 `0`。长转写逐句结果使用 `0`，任务结束时通过空文本事件返回整个连接的计费时长。
 
 ### 6.5 服务端TTS合成完成事件通知
 
@@ -169,4 +171,4 @@
   "message": "错误描述",
   "data": null
 }
-``` 
+```
