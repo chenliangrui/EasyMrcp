@@ -45,6 +45,8 @@ import java.util.concurrent.*;
 public class ProcessorCreator {
     private static final Logger log = LoggerFactory.getLogger(ProcessorCreator.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
+    @Value("${mrcp.asrMode}")
+    String asrMode;
     @Value("${mrcp.ttsMode}")
     String ttsMode;
     
@@ -76,13 +78,25 @@ public class ProcessorCreator {
     MrcpManage mrcpManage;
 
     public AsrHandler getAsrHandler(String selectedAsrMode) {
-        AsrHandler asrHandler = createAsrHandler(selectedAsrMode);
-        if (asrHandler != null) {
-            asrHandler.setAsrEngine(selectedAsrMode);
-            asrHandler.setRtpManager(rtpManager);
-            asrHandler.setReorderWindowPackets(rtpAsrProperties.getReorderWindowPackets());
-            asrHandler.setMaxConsecutiveLossFill(rtpAsrProperties.getMaxConsecutiveLossFill());
+        String effectiveAsrMode = selectedAsrMode;
+        if (effectiveAsrMode == null || effectiveAsrMode.trim().isEmpty()) {
+            effectiveAsrMode = asrMode;
         }
+
+        if (effectiveAsrMode == null || effectiveAsrMode.trim().isEmpty()) {
+            throw new IllegalArgumentException("ASR mode is not configured");
+        }
+
+        effectiveAsrMode = effectiveAsrMode.trim();
+        AsrHandler asrHandler = createAsrHandler(effectiveAsrMode);
+        if (asrHandler == null) {
+            throw new IllegalArgumentException("Unknown ASR mode: " + effectiveAsrMode);
+        }
+
+        asrHandler.setAsrEngine(effectiveAsrMode);
+        asrHandler.setRtpManager(rtpManager);
+        asrHandler.setReorderWindowPackets(rtpAsrProperties.getReorderWindowPackets());
+        asrHandler.setMaxConsecutiveLossFill(rtpAsrProperties.getMaxConsecutiveLossFill());
         return asrHandler;
     }
     

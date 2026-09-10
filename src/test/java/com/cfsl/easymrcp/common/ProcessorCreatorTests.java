@@ -20,6 +20,40 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class ProcessorCreatorTests {
 
     @Test
+    void getAsrHandler_shouldUseConfiguredModeWhenClientDoesNotSelectOne() {
+        ProcessorCreator processorCreator = new ProcessorCreator();
+        ExampleAsrConfig exampleAsrConfig = new ExampleAsrConfig();
+        RtpAsrProperties rtpAsrProperties = new RtpAsrProperties();
+
+        ReflectionTestUtils.setField(processorCreator, "asrMode", EMConstant.EXAMPLE_ASR);
+        ReflectionTestUtils.setField(processorCreator, "exampleAsrConfig", exampleAsrConfig);
+        ReflectionTestUtils.setField(processorCreator, "rtpAsrProperties", rtpAsrProperties);
+        ReflectionTestUtils.setField(processorCreator, "rtpManager", new RtpManager());
+
+        AsrHandler asrHandler = processorCreator.getAsrHandler(null);
+
+        assertNotNull(asrHandler);
+        assertEquals(EMConstant.EXAMPLE_ASR, asrHandler.getAsrEngine());
+    }
+
+    @Test
+    void getAsrHandler_shouldPreferClientSelectedModeOverConfiguredMode() {
+        ProcessorCreator processorCreator = new ProcessorCreator();
+        ExampleAsrConfig exampleAsrConfig = new ExampleAsrConfig();
+        RtpAsrProperties rtpAsrProperties = new RtpAsrProperties();
+
+        ReflectionTestUtils.setField(processorCreator, "asrMode", EMConstant.ALIYUN_FUNASR);
+        ReflectionTestUtils.setField(processorCreator, "exampleAsrConfig", exampleAsrConfig);
+        ReflectionTestUtils.setField(processorCreator, "rtpAsrProperties", rtpAsrProperties);
+        ReflectionTestUtils.setField(processorCreator, "rtpManager", new RtpManager());
+
+        AsrHandler asrHandler = processorCreator.getAsrHandler(EMConstant.EXAMPLE_ASR);
+
+        assertNotNull(asrHandler);
+        assertEquals(EMConstant.EXAMPLE_ASR, asrHandler.getAsrEngine());
+    }
+
+    @Test
     void getAsrHandler_shouldApplyGlobalRtpAsrProperties() {
         ProcessorCreator processorCreator = new ProcessorCreator();
         ExampleAsrConfig exampleAsrConfig = new ExampleAsrConfig();
